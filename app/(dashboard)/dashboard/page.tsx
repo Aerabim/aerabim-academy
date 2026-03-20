@@ -21,7 +21,7 @@ export default async function DashboardPage() {
   const firstName = fullName.split(' ')[0];
 
   return (
-    <div className="px-6 lg:px-9 py-7 max-w-[1320px] space-y-7">
+    <div className="w-full px-6 lg:px-9 py-7 space-y-7">
       <div className="animate-fadeIn">
         <WelcomeSection firstName={firstName} />
       </div>

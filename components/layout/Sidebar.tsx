@@ -165,7 +165,7 @@ export function Sidebar({ user, open, onClose }: SidebarProps) {
       <aside
         className={cn(
           'fixed top-0 left-0 z-40 h-full w-[260px] bg-surface-1 border-r border-border-subtle',
-          'flex flex-col transition-transform duration-200',
+          'flex flex-col transition-transform duration-200 shrink-0',
           'lg:translate-x-0 lg:static lg:z-auto',
           open ? 'translate-x-0' : '-translate-x-full',
         )}

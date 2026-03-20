@@ -27,7 +27,7 @@ export function DashboardShell({ user, children }: DashboardShellProps) {
           onMenuToggle={() => setSidebarOpen((o) => !o)}
         />
 
-        <main className="flex-1 overflow-y-auto">
+        <main className="flex-1 overflow-y-auto w-full">
           {children}
         </main>
       </div>

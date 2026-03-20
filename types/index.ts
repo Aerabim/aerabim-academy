@@ -196,3 +196,84 @@ export interface StatCardData {
   color: AccentColor;
   change: string;
 }
+
+// ── Fase 2: Catalogo & Contenuti Types ──────────────
+
+export type AreaCode = 'SW' | 'NL' | 'OB' | 'PG' | 'AI';
+
+export type LevelCode = 'L1' | 'L2' | 'L3';
+
+/** Extended lesson type — includes 'esercitazione' for UI display (not in DB schema yet) */
+export type LessonType = 'video' | 'quiz' | 'material' | 'esercitazione';
+
+export interface InstructorInfo {
+  name: string;
+  role: string;
+  initials: string;
+}
+
+/** Course with computed/display fields for catalog and detail pages */
+export interface CourseWithMeta {
+  id: string;
+  slug: string;
+  title: string;
+  description: string;
+  area: AreaCode;
+  level: LevelCode;
+  priceSingle: number;
+  isFree: boolean;
+  durationMin: number;
+  rating: number;
+  enrolledCount: number;
+  moduleCount: number;
+  lessonCount: number;
+  updatedAt: string;
+  languages: string[];
+  instructor: InstructorInfo;
+  emoji: string;
+}
+
+export interface ModuleWithLessons {
+  id: string;
+  courseId: string;
+  title: string;
+  orderNum: number;
+  lessons: LessonDisplay[];
+}
+
+export interface LessonDisplay {
+  id: string;
+  moduleId: string;
+  title: string;
+  description: string;
+  orderNum: number;
+  type: LessonType;
+  durationSec: number | null;
+  isPreview: boolean;
+  status: 'completed' | 'active' | 'locked';
+}
+
+export interface CourseMaterial {
+  title: string;
+  format: string;
+  sizeLabel: string;
+}
+
+export interface EnrolledCourse {
+  courseId: string;
+  slug: string;
+  title: string;
+  area: AreaCode;
+  emoji: string;
+  currentModule: string;
+  progress: number;
+  isCompleted: boolean;
+}
+
+export interface CertificateDisplay {
+  id: string;
+  courseName: string;
+  issuedAt: string;
+  verifyCode: string;
+  emoji: string;
+}

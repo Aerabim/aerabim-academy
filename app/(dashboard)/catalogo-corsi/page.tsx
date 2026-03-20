@@ -1,12 +1,14 @@
+import { CatalogHero } from '@/components/corso/CatalogHero';
+import { CatalogBrowser } from '@/components/corso/CatalogBrowser';
+import { PLACEHOLDER_COURSES, FEATURED_COURSE_SLUG } from '@/lib/placeholder-data';
+
 export default function CatalogoCorsiPage() {
+  const featured = PLACEHOLDER_COURSES.find((c) => c.slug === FEATURED_COURSE_SLUG);
+
   return (
-    <div className="px-6 lg:px-9 py-7">
-      <h1 className="font-heading text-2xl font-bold text-text-primary">
-        Catalogo <span className="gradient-text-cyan">Corsi</span>
-      </h1>
-      <p className="mt-2 text-text-secondary text-sm">
-        12 corsi disponibili in 5 aree tematiche. In arrivo nella Fase 2.
-      </p>
+    <div className="w-full px-6 lg:px-9 py-7 space-y-8">
+      {featured && <CatalogHero course={featured} />}
+      <CatalogBrowser courses={PLACEHOLDER_COURSES} />
     </div>
   );
 }

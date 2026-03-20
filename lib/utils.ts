@@ -18,3 +18,24 @@ export function getInitials(fullName: string): string {
 export function cn(...classes: (string | undefined | false | null)[]): string {
   return classes.filter(Boolean).join(' ');
 }
+
+/**
+ * Formats a price in cents to EUR display string.
+ * 8900 → "89,00 €", 0 → "Gratuito"
+ */
+export function formatPrice(cents: number): string {
+  if (cents === 0) return 'Gratuito';
+  const euros = (cents / 100).toFixed(2).replace('.', ',');
+  return `${euros} €`;
+}
+
+/**
+ * Formats minutes to a human-readable duration.
+ * 180 → "3h", 90 → "1h 30min", 45 → "45min"
+ */
+export function formatDuration(minutes: number): string {
+  if (minutes < 60) return `${minutes}min`;
+  const h = Math.floor(minutes / 60);
+  const m = minutes % 60;
+  return m === 0 ? `${h}h` : `${h}h ${m}min`;
+}
