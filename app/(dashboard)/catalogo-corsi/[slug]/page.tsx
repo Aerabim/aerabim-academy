@@ -1,5 +1,6 @@
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
+import { createServerClient } from '@/lib/supabase/server';
 import { Badge } from '@/components/ui/Badge';
 import { VideoPlayerPlaceholder } from '@/components/corso/VideoPlayerPlaceholder';
 import { LessonList } from '@/components/corso/LessonList';
@@ -15,11 +16,38 @@ import {
 
 interface PageProps {
   params: { slug: string };
+  searchParams: { success?: string; canceled?: string };
 }
 
-export default function CourseDetailPage({ params }: PageProps) {
+export default async function CourseDetailPage({ params, searchParams }: PageProps) {
   const course = PLACEHOLDER_COURSES.find((c) => c.slug === params.slug);
   if (!course) notFound();
+
+  // Check enrollment status
+  let isEnrolled = false;
+  let isAuthenticated = false;
+
+  try {
+    const supabase = createServerClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    isAuthenticated = !!user;
+
+    if (user) {
+      // RLS policy allows users to read their own enrollments
+      const { data: enrollment } = await supabase
+        .from('enrollments')
+        .select('id, expires_at')
+        .eq('user_id', user.id)
+        .eq('course_id', course.id)
+        .maybeSingle() as { data: { id: string; expires_at: string | null } | null };
+
+      if (enrollment) {
+        isEnrolled = !enrollment.expires_at || new Date(enrollment.expires_at) > new Date();
+      }
+    }
+  } catch {
+    // DB tables may not exist yet — default to not enrolled
+  }
 
   const area = AREA_CONFIG[course.area];
   const modules = PLACEHOLDER_MODULES[course.slug] || [];
@@ -28,6 +56,20 @@ export default function CourseDetailPage({ params }: PageProps) {
 
   return (
     <div className="w-full px-6 lg:px-9 py-7">
+      {/* Success banner */}
+      {searchParams.success === 'true' && (
+        <div className="mb-5 px-4 py-3 rounded-md bg-accent-emerald/10 border border-accent-emerald/20 text-accent-emerald text-[0.82rem] font-medium">
+          Acquisto completato! Ora puoi accedere al corso.
+        </div>
+      )}
+
+      {/* Canceled banner */}
+      {searchParams.canceled === 'true' && (
+        <div className="mb-5 px-4 py-3 rounded-md bg-accent-amber/10 border border-accent-amber/20 text-accent-amber text-[0.82rem] font-medium">
+          Acquisto annullato. Puoi riprovare quando vuoi.
+        </div>
+      )}
+
       {/* Back link */}
       <Link
         href="/catalogo-corsi"
@@ -92,6 +134,8 @@ export default function CourseDetailPage({ params }: PageProps) {
           course={course}
           materials={materials}
           objectives={objectives}
+          isEnrolled={isEnrolled}
+          isAuthenticated={isAuthenticated}
         />
       </div>
     </div>

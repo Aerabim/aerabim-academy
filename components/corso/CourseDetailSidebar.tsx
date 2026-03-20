@@ -1,10 +1,13 @@
 import { Card } from '@/components/ui/Card';
+import { PurchaseCard } from '@/components/corso/PurchaseCard';
 import type { CourseWithMeta, CourseMaterial } from '@/types';
 
 interface CourseDetailSidebarProps {
   course: CourseWithMeta;
   materials: CourseMaterial[];
   objectives: string[];
+  isEnrolled: boolean;
+  isAuthenticated: boolean;
 }
 
 const FORMAT_COLORS: Record<string, string> = {
@@ -14,9 +17,19 @@ const FORMAT_COLORS: Record<string, string> = {
   DWG: 'bg-accent-amber/15 text-accent-amber',
 };
 
-export function CourseDetailSidebar({ course, materials, objectives }: CourseDetailSidebarProps) {
+export function CourseDetailSidebar({ course, materials, objectives, isEnrolled, isAuthenticated }: CourseDetailSidebarProps) {
   return (
     <aside className="space-y-5">
+      {/* Purchase CTA */}
+      <PurchaseCard
+        courseId={course.id}
+        courseSlug={course.slug}
+        priceSingle={course.priceSingle}
+        isFree={course.isFree}
+        isEnrolled={isEnrolled}
+        isAuthenticated={isAuthenticated}
+      />
+
       {/* Instructor */}
       <Card className="p-5">
         <div className="flex items-center gap-3 mb-1">

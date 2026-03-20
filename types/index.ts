@@ -277,3 +277,19 @@ export interface CertificateDisplay {
   verifyCode: string;
   emoji: string;
 }
+
+// ── Fase 3: Checkout API Types ──────────────────────
+
+export interface CheckoutRequest {
+  courseId: string;
+  courseSlug: string;
+  type: 'single' | 'pro_subscription' | 'free';
+}
+
+export interface CheckoutResponse {
+  url: string;
+}
+
+export interface ApiError {
+  error: string;
+}
