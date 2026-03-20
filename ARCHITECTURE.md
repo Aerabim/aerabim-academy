@@ -1,19 +1,22 @@
-# AerACADEMY — Architecture Reference
+# ARCHITECTURE.md — AerACADEMY
 
-> Leggi questo file all'inizio di ogni sessione prima di scrivere qualsiasi codice.
-> Versione 1.0 — Marzo 2026 — AERABIM S.R.L.
+> Leggi questo file all'inizio di ogni sessione insieme a CLAUDE.md.
+> Versione: 1.1 | Aggiornato: Marzo 2026 | AERABIM S.R.L.
 
 ---
 
 ## 1. Contesto
 
 AerACADEMY è la piattaforma e-learning di AERABIM per la formazione professionale BIM/AEC.
-È un'applicazione Next.js separata da Observe (observe.aerabim.it) ma condivide lo stesso progetto Supabase.
+Si rivolge a professionisti tecnici e Pubblica Amministrazione italiani.
+È un'applicazione Next.js **indipendente** da Observe (`observe.aerabim.it`) con il proprio progetto Supabase dedicato.
 
-- **URL produzione:** academy.aerabim.it
-- **Repo:** github.com/aerabim/aeracademy
-- **Deploy:** Vercel (progetto separato da Observe)
-- **Supabase:** stesso progetto di Observe → Single Sign-On automatico tra le due piattaforme
+- **URL produzione:** `academy.aerabim.it`
+- **Repo:** `github.com/Aerabim/aerabim-academy`
+- **Deploy:** Vercel — team AERABIM
+- **Supabase:** progetto dedicato AerACADEMY (separato da Observe)
+- **DNS/CDN:** Cloudflare — account `stefanorusso392@gmail.com`
+- **Account operativo:** `info@aerabim.it`
 
 ---
 
@@ -22,65 +25,67 @@ AerACADEMY è la piattaforma e-learning di AERABIM per la formazione professiona
 | Layer | Tecnologia | Note |
 |---|---|---|
 | Frontend | Next.js 14 (App Router) | TypeScript, Server Components |
-| Styling | Tailwind CSS 3.x | Palette colori AERABIM (vedi sotto) |
-| Database + Auth | Supabase | Stesso progetto di Observe |
-| Pagamenti | Stripe | Abbonamenti + acquisti singoli |
-| Video | Mux | Streaming adattivo HLS |
+| Styling | Tailwind CSS 3.x | Palette colori AERABIM (vedi sezione 4) |
+| Database + Auth | Supabase | Progetto dedicato AerACADEMY |
 | Deploy | Vercel | CI/CD da GitHub |
-| Email | Resend | Transazionali e marketing |
-| AI Tutor | Claude API | claude-sonnet-4-20250514 |
+| DNS/CDN | Cloudflare | Account stefanorusso392@gmail.com |
+| Pagamenti | Stripe | Abbonamenti + acquisti singoli — intestato a AERABIM S.R.L. |
+| Email | Resend | Transazionali e marketing — mittente @aerabim.it |
+| Video | Mux | Streaming adattivo HLS |
+| AI Tutor | Claude API | `claude-sonnet-4-20250514` |
 
 ---
 
-## 3. Regole Fondamentali (NON derogabili)
+## 3. Regole Specifiche del Progetto
+
+> Regole non derogabili per AerACADEMY, in aggiunta alle regole generali di `CLAUDE.md`.
 
 1. Usa **sempre TypeScript** con tipi espliciti. Mai `any`.
 2. Usa **sempre Server Components** dove possibile. `"use client"` solo se strettamente necessario.
-3. Gestisci **sempre gli errori** con try/catch e mostra messaggi chiari all'utente.
-4. **Non hardcodare mai** credenziali o URL. Usa sempre `process.env.*`
-5. **Supabase:** usa `createServerClient()` nei Server Components, `createBrowserClient()` nei Client Components.
+3. Gestisci **sempre gli errori** con `try/catch` e mostra messaggi leggibili all'utente.
+4. **Non hardcodare mai** credenziali o URL. Usa sempre `process.env.*`.
+5. **Supabase:** usa `createServerClient()` nei Server Components e API routes, `createBrowserClient()` nei Client Components.
 6. **Stripe:** tutta la logica di pagamento solo in API routes server-side. Mai client-side.
-7. **Mux:** usa `mux_playback_id` per lo streaming, `mux_asset_id` solo per gestione interna.
-8. Prima di creare un nuovo componente, verifica se esiste già in `components/`.
-9. Ogni pagina che richiede enrollment deve verificare l'accesso **server-side**, non solo client-side.
-10. Il webhook Stripe è l'unico punto in cui si scrive su `enrollments` e `subscriptions`.
+7. **Mux:** usa `mux_playback_id` per lo streaming. `mux_asset_id` solo per gestione interna — non esporre al client.
+8. **SUPABASE_SERVICE_ROLE_KEY:** solo server-side. Non esporre mai al client.
+9. Prima di creare un nuovo componente, verifica se esiste già in `components/`.
+10. Ogni pagina che richiede enrollment deve verificare l'accesso **server-side**, non solo client-side.
+11. Il webhook Stripe (`/api/stripe/webhook`) è l'**unico punto** in cui si scrive su `enrollments` e `subscriptions`.
 
 ---
 
 ## 4. Palette Colori AERABIM
 
-```
-BLU SCURO (header/footer): #040B11
-BLU PRINCIPALE:             #304057
-GRIGIO SCURO:               #58758C
-GRIGIO CHIARO:              #9DB1BF
-BIANCO:                     #FFFFFF
-NERO:                       #000000
-```
-
-Usare questi valori in `tailwind.config.ts` come colori custom:
 ```ts
+// tailwind.config.ts
 colors: {
   brand: {
-    dark:    '#040B11',
-    blue:    '#304057',
-    gray:    '#58758C',
-    light:   '#9DB1BF',
+    dark:  '#040B11',   // header, footer, sfondi principali
+    blue:  '#304057',   // elementi primari
+    gray:  '#58758C',   // testi secondari, bordi
+    light: '#9DB1BF',   // testi disabilitati, placeholder
   }
 }
 ```
+
+Accenti:
+- Cyan `#4ECDC4` — CTA principali, progress, elementi interattivi
+- Amber `#F0A500` — badge, warning, highlight
+
+Non usare colori arbitrari. Usa sempre i token definiti sopra.
 
 ---
 
 ## 5. Struttura Cartelle
 
 ```
-aeracademy/
+aerabim-academy/
 ├── app/
 │   ├── (auth)/                   # Pagine pubbliche autenticazione
 │   │   ├── login/page.tsx
 │   │   ├── register/page.tsx
-│   │   └── forgot-password/page.tsx
+│   │   ├── forgot-password/page.tsx
+│   │   └── auth/callback/route.ts
 │   ├── (public)/                 # Pagine pubbliche marketing
 │   │   ├── page.tsx              # Homepage / Landing
 │   │   ├── corsi/page.tsx        # Catalogo corsi
@@ -93,7 +98,7 @@ aeracademy/
 │   │   ├── learn/[courseId]/[lessonId]/page.tsx
 │   │   ├── profilo/page.tsx
 │   │   └── certificati/page.tsx
-│   ├── (admin)/                  # Backoffice (solo ruolo admin)
+│   ├── (admin)/                  # Backoffice — solo ruolo admin
 │   │   ├── layout.tsx
 │   │   ├── admin/corsi/page.tsx
 │   │   ├── admin/utenti/page.tsx
@@ -117,14 +122,14 @@ aeracademy/
 ├── types/
 │   └── index.ts                  # Tutti i tipi TypeScript globali
 ├── middleware.ts                 # Protezione route autenticate
-└── .env.local                    # Variabili d'ambiente (NON committare)
+└── .env.local                    # NON committare mai
 ```
 
 ---
 
 ## 6. Schema Database Supabase
 
-> Tutte le tabelle vanno aggiunte al progetto Supabase esistente senza toccare le tabelle di Observe.
+> Schema principale: `public` — RLS abilitata su tutte le tabelle.
 
 ### courses
 ```sql
@@ -135,7 +140,7 @@ CREATE TABLE courses (
   description   TEXT,
   area          TEXT NOT NULL,        -- 'OB' | 'SW' | 'NL' | 'PG' | 'AI'
   level         TEXT NOT NULL,        -- 'L1' | 'L2' | 'L3'
-  price_single  INTEGER DEFAULT 0,    -- centesimi EUR (9900 = 99€)
+  price_single  INTEGER DEFAULT 0,    -- centesimi EUR (4900 = 49€)
   is_free       BOOLEAN DEFAULT FALSE,
   is_published  BOOLEAN DEFAULT FALSE,
   thumbnail_url TEXT,
@@ -250,20 +255,23 @@ CREATE TABLE certificates (
 ```
 
 ### Row Level Security
-Abilitare RLS su tutte le tabelle. Regole:
-- `courses` e `lessons` con `is_published=true` → lettura pubblica (anche non autenticati)
-- `lessons` con `is_preview=false` → solo utenti con enrollment attivo o subscription Pro attiva
-- `enrollments`, `progress`, `subscriptions`, `certificates` → ogni utente vede solo i propri record
-- Scrittura su `enrollments` e `subscriptions` → solo `service_role` (da API route server-side)
+
+| Tabella | Lettura | Scrittura |
+|---|---|---|
+| `courses`, `lessons` (`is_published=true`) | Pubblica (anche non autenticati) | Solo `service_role` |
+| `lessons` (`is_preview=false`) | Solo utenti con enrollment attivo o subscription Pro | Solo `service_role` |
+| `enrollments` | Solo utente proprietario | Solo `service_role` (webhook Stripe) |
+| `subscriptions` | Solo utente proprietario | Solo `service_role` (webhook Stripe) |
+| `progress`, `certificates`, `quiz_attempts` | Solo utente proprietario | Utente proprietario (progress) / `service_role` (certificates) |
 
 ---
 
 ## 7. Variabili d'Ambiente
 
-File `.env.local` (non committare mai nel repo):
+File `.env.local` — non committare mai nel repo.
 
 ```env
-# SUPABASE — stesse credenziali di Observe
+# SUPABASE
 NEXT_PUBLIC_SUPABASE_URL=https://xxxx.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJ...
 SUPABASE_SERVICE_ROLE_KEY=eyJ...        # solo server-side, mai esporre al client
@@ -282,7 +290,7 @@ MUX_WEBHOOK_SECRET=...
 # CLAUDE AI (AI Tutor)
 ANTHROPIC_API_KEY=sk-ant-...
 
-# RESEND (email transazionali)
+# RESEND
 RESEND_API_KEY=re_...
 
 # APP
@@ -296,7 +304,7 @@ NEXT_PUBLIC_APP_URL=https://academy.aerabim.it
 ### Acquisto corso singolo
 1. Utente clicca "Acquista" → API route crea Stripe Checkout Session (`mode: 'payment'`)
 2. Stripe redirect → utente paga → Stripe invia webhook `checkout.session.completed`
-3. Webhook handler verifica signature → inserisce record in `enrollments` con `expires_at = NOW() + 24 mesi`
+3. Webhook verifica signature → inserisce record in `enrollments` con `expires_at = NOW() + 24 mesi`
 4. Redirect utente a `/learn/{courseId}`
 
 ### Abbonamento Pro
@@ -410,8 +418,8 @@ export const config = {
 | Fase | Settimane | Obiettivo | Verifica |
 |---|---|---|---|
 | 0 — Setup | 1 | Repo GitHub, Vercel, env, schema Supabase, account Stripe + Mux | Deploy vuoto su academy.aerabim.it |
-| 1 — Auth & Shell | 1–2 | Login/Register SSO, layout, homepage, middleware | Utente si registra e accede alla dashboard |
-| 2 — Catalogo | 2–3 | Pagine /corsi e /corsi/[slug], CourseCard, primo corso nel DB | Catalogo navigabile pubblicamente |
+| 1 — Auth & Shell | 1–2 | Login/Register, layout dashboard, middleware | ✅ Auth funzionante — **in corso: dashboard shell** |
+| 2 — Catalogo | 2–3 | Pagine `/corsi` e `/corsi/[slug]`, CourseCard, primo corso nel DB | Catalogo navigabile pubblicamente |
 | 3 — Pagamenti | 3–4 | Stripe checkout, webhook, enrollment automatico | Acquisto reale funzionante in modalità test |
 | 4 — Player | 4–5 | MuxPlayer, tracciamento progress, navigazione lezioni | Utente acquista e guarda video |
 | 5 — Quiz & Certificati | 5–6 | Quiz, score, generazione PDF certificato | Utente completa corso e scarica certificato |
@@ -421,7 +429,9 @@ export const config = {
 
 ## 11. Checklist Pre-Go Live
 
-- [ ] Schema Supabase applicato e RLS verificato su ogni tabella
+- [ ] Schema Supabase applicato e RLS verificata su ogni tabella
+- [ ] Variabili d'ambiente configurate su Vercel (production)
+- [ ] Dominio `academy.aerabim.it` configurato su Cloudflare + SSL attivo su Vercel
 - [ ] Stripe in modalità live, webhook configurato con endpoint corretto
 - [ ] Mux: almeno 1 video caricato e playback testato
 - [ ] Email transazionali funzionanti (conferma acquisto, benvenuto)
@@ -430,8 +440,7 @@ export const config = {
 - [ ] Test abbonamento Pro end-to-end
 - [ ] Test generazione e download certificato
 - [ ] Lighthouse score > 85
-- [ ] Dominio academy.aerabim.it con SSL su Vercel
 
 ---
 
-*AERABIM S.R.L. — Documento ad uso interno — v1.0 — Marzo 2026*
+*AERABIM S.R.L. — Documento ad uso interno — v1.1 — Marzo 2026*

@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx create-next-app@14 . --typescript --tailwind --eslint --app --src-dir=false --import-alias=\"@/*\" --use-npm)",
+      "Bash(npx create-next-app@14 aerabim-academy-temp --typescript --tailwind --eslint --app --no-src-dir --import-alias=\"@/*\" --use-npm)",
+      "Bash(npx next build)",
+      "Bash(npm install @supabase/supabase-js @supabase/ssr)",
+      "Bash(npx next dev -p 3000)",
+      "Bash(npx kill-port 3000)",
+      "Bash(taskkill //F //FI \"IMAGENAME eq node.exe\" //FI \"WINDOWTITLE eq *next*\")",
+      "Bash(npm ls next)",
+      "Bash(ls -la /c/Dev/aerabim-academy/*.*)",
+      "Bash(npm run:*)"
+    ]
+  }
+}

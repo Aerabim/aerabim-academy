@@ -1,0 +1,198 @@
+// Tipi TypeScript globali per AerACADEMY
+// Questo file verrà popolato con i tipi generati da Supabase CLI (npx supabase gen types)
+
+export type Database = {
+  public: {
+    Tables: {
+      courses: {
+        Row: {
+          id: string;
+          slug: string;
+          title: string;
+          description: string | null;
+          area: 'OB' | 'SW' | 'NL' | 'PG' | 'AI';
+          level: 'L1' | 'L2' | 'L3';
+          price_single: number;
+          is_free: boolean;
+          is_published: boolean;
+          thumbnail_url: string | null;
+          duration_min: number | null;
+          stripe_price_id: string | null;
+          created_at: string;
+        };
+        Insert: Omit<Database['public']['Tables']['courses']['Row'], 'id' | 'created_at'> & {
+          id?: string;
+          created_at?: string;
+        };
+        Update: Partial<Database['public']['Tables']['courses']['Insert']>;
+      };
+      modules: {
+        Row: {
+          id: string;
+          course_id: string;
+          title: string;
+          order_num: number;
+          created_at: string;
+        };
+        Insert: Omit<Database['public']['Tables']['modules']['Row'], 'id' | 'created_at'> & {
+          id?: string;
+          created_at?: string;
+        };
+        Update: Partial<Database['public']['Tables']['modules']['Insert']>;
+      };
+      lessons: {
+        Row: {
+          id: string;
+          module_id: string;
+          title: string;
+          order_num: number;
+          type: 'video' | 'quiz' | 'material';
+          mux_playback_id: string | null;
+          mux_asset_id: string | null;
+          duration_sec: number | null;
+          is_preview: boolean;
+          created_at: string;
+        };
+        Insert: Omit<Database['public']['Tables']['lessons']['Row'], 'id' | 'created_at'> & {
+          id?: string;
+          created_at?: string;
+        };
+        Update: Partial<Database['public']['Tables']['lessons']['Insert']>;
+      };
+      enrollments: {
+        Row: {
+          id: string;
+          user_id: string;
+          course_id: string;
+          access_type: 'single' | 'pro_subscription' | 'team' | 'free';
+          stripe_payment_intent_id: string | null;
+          expires_at: string | null;
+          created_at: string;
+        };
+        Insert: Omit<Database['public']['Tables']['enrollments']['Row'], 'id' | 'created_at'> & {
+          id?: string;
+          created_at?: string;
+        };
+        Update: Partial<Database['public']['Tables']['enrollments']['Insert']>;
+      };
+      progress: {
+        Row: {
+          id: string;
+          user_id: string;
+          lesson_id: string;
+          completed: boolean;
+          watch_time_sec: number;
+          completed_at: string | null;
+        };
+        Insert: Omit<Database['public']['Tables']['progress']['Row'], 'id'> & {
+          id?: string;
+        };
+        Update: Partial<Database['public']['Tables']['progress']['Insert']>;
+      };
+      subscriptions: {
+        Row: {
+          id: string;
+          user_id: string;
+          stripe_subscription_id: string;
+          stripe_customer_id: string;
+          status: 'active' | 'canceled' | 'past_due';
+          plan: 'pro' | 'team' | 'pa';
+          current_period_end: string | null;
+          created_at: string;
+        };
+        Insert: Omit<Database['public']['Tables']['subscriptions']['Row'], 'id' | 'created_at'> & {
+          id?: string;
+          created_at?: string;
+        };
+        Update: Partial<Database['public']['Tables']['subscriptions']['Insert']>;
+      };
+      quiz_questions: {
+        Row: {
+          id: string;
+          lesson_id: string;
+          question: string;
+          options: { text: string; is_correct: boolean }[];
+          order_num: number | null;
+        };
+        Insert: Omit<Database['public']['Tables']['quiz_questions']['Row'], 'id'> & {
+          id?: string;
+        };
+        Update: Partial<Database['public']['Tables']['quiz_questions']['Insert']>;
+      };
+      quiz_attempts: {
+        Row: {
+          id: string;
+          user_id: string;
+          lesson_id: string;
+          answers: Record<string, unknown>;
+          score: number | null;
+          passed: boolean | null;
+          created_at: string;
+        };
+        Insert: Omit<Database['public']['Tables']['quiz_attempts']['Row'], 'id' | 'created_at'> & {
+          id?: string;
+          created_at?: string;
+        };
+        Update: Partial<Database['public']['Tables']['quiz_attempts']['Insert']>;
+      };
+      certificates: {
+        Row: {
+          id: string;
+          user_id: string;
+          course_id: string;
+          verify_code: string;
+          issued_at: string;
+        };
+        Insert: Omit<Database['public']['Tables']['certificates']['Row'], 'id' | 'issued_at'> & {
+          id?: string;
+          issued_at?: string;
+        };
+        Update: Partial<Database['public']['Tables']['certificates']['Insert']>;
+      };
+    };
+    Views: Record<string, never>;
+    Functions: Record<string, never>;
+    Enums: Record<string, never>;
+  };
+};
+
+// Helper types per uso rapido
+export type Course = Database['public']['Tables']['courses']['Row'];
+export type Module = Database['public']['Tables']['modules']['Row'];
+export type Lesson = Database['public']['Tables']['lessons']['Row'];
+export type Enrollment = Database['public']['Tables']['enrollments']['Row'];
+export type Progress = Database['public']['Tables']['progress']['Row'];
+export type Subscription = Database['public']['Tables']['subscriptions']['Row'];
+export type QuizQuestion = Database['public']['Tables']['quiz_questions']['Row'];
+export type QuizAttempt = Database['public']['Tables']['quiz_attempts']['Row'];
+export type Certificate = Database['public']['Tables']['certificates']['Row'];
+
+// ── Dashboard UI Types ──────────────────────────────
+
+export interface NavItem {
+  href: string;
+  label: string;
+  iconKey: string;
+  badge?: string;
+}
+
+export interface NavSection {
+  title: string;
+  items: NavItem[];
+}
+
+export interface DashboardUser {
+  fullName: string;
+  email: string;
+  initials: string;
+  plan: 'free' | 'pro' | 'team' | 'pa';
+}
+
+export type AccentColor = 'cyan' | 'amber' | 'rose' | 'emerald' | 'violet';
+
+export interface StatCardData {
+  label: string;
+  value: number;
+  color: AccentColor;
+  change: string;
+}
