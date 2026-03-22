@@ -39,3 +39,12 @@ export function formatDuration(minutes: number): string {
   const m = minutes % 60;
   return m === 0 ? `${h}h` : `${h}h ${m}min`;
 }
+
+/**
+ * Formats seconds to a human-readable duration.
+ * 900 → "15min", 5400 → "1h 30min"
+ */
+export function formatDurationSec(seconds: number): string {
+  const minutes = Math.round(seconds / 60);
+  return formatDuration(minutes);
+}

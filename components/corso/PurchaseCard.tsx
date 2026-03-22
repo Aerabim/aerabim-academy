@@ -69,7 +69,7 @@ export function PurchaseCard({
           <span className="font-heading text-[0.85rem] font-bold text-accent-emerald">Sei iscritto</span>
         </div>
         <Link
-          href={`/catalogo-corsi/${courseSlug}`}
+          href={`/learn/${courseId}`}
           className="block w-full text-center font-heading text-[0.82rem] font-bold bg-accent-cyan text-brand-dark py-2.5 rounded-md hover:brightness-110 transition-all"
         >
           Vai al corso

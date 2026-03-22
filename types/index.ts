@@ -49,13 +49,15 @@ export type Database = {
           type: 'video' | 'quiz' | 'material';
           mux_playback_id: string | null;
           mux_asset_id: string | null;
+          mux_status: 'pending' | 'processing' | 'ready' | 'errored';
           duration_sec: number | null;
           is_preview: boolean;
           created_at: string;
         };
-        Insert: Omit<Database['public']['Tables']['lessons']['Row'], 'id' | 'created_at'> & {
+        Insert: Omit<Database['public']['Tables']['lessons']['Row'], 'id' | 'created_at' | 'mux_status'> & {
           id?: string;
           created_at?: string;
+          mux_status?: 'pending' | 'processing' | 'ready' | 'errored';
         };
         Update: Partial<Database['public']['Tables']['lessons']['Insert']>;
       };
@@ -84,8 +86,13 @@ export type Database = {
           watch_time_sec: number;
           completed_at: string | null;
         };
-        Insert: Omit<Database['public']['Tables']['progress']['Row'], 'id'> & {
+        Insert: {
           id?: string;
+          user_id: string;
+          lesson_id: string;
+          completed?: boolean;
+          watch_time_sec?: number;
+          completed_at?: string | null;
         };
         Update: Partial<Database['public']['Tables']['progress']['Insert']>;
       };
@@ -149,6 +156,19 @@ export type Database = {
         };
         Update: Partial<Database['public']['Tables']['certificates']['Insert']>;
       };
+      profiles: {
+        Row: {
+          id: string;
+          role: 'student' | 'admin';
+          created_at: string;
+        };
+        Insert: {
+          id: string;
+          role?: 'student' | 'admin';
+          created_at?: string;
+        };
+        Update: Partial<Database['public']['Tables']['profiles']['Insert']>;
+      };
     };
     Views: Record<string, never>;
     Functions: Record<string, never>;
@@ -160,6 +180,8 @@ export type Database = {
 export type Course = Database['public']['Tables']['courses']['Row'];
 export type Module = Database['public']['Tables']['modules']['Row'];
 export type Lesson = Database['public']['Tables']['lessons']['Row'];
+export type Profile = Database['public']['Tables']['profiles']['Row'];
+export type MuxStatus = Lesson['mux_status'];
 export type Enrollment = Database['public']['Tables']['enrollments']['Row'];
 export type Progress = Database['public']['Tables']['progress']['Row'];
 export type Subscription = Database['public']['Tables']['subscriptions']['Row'];
@@ -292,4 +314,112 @@ export interface CheckoutResponse {
 
 export interface ApiError {
   error: string;
+}
+
+// ── Fase 4: Player & Progress Types ──────────────────
+
+/** Lesson enriched with user's progress from the DB */
+export interface LessonWithProgress {
+  id: string;
+  moduleId: string;
+  title: string;
+  orderNum: number;
+  type: LessonType;
+  muxPlaybackId: string | null;
+  durationSec: number | null;
+  isPreview: boolean;
+  completed: boolean;
+  watchTimeSec: number;
+}
+
+/** Module with lessons that include real progress status */
+export interface ModuleWithLessonsAndProgress {
+  id: string;
+  courseId: string;
+  title: string;
+  orderNum: number;
+  lessons: LessonWithProgress[];
+}
+
+/** Data fetched server-side for the learn/[courseId] overview page */
+export interface CourseLearnOverview {
+  course: Course;
+  modules: ModuleWithLessonsAndProgress[];
+  totalLessons: number;
+  completedLessons: number;
+  firstIncompleteLessonId: string | null;
+}
+
+/** Navigation context for prev/next lesson */
+export interface LessonNavigation {
+  prevLesson: { id: string; title: string } | null;
+  nextLesson: { id: string; title: string } | null;
+  currentIndex: number;
+  totalCount: number;
+}
+
+/** Full lesson data for the lesson page (server-side) */
+export interface LessonPageData {
+  lesson: LessonWithProgress;
+  moduleName: string;
+  courseName: string;
+  courseSlug: string;
+  navigation: LessonNavigation;
+  modules: ModuleWithLessonsAndProgress[];
+}
+
+/** Request body for POST /api/progress */
+export interface ProgressUpdateRequest {
+  lessonId: string;
+  completed?: boolean;
+  watchTimeSec?: number;
+}
+
+/** Response body for POST /api/progress */
+export interface ProgressUpdateResponse {
+  success: boolean;
+  allCompleted?: boolean;
+}
+
+// ── Fase 5: Quiz & Certificati Types ──────────────────
+
+/** Answer submitted by the user for a single quiz question */
+export interface QuizAnswer {
+  questionId: string;
+  selectedIndex: number;
+}
+
+/** Request body for POST /api/quiz/submit */
+export interface QuizSubmitRequest {
+  lessonId: string;
+  answers: QuizAnswer[];
+}
+
+/** Response body for POST /api/quiz/submit */
+export interface QuizSubmitResponse {
+  success: boolean;
+  score: number;
+  total: number;
+  passed: boolean;
+  correctAnswers: Record<string, number>;
+}
+
+/** Request body for POST /api/certificati/generate */
+export interface CertificateGenerateRequest {
+  courseId: string;
+}
+
+/** Response body for POST /api/certificati/generate */
+export interface CertificateGenerateResponse {
+  success: boolean;
+  certificateId: string;
+  verifyCode: string;
+}
+
+/** Question displayed to the user (options without is_correct) */
+export interface QuizQuestionDisplay {
+  id: string;
+  question: string;
+  options: string[];
+  orderNum: number | null;
 }

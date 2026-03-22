@@ -1,14 +1,77 @@
+import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { ProgressBar } from '@/components/ui/ProgressBar';
 import { AREA_CONFIG } from '@/lib/area-config';
+import { createServerClient } from '@/lib/supabase/server';
+import { computeCourseProgress } from '@/lib/learn/queries';
 import { PLACEHOLDER_ENROLLED } from '@/lib/placeholder-data';
+import type { AreaCode, EnrolledCourse } from '@/types';
 
-export default function IMieiCorsiPage() {
-  const inProgress = PLACEHOLDER_ENROLLED.filter((c) => !c.isCompleted);
-  const completed = PLACEHOLDER_ENROLLED.filter((c) => c.isCompleted);
+export default async function IMieiCorsiPage() {
+  let courses: EnrolledCourse[] = [];
+
+  try {
+    const supabase = createServerClient();
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) redirect('/login');
+
+    // Fetch real enrollments with course data
+    const { data: rawEnrollments } = await supabase
+      .from('enrollments')
+      .select('course_id, courses(id, slug, title, area)')
+      .eq('user_id', user.id);
+
+    interface EnrollmentWithCourse {
+      course_id: string;
+      courses: { id: string; slug: string; title: string; area: AreaCode } | null;
+    }
+
+    const enrollments = (rawEnrollments ?? []) as unknown as EnrollmentWithCourse[];
+
+    if (enrollments.length > 0) {
+      // Build enrolled courses with real progress
+      const coursesWithProgress = await Promise.all(
+        enrollments
+          .filter((e) => e.courses)
+          .map(async (enrollment) => {
+            const course = enrollment.courses!;
+
+            const progress = await computeCourseProgress(supabase, course.id, user.id);
+            const areaConfig = AREA_CONFIG[course.area];
+
+            const enrolled: EnrolledCourse = {
+              courseId: course.id,
+              slug: course.slug,
+              title: course.title,
+              area: course.area,
+              emoji: areaConfig?.emoji ?? '📚',
+              currentModule: `${progress.completed}/${progress.total} lezioni`,
+              progress: progress.percentage,
+              isCompleted: progress.percentage === 100,
+            };
+
+            return enrolled;
+          }),
+      );
+
+      courses = coursesWithProgress;
+    }
+  } catch {
+    // Fallback to placeholder data if DB is not available
+    courses = PLACEHOLDER_ENROLLED;
+  }
+
+  // If no real enrollments found, show placeholder
+  if (courses.length === 0) {
+    courses = PLACEHOLDER_ENROLLED;
+  }
+
+  const inProgress = courses.filter((c) => !c.isCompleted);
+  const completed = courses.filter((c) => c.isCompleted);
 
   return (
     <div className="w-full px-6 lg:px-9 py-7">
@@ -22,11 +85,11 @@ export default function IMieiCorsiPage() {
 
       {/* Course list */}
       <div className="mt-6 space-y-2.5">
-        {PLACEHOLDER_ENROLLED.map((course) => {
+        {courses.map((course) => {
           const area = AREA_CONFIG[course.area];
 
           return (
-            <Link key={course.courseId} href={`/catalogo-corsi/${course.slug}`}>
+            <Link key={course.courseId} href={`/learn/${course.courseId}`}>
               <Card
                 className={cn(
                   'flex items-center gap-4 p-4 hover:translate-x-[3px] transition-all cursor-pointer',
