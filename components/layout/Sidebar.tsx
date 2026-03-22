@@ -162,10 +162,15 @@ function buildSections(courseCount: number): SidebarNavSection[] {
 }
 
 const PLAN_LABELS: Record<string, string> = {
-  free: 'Piano Free',
-  pro: 'Piano Pro',
-  team: 'Piano Team',
-  pa: 'Piano PA',
+  free: 'Free',
+  pro: 'Pro',
+  team: 'Team',
+  pa: 'PA',
+};
+
+const ROLE_LABELS: Record<string, string> = {
+  admin: 'Admin',
+  student: 'Membro',
 };
 
 /* ── Component ── */
@@ -374,11 +379,16 @@ function UserMenu({
             <div className="text-[0.8rem] font-semibold text-text-primary truncate">
               {user.fullName}
             </div>
-            <div className="text-[0.67rem] text-accent-cyan font-semibold font-heading flex items-center gap-1 mt-0.5">
-              <svg width="10" height="10" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
-              </svg>
-              {PLAN_LABELS[user.plan] || 'Piano Free'}
+            <div className="flex items-center gap-2 mt-1">
+              <span className="text-[0.6rem] font-bold uppercase tracking-wide text-text-muted bg-surface-2 px-1.5 py-[1px] rounded">
+                {ROLE_LABELS[user.role] || 'Membro'}
+              </span>
+              <span className="text-[0.62rem] text-accent-cyan font-semibold font-heading flex items-center gap-1">
+                <svg width="10" height="10" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
+                </svg>
+                {PLAN_LABELS[user.plan] || 'Free'}
+              </span>
             </div>
           </div>
 
@@ -433,8 +443,11 @@ function UserMenu({
         {!collapsed && (
           <>
             <div className="overflow-hidden text-left flex-1">
-              <div className="text-[0.8rem] font-semibold text-text-primary truncate">
-                {user.fullName}
+              <div className="text-[0.72rem] font-bold text-text-primary uppercase tracking-wide leading-tight">
+                {ROLE_LABELS[user.role] || 'Membro'}
+              </div>
+              <div className="text-[0.62rem] text-accent-cyan font-semibold font-heading mt-0.5">
+                {PLAN_LABELS[user.plan] || 'Free'}
               </div>
             </div>
             <svg

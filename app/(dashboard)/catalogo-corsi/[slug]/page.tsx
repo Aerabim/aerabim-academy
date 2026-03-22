@@ -5,9 +5,12 @@ import { Badge } from '@/components/ui/Badge';
 import { VideoPlayerPlaceholder } from '@/components/corso/VideoPlayerPlaceholder';
 import { LessonList } from '@/components/corso/LessonList';
 import { CourseDetailSidebar } from '@/components/corso/CourseDetailSidebar';
+import { ReviewSection } from '@/components/reviews/ReviewSection';
+import { StarRatingDisplay } from '@/components/reviews/StarRating';
 import { AREA_CONFIG, LEVEL_LABELS } from '@/lib/area-config';
 import { formatDuration } from '@/lib/utils';
 import { getCourseBySlug, getCourseModulesWithLessons } from '@/lib/catalog/queries';
+import { getCourseReviews, getCourseReviewStats, getUserReview } from '@/lib/reviews/queries';
 
 interface PageProps {
   params: { slug: string };
@@ -24,10 +27,12 @@ export default async function CourseDetailPage({ params, searchParams }: PagePro
   // Check enrollment status
   let isEnrolled = false;
   let isAuthenticated = false;
+  let currentUserId: string | null = null;
 
   try {
     const { data: { user } } = await supabase.auth.getUser();
     isAuthenticated = !!user;
+    currentUserId = user?.id ?? null;
 
     if (user) {
       const { data: enrollment } = await supabase
@@ -45,8 +50,13 @@ export default async function CourseDetailPage({ params, searchParams }: PagePro
     // Default to not enrolled
   }
 
-  // Fetch modules + lessons
-  const modules = await getCourseModulesWithLessons(supabase, course.id);
+  // Fetch modules + lessons and reviews in parallel
+  const [modules, reviews, reviewStats, userReview] = await Promise.all([
+    getCourseModulesWithLessons(supabase, course.id),
+    getCourseReviews(supabase, course.id),
+    getCourseReviewStats(supabase, course.id),
+    currentUserId ? getUserReview(supabase, currentUserId, course.id) : Promise.resolve(null),
+  ]);
 
   const area = AREA_CONFIG[course.area];
 
@@ -97,6 +107,14 @@ export default async function CourseDetailPage({ params, searchParams }: PagePro
 
           {/* Meta row */}
           <div className="flex flex-wrap items-center gap-3 text-[0.72rem] text-text-muted mb-5">
+            {reviewStats.reviewCount > 0 && (
+              <>
+                <span className="inline-flex items-center gap-1">
+                  <StarRatingDisplay value={reviewStats.avgRating} count={reviewStats.reviewCount} size="sm" />
+                </span>
+                <span className="text-border-hover">·</span>
+              </>
+            )}
             {course.enrolledCount > 0 && (
               <>
                 <span>{course.enrolledCount} iscritti</span>
@@ -126,6 +144,16 @@ export default async function CourseDetailPage({ params, searchParams }: PagePro
               </p>
             </div>
           )}
+
+          {/* Reviews */}
+          <ReviewSection
+            courseId={course.id}
+            initialReviews={reviews}
+            initialStats={reviewStats}
+            userReview={userReview}
+            isEnrolled={isEnrolled}
+            currentUserId={currentUserId}
+          />
         </main>
 
         {/* Sidebar */}

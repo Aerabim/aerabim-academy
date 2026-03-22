@@ -24,6 +24,8 @@ interface CourseRow {
   is_published: boolean;
   duration_min: number | null;
   thumbnail_url: string | null;
+  avg_rating: number;
+  review_count: number;
   created_at: string;
 }
 
@@ -121,7 +123,8 @@ export async function getPublishedCourses(
       priceSingle: c.price_single,
       isFree: c.is_free,
       durationMin: c.duration_min ?? 0,
-      rating: 0,
+      rating: c.avg_rating ?? 0,
+      reviewCount: c.review_count ?? 0,
       enrolledCount: enrollCountMap.get(c.id) ?? 0,
       moduleCount: moduleCountMap.get(c.id) ?? 0,
       lessonCount: lessonCountMap.get(c.id) ?? 0,
@@ -181,7 +184,8 @@ export async function getCourseBySlug(
     priceSingle: c.price_single,
     isFree: c.is_free,
     durationMin: c.duration_min ?? 0,
-    rating: 0,
+    rating: c.avg_rating ?? 0,
+    reviewCount: c.review_count ?? 0,
     enrolledCount: enrolledCount ?? 0,
     moduleCount: modules.length,
     lessonCount: rawLessons.length,

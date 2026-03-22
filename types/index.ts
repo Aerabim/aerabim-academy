@@ -18,11 +18,15 @@ export type Database = {
           thumbnail_url: string | null;
           duration_min: number | null;
           stripe_price_id: string | null;
+          avg_rating: number;
+          review_count: number;
           created_at: string;
         };
-        Insert: Omit<Database['public']['Tables']['courses']['Row'], 'id' | 'created_at'> & {
+        Insert: Omit<Database['public']['Tables']['courses']['Row'], 'id' | 'created_at' | 'avg_rating' | 'review_count'> & {
           id?: string;
           created_at?: string;
+          avg_rating?: number;
+          review_count?: number;
         };
         Update: Partial<Database['public']['Tables']['courses']['Insert']>;
       };
@@ -361,6 +365,41 @@ export type Database = {
           created_at?: string;
         };
       };
+      course_reviews: {
+        Row: {
+          id: string;
+          user_id: string;
+          course_id: string;
+          rating: number;
+          title: string | null;
+          body: string | null;
+          is_deleted: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          course_id: string;
+          rating: number;
+          title?: string | null;
+          body?: string | null;
+          is_deleted?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          course_id?: string;
+          rating?: number;
+          title?: string | null;
+          body?: string | null;
+          is_deleted?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+      };
     };
     Views: Record<string, never>;
     Functions: Record<string, never>;
@@ -402,6 +441,7 @@ export interface DashboardUser {
   fullName: string;
   email: string;
   initials: string;
+  role: 'student' | 'admin';
   plan: 'free' | 'pro' | 'team' | 'pa';
 }
 
@@ -441,6 +481,7 @@ export interface CourseWithMeta {
   isFree: boolean;
   durationMin: number;
   rating: number;
+  reviewCount: number;
   enrolledCount: number;
   moduleCount: number;
   lessonCount: number;
@@ -818,4 +859,47 @@ export interface ToggleLikePayload {
 export interface ToggleLikeResponse {
   liked: boolean;
   count: number;
+}
+
+// ── Course Reviews Types ──────────────────────────────────
+
+export type CourseReview = Database['public']['Tables']['course_reviews']['Row'];
+
+/** Review author info displayed alongside a review */
+export interface ReviewAuthor {
+  id: string;
+  displayName: string;
+  initials: string;
+}
+
+/** Review displayed in the course detail page */
+export interface CourseReviewDisplay {
+  id: string;
+  courseId: string;
+  rating: number;
+  title: string | null;
+  body: string | null;
+  createdAt: string;
+  author: ReviewAuthor;
+}
+
+/** API payload: create or update a review */
+export interface CreateReviewPayload {
+  courseId: string;
+  rating: number;
+  title?: string;
+  body?: string;
+}
+
+/** API response: review created/updated */
+export interface CreateReviewResponse {
+  success: boolean;
+  reviewId: string;
+}
+
+/** Aggregated review stats for a course */
+export interface CourseReviewStats {
+  avgRating: number;
+  reviewCount: number;
+  distribution: Record<1 | 2 | 3 | 4 | 5, number>;
 }

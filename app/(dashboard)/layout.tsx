@@ -17,8 +17,23 @@ export default async function DashboardLayout({ children }: { children: React.Re
 
   const fullName = (user.user_metadata?.full_name as string) || user.email || 'Utente';
 
-  // Fetch active subscription to determine user plan
+  // Fetch profile role and active subscription
+  let role: DashboardUser['role'] = 'student';
   let plan: DashboardUser['plan'] = 'free';
+  try {
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single() as { data: { role: string } | null };
+
+    if (profile) {
+      role = profile.role as DashboardUser['role'];
+    }
+  } catch {
+    // Default to student
+  }
+
   try {
     const { data: subscription } = await supabase
       .from('subscriptions')
@@ -50,6 +65,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
     fullName,
     email: user.email || '',
     initials: getInitials(fullName),
+    role,
     plan,
   };
 
