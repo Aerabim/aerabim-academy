@@ -10,7 +10,23 @@
       "Bash(taskkill //F //FI \"IMAGENAME eq node.exe\" //FI \"WINDOWTITLE eq *next*\")",
       "Bash(npm ls next)",
       "Bash(ls -la /c/Dev/aerabim-academy/*.*)",
-      "Bash(npm run:*)"
+      "Bash(npm run:*)",
+      "Bash(taskkill //F //IM node.exe)",
+      "Bash(rm -rf c:/Dev/aerabim-academy/.next)",
+      "Bash(npx tsc:*)",
+      "Bash(npm install:*)",
+      "Bash(iconv -f UTF-8 -t UTF-8 /c/Dev/aerabim-academy/components/corso/PurchaseCard.tsx)",
+      "Bash(node -e \"const Mux = require\\(''@mux/mux-node''\\); const mux = new Mux.default\\(\\); console.log\\(Object.getOwnPropertyNames\\(Object.getPrototypeOf\\(mux.webhooks\\)\\)\\)\")",
+      "Bash(node -e \"const Mux = require\\(''@mux/mux-node''\\); console.log\\(require\\(''@mux/mux-node/package.json''\\).version\\)\")",
+      "mcp__claude_ai_Supabase__list_projects",
+      "mcp__claude_ai_Supabase__apply_migration",
+      "mcp__claude_ai_Supabase__execute_sql",
+      "Bash(node -e \":*)",
+      "Bash(npx next:*)",
+      "Bash(c:/Dev/aerabim-academy/.env.local:*)",
+      "Bash(curl -s -w \"\\\\nHTTP_STATUS: %{http_code}\" -X POST http://localhost:3000/api/mux/upload -H \"Content-Type: application/json\" -d \"{\"\"lessonId\"\":\"\"c1b2c3d4-0001-4000-a000-000000000001\"\",\"\"courseId\"\":\"\"a1b2c3d4-0001-4000-a000-000000000001\"\"}\")",
+      "Bash(npx tsx:*)",
+      "Bash(ls -la /c/Dev/aerabim-academy/app/\\\\\\(dashboard\\\\\\)/)"
     ]
   }
 }

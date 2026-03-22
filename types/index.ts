@@ -160,11 +160,13 @@ export type Database = {
         Row: {
           id: string;
           role: 'student' | 'admin';
+          display_name: string | null;
           created_at: string;
         };
         Insert: {
           id: string;
           role?: 'student' | 'admin';
+          display_name?: string | null;
           created_at?: string;
         };
         Update: Partial<Database['public']['Tables']['profiles']['Insert']>;
@@ -236,6 +238,128 @@ export type Database = {
           session_id?: string;
         };
         Update: Partial<Database['public']['Tables']['session_requests']['Insert']>;
+      };
+      community_categories: {
+        Row: {
+          id: string;
+          slug: string;
+          name: string;
+          description: string | null;
+          order_num: number;
+          emoji: string | null;
+        };
+        Insert: {
+          id: string;
+          slug: string;
+          name: string;
+          description?: string | null;
+          order_num?: number;
+          emoji?: string | null;
+        };
+        Update: {
+          id?: string;
+          slug?: string;
+          name?: string;
+          description?: string | null;
+          order_num?: number;
+          emoji?: string | null;
+        };
+      };
+      community_discussions: {
+        Row: {
+          id: string;
+          author_id: string;
+          category_id: string;
+          title: string;
+          body: string;
+          is_pinned: boolean;
+          is_locked: boolean;
+          is_deleted: boolean;
+          reply_count: number;
+          last_reply_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          author_id: string;
+          category_id: string;
+          title: string;
+          body: string;
+          is_pinned?: boolean;
+          is_locked?: boolean;
+          is_deleted?: boolean;
+          reply_count?: number;
+          last_reply_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          author_id?: string;
+          category_id?: string;
+          title?: string;
+          body?: string;
+          is_pinned?: boolean;
+          is_locked?: boolean;
+          is_deleted?: boolean;
+          reply_count?: number;
+          last_reply_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+      };
+      community_replies: {
+        Row: {
+          id: string;
+          discussion_id: string;
+          author_id: string;
+          body: string;
+          is_deleted: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          discussion_id: string;
+          author_id: string;
+          body: string;
+          is_deleted?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          discussion_id?: string;
+          author_id?: string;
+          body?: string;
+          is_deleted?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+      };
+      community_likes: {
+        Row: {
+          id: string;
+          user_id: string;
+          discussion_id: string | null;
+          reply_id: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          discussion_id: string | null;
+          reply_id: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          discussion_id?: string | null;
+          reply_id?: string | null;
+          created_at?: string;
+        };
       };
     };
     Views: Record<string, never>;
@@ -609,4 +733,89 @@ export interface RespondSessionRequestPayload {
   /** For 'proposed': alternative date/time suggestion */
   proposedDate?: string;
   proposedSlot?: SessionRequestSlot;
+}
+
+// ── Community Types ──────────────────────────────────
+
+export type CommunityCategory = Database['public']['Tables']['community_categories']['Row'];
+export type CommunityDiscussion = Database['public']['Tables']['community_discussions']['Row'];
+export type CommunityReply = Database['public']['Tables']['community_replies']['Row'];
+export type CommunityLike = Database['public']['Tables']['community_likes']['Row'];
+
+export type CommunityCategoryId = AreaCode | 'generale';
+
+/** Author info displayed in community posts and replies */
+export interface CommunityAuthor {
+  id: string;
+  displayName: string;
+  initials: string;
+  plan: 'free' | 'pro' | 'team' | 'pa';
+  certificateCount: number;
+}
+
+/** Category with computed discussion count for the hub grid */
+export interface CommunityCategoryDisplay {
+  id: string;
+  slug: string;
+  name: string;
+  description: string | null;
+  orderNum: number;
+  emoji: string | null;
+  discussionCount: number;
+  latestDiscussionTitle: string | null;
+  latestDiscussionAt: string | null;
+}
+
+/** Discussion card in feed/list view */
+export interface CommunityDiscussionDisplay {
+  id: string;
+  categoryId: string;
+  categorySlug: string;
+  categoryName: string;
+  title: string;
+  body: string;
+  isPinned: boolean;
+  isLocked: boolean;
+  replyCount: number;
+  likeCount: number;
+  isLikedByUser: boolean;
+  lastReplyAt: string | null;
+  createdAt: string;
+  author: CommunityAuthor;
+}
+
+/** Single reply in a discussion thread */
+export interface CommunityReplyDisplay {
+  id: string;
+  discussionId: string;
+  body: string;
+  likeCount: number;
+  isLikedByUser: boolean;
+  createdAt: string;
+  author: CommunityAuthor;
+}
+
+/** API payload: create a new discussion */
+export interface CreateDiscussionPayload {
+  categoryId: string;
+  title: string;
+  body: string;
+}
+
+/** API payload: create a reply */
+export interface CreateReplyPayload {
+  discussionId: string;
+  body: string;
+}
+
+/** API payload: toggle like on a discussion or reply */
+export interface ToggleLikePayload {
+  discussionId?: string;
+  replyId?: string;
+}
+
+/** API response: toggle like result */
+export interface ToggleLikeResponse {
+  liked: boolean;
+  count: number;
 }

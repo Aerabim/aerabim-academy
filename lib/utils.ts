@@ -48,3 +48,30 @@ export function formatDurationSec(seconds: number): string {
   const minutes = Math.round(seconds / 60);
   return formatDuration(minutes);
 }
+
+/**
+ * Formats a date string to a relative "time ago" string in Italian.
+ * "2026-03-22T10:00:00Z" → "2 ore fa", "3 giorni fa", "1 mese fa"
+ */
+export function timeAgo(dateString: string): string {
+  const now = Date.now();
+  const date = new Date(dateString).getTime();
+  const diffSec = Math.floor((now - date) / 1000);
+
+  if (diffSec < 60) return 'adesso';
+
+  const diffMin = Math.floor(diffSec / 60);
+  if (diffMin < 60) return `${diffMin} min fa`;
+
+  const diffHours = Math.floor(diffMin / 60);
+  if (diffHours < 24) return diffHours === 1 ? '1 ora fa' : `${diffHours} ore fa`;
+
+  const diffDays = Math.floor(diffHours / 24);
+  if (diffDays < 30) return diffDays === 1 ? '1 giorno fa' : `${diffDays} giorni fa`;
+
+  const diffMonths = Math.floor(diffDays / 30);
+  if (diffMonths < 12) return diffMonths === 1 ? '1 mese fa' : `${diffMonths} mesi fa`;
+
+  const diffYears = Math.floor(diffMonths / 12);
+  return diffYears === 1 ? '1 anno fa' : `${diffYears} anni fa`;
+}

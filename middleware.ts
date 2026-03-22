@@ -8,6 +8,7 @@ const PROTECTED_PATHS = [
   '/learn',
   '/profilo',
   '/certificati',
+  '/community',
   '/admin',
 ];
 
