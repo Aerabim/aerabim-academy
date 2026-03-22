@@ -213,6 +213,30 @@ export type Database = {
         };
         Update: Partial<Database['public']['Tables']['live_session_bookings']['Insert']>;
       };
+      session_requests: {
+        Row: {
+          id: string;
+          user_id: string;
+          topic: string;
+          description: string | null;
+          preferred_week: string;
+          preferred_slot: 'mattina' | 'pomeriggio' | 'sera';
+          status: 'pending' | 'confirmed' | 'proposed' | 'declined' | 'canceled';
+          admin_note: string | null;
+          session_id: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: Omit<Database['public']['Tables']['session_requests']['Row'], 'id' | 'created_at' | 'updated_at' | 'status' | 'admin_note' | 'session_id'> & {
+          id?: string;
+          created_at?: string;
+          updated_at?: string;
+          status?: 'pending' | 'confirmed' | 'proposed' | 'declined' | 'canceled';
+          admin_note?: string;
+          session_id?: string;
+        };
+        Update: Partial<Database['public']['Tables']['session_requests']['Insert']>;
+      };
     };
     Views: Record<string, never>;
     Functions: Record<string, never>;
@@ -234,6 +258,7 @@ export type QuizAttempt = Database['public']['Tables']['quiz_attempts']['Row'];
 export type Certificate = Database['public']['Tables']['certificates']['Row'];
 export type LiveSession = Database['public']['Tables']['live_sessions']['Row'];
 export type LiveSessionBooking = Database['public']['Tables']['live_session_bookings']['Row'];
+export type SessionRequest = Database['public']['Tables']['session_requests']['Row'];
 
 // ── Dashboard UI Types ──────────────────────────────
 
@@ -547,4 +572,41 @@ export interface CreateLiveSessionResponse {
   session: LiveSessionPublic;
   streamKey?: string;
   rtmpUrl?: string;
+}
+
+// ── Session Request Types ──────────────────────────────
+
+export type SessionRequestSlot = 'mattina' | 'pomeriggio' | 'sera';
+export type SessionRequestStatus = 'pending' | 'confirmed' | 'proposed' | 'declined' | 'canceled';
+
+/** User-facing session request display */
+export interface SessionRequestDisplay {
+  id: string;
+  topic: string;
+  description: string | null;
+  preferredWeek: string;
+  preferredSlot: SessionRequestSlot;
+  status: SessionRequestStatus;
+  adminNote: string | null;
+  sessionId: string | null;
+  createdAt: string;
+}
+
+/** Create session request payload */
+export interface CreateSessionRequestPayload {
+  topic: string;
+  description?: string;
+  preferredWeek: string;
+  preferredSlot: SessionRequestSlot;
+}
+
+/** Admin: respond to session request */
+export interface RespondSessionRequestPayload {
+  status: 'confirmed' | 'proposed' | 'declined';
+  adminNote?: string;
+  /** For 'confirmed': the created session ID */
+  sessionId?: string;
+  /** For 'proposed': alternative date/time suggestion */
+  proposedDate?: string;
+  proposedSlot?: SessionRequestSlot;
 }

@@ -248,3 +248,134 @@ export function sessionReminderEmail({
     `),
   };
 }
+
+// ── D9: Session request — admin notification ──────────
+
+export function sessionRequestNotificationEmail({
+  userName,
+  userEmail,
+  topic,
+  description,
+  preferredWeek,
+  preferredSlot,
+  requestId,
+}: {
+  userName: string;
+  userEmail: string;
+  topic: string;
+  description: string | null;
+  preferredWeek: string;
+  preferredSlot: string;
+  requestId: string;
+}): { subject: string; html: string } {
+  return {
+    subject: `Nuova richiesta sessione: ${topic}`,
+    html: layout(`
+      ${heading('Nuova richiesta di sessione')}
+      ${paragraph(`<strong>${userName}</strong> (${userEmail}) ha richiesto una sessione personalizzata.`)}
+      <table style="width:100%;margin:16px 0;border-collapse:collapse;">
+        <tr>
+          <td style="padding:8px 0;font-size:14px;color:${BRAND_LIGHT};">Argomento</td>
+          <td style="padding:8px 0;font-size:14px;color:#ffffff;font-weight:600;text-align:right;">${topic}</td>
+        </tr>
+        <tr>
+          <td style="padding:8px 0;font-size:14px;color:${BRAND_LIGHT};border-top:1px solid rgba(255,255,255,0.1);">Settimana</td>
+          <td style="padding:8px 0;font-size:14px;color:#ffffff;font-weight:600;text-align:right;border-top:1px solid rgba(255,255,255,0.1);">${preferredWeek}</td>
+        </tr>
+        <tr>
+          <td style="padding:8px 0;font-size:14px;color:${BRAND_LIGHT};border-top:1px solid rgba(255,255,255,0.1);">Fascia oraria</td>
+          <td style="padding:8px 0;font-size:14px;color:#ffffff;font-weight:600;text-align:right;border-top:1px solid rgba(255,255,255,0.1);">${preferredSlot}</td>
+        </tr>
+        ${description ? `<tr>
+          <td colspan="2" style="padding:12px 0 0;font-size:14px;color:${BRAND_LIGHT};border-top:1px solid rgba(255,255,255,0.1);">
+            <strong>Note:</strong><br>${description}
+          </td>
+        </tr>` : ''}
+      </table>
+      ${paragraph(`ID richiesta: <code>${requestId}</code>`)}
+    `),
+  };
+}
+
+// ── D10: Session request — confirmed ──────────────────
+
+export function sessionRequestConfirmedEmail({
+  userName,
+  topic,
+  adminNote,
+  sessionId,
+}: {
+  userName: string;
+  topic: string;
+  adminNote: string | null;
+  sessionId: string | null;
+}): { subject: string; html: string } {
+  return {
+    subject: `Richiesta confermata: ${topic}`,
+    html: layout(`
+      ${heading('Sessione confermata!')}
+      ${paragraph(`Ciao ${userName}, la tua richiesta per la sessione <strong>${topic}</strong> è stata confermata.`)}
+      ${adminNote ? paragraph(`<strong>Nota:</strong> ${adminNote}`) : ''}
+      ${paragraph('La sessione è stata calendarizzata. Troverai tutti i dettagli nella sezione Sessioni Live.')}
+      ${button('Vai alle sessioni', `${APP_URL}/sessioni-live${sessionId ? `/${sessionId}` : ''}`)}
+    `),
+  };
+}
+
+// ── D11: Session request — proposed alternative ───────
+
+export function sessionRequestProposedEmail({
+  userName,
+  topic,
+  adminNote,
+  proposedDate,
+  proposedSlot,
+}: {
+  userName: string;
+  topic: string;
+  adminNote: string;
+  proposedDate: string;
+  proposedSlot: string;
+}): { subject: string; html: string } {
+  const slotLabels: Record<string, string> = {
+    mattina: 'Mattina (9:00-12:00)',
+    pomeriggio: 'Pomeriggio (14:00-17:00)',
+    sera: 'Sera (18:00-20:00)',
+  };
+  const slotLabel = slotLabels[proposedSlot] || proposedSlot;
+
+  return {
+    subject: `Proposta alternativa: ${topic}`,
+    html: layout(`
+      ${heading('Proposta alternativa')}
+      ${paragraph(`Ciao ${userName}, per la tua richiesta <strong>${topic}</strong> ti proponiamo una data alternativa.`)}
+      ${proposedDate ? paragraph(`<strong>Data proposta:</strong> ${proposedDate} — ${slotLabel}`) : ''}
+      ${adminNote ? paragraph(`<strong>Nota:</strong> ${adminNote}`) : ''}
+      ${paragraph('Accedi alla piattaforma per accettare o richiedere una nuova data.')}
+      ${button('Vedi le tue richieste', `${APP_URL}/sessioni-live/richiedi`)}
+    `),
+  };
+}
+
+// ── D12: Session request — declined ───────────────────
+
+export function sessionRequestDeclinedEmail({
+  userName,
+  topic,
+  adminNote,
+}: {
+  userName: string;
+  topic: string;
+  adminNote: string | null;
+}): { subject: string; html: string } {
+  return {
+    subject: `Richiesta non disponibile: ${topic}`,
+    html: layout(`
+      ${heading('Richiesta non disponibile')}
+      ${paragraph(`Ciao ${userName}, purtroppo non siamo riusciti a organizzare la sessione <strong>${topic}</strong> nella data richiesta.`)}
+      ${adminNote ? paragraph(`<strong>Nota:</strong> ${adminNote}`) : ''}
+      ${paragraph('Puoi inviare una nuova richiesta con date alternative, oppure consultare le sessioni già in programma.')}
+      ${button('Vedi sessioni disponibili', `${APP_URL}/sessioni-live`)}
+    `),
+  };
+}
