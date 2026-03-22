@@ -198,8 +198,8 @@ export function Sidebar({ user, courseCount, open, collapsed, onClose, onCollaps
           'fixed top-0 left-0 z-40 h-screen bg-surface-1 border-r border-border-subtle',
           'flex flex-col transition-all duration-200 shrink-0',
           'lg:translate-x-0 lg:sticky lg:z-30',
-          collapsed ? 'lg:w-[68px]' : 'lg:w-[260px]',
-          'w-[260px]',
+          collapsed ? 'lg:w-[68px]' : 'lg:w-[200px]',
+          'w-[200px]',
           open ? 'translate-x-0' : '-translate-x-full',
         )}
       >
@@ -359,8 +359,8 @@ function UserMenu({
 
   return (
     <div ref={menuRef} className={cn(
-      'relative border-t border-border-subtle',
-      collapsed ? 'px-1.5 py-3.5' : 'px-3.5 py-3.5',
+      'relative border-t border-border-subtle h-[60px] flex items-center',
+      collapsed ? 'px-1.5 justify-center' : 'px-3.5',
     )}>
       {/* Popover */}
       {menuOpen && (

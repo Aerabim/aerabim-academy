@@ -146,3 +146,105 @@ export function subscriptionCanceledEmail({
     `),
   };
 }
+
+// ── D6: Session booking confirmation email ──────────
+
+export function sessionBookingConfirmationEmail({
+  userName,
+  sessionTitle,
+  hostName,
+  dateTime,
+  sessionId,
+  sessionType,
+}: {
+  userName: string;
+  sessionTitle: string;
+  hostName: string;
+  dateTime: string;
+  sessionId: string;
+  sessionType: 'webinar' | 'mentoring';
+}): { subject: string; html: string } {
+  const typeLabel = sessionType === 'webinar' ? 'Webinar' : 'Mentoring 1-to-1';
+  return {
+    subject: `Prenotazione confermata: ${sessionTitle}`,
+    html: layout(`
+      ${heading('Prenotazione confermata')}
+      ${paragraph(`Ciao ${userName}, la tua prenotazione è stata confermata.`)}
+      <table style="width:100%;margin:16px 0;border-collapse:collapse;">
+        <tr>
+          <td style="padding:8px 0;font-size:14px;color:${BRAND_LIGHT};">Sessione</td>
+          <td style="padding:8px 0;font-size:14px;color:#ffffff;font-weight:600;text-align:right;">${sessionTitle}</td>
+        </tr>
+        <tr>
+          <td style="padding:8px 0;font-size:14px;color:${BRAND_LIGHT};border-top:1px solid rgba(255,255,255,0.1);">Tipo</td>
+          <td style="padding:8px 0;font-size:14px;color:#ffffff;font-weight:600;text-align:right;border-top:1px solid rgba(255,255,255,0.1);">${typeLabel}</td>
+        </tr>
+        <tr>
+          <td style="padding:8px 0;font-size:14px;color:${BRAND_LIGHT};border-top:1px solid rgba(255,255,255,0.1);">Data e ora</td>
+          <td style="padding:8px 0;font-size:14px;color:#ffffff;font-weight:600;text-align:right;border-top:1px solid rgba(255,255,255,0.1);">${dateTime}</td>
+        </tr>
+        <tr>
+          <td style="padding:8px 0;font-size:14px;color:${BRAND_LIGHT};border-top:1px solid rgba(255,255,255,0.1);">Host</td>
+          <td style="padding:8px 0;font-size:14px;color:#ffffff;font-weight:600;text-align:right;border-top:1px solid rgba(255,255,255,0.1);">${hostName}</td>
+        </tr>
+      </table>
+      ${paragraph('Ti invieremo un promemoria poco prima dell\'inizio della sessione.')}
+      ${button('Vai alla sessione', `${APP_URL}/sessioni-live/${sessionId}`)}
+    `),
+  };
+}
+
+// ── D7: Session reminder email ──────────────────────
+
+// ── D7b: Session canceled notification email ──────────
+
+export function sessionCanceledNotificationEmail({
+  userName,
+  sessionTitle,
+  scheduledAt,
+}: {
+  userName: string;
+  sessionTitle: string;
+  scheduledAt: string;
+}): { subject: string; html: string } {
+  const dateFormatted = new Date(scheduledAt).toLocaleDateString('it-IT', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+
+  return {
+    subject: `Sessione annullata: ${sessionTitle}`,
+    html: layout(`
+      ${heading('Sessione annullata')}
+      ${paragraph(`Ciao ${userName}, ti informiamo che la sessione <strong>${sessionTitle}</strong> prevista per il <strong>${dateFormatted}</strong> è stata annullata.`)}
+      ${paragraph('Ci scusiamo per il disagio. Controlla le prossime sessioni disponibili nella sezione Sessioni Live.')}
+      ${button('Vedi sessioni disponibili', `${APP_URL}/sessioni-live`)}
+    `),
+  };
+}
+
+// ── D8: Session reminder email ──────────────────────
+
+export function sessionReminderEmail({
+  userName,
+  sessionTitle,
+  sessionId,
+}: {
+  userName: string;
+  sessionTitle: string;
+  sessionId: string;
+}): { subject: string; html: string } {
+  return {
+    subject: `Promemoria: ${sessionTitle} inizia tra poco`,
+    html: layout(`
+      ${heading('La tua sessione sta per iniziare')}
+      ${paragraph(`Ciao ${userName}, la sessione <strong>${sessionTitle}</strong> inizia tra circa 1 ora.`)}
+      ${paragraph('Preparati e collegati qualche minuto prima per non perdere l\'inizio.')}
+      ${button('Partecipa alla sessione', `${APP_URL}/sessioni-live/${sessionId}`)}
+    `),
+  };
+}

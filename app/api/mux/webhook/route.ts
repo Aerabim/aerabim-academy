@@ -13,6 +13,8 @@ interface MuxWebhookEvent {
     duration?: number;
     passthrough?: string;
     errors?: { type: string; messages: string[] };
+    // Live stream fields
+    active_asset_id?: string;
   };
 }
 
@@ -20,6 +22,11 @@ interface MuxWebhookEvent {
 interface MuxPassthrough {
   lessonId: string;
   courseId: string;
+}
+
+/** Shape of passthrough for live stream events */
+interface MuxLivePassthrough {
+  sessionId: string;
 }
 
 export async function POST(request: Request) {
@@ -59,6 +66,14 @@ export async function POST(request: Request) {
         await handleAssetErrored(event, admin);
         break;
       }
+      case 'video.live_stream.active': {
+        await handleLiveStreamActive(event, admin);
+        break;
+      }
+      case 'video.live_stream.idle': {
+        await handleLiveStreamIdle(event, admin);
+        break;
+      }
       default:
         break;
     }
@@ -83,27 +98,62 @@ async function handleAssetReady(
     return;
   }
 
-  const { lessonId } = JSON.parse(passthrough) as MuxPassthrough;
-
   const playbackId = playback_ids?.[0]?.id ?? null;
-  const durationSec = duration ? Math.round(duration) : null;
 
-  const { error } = await admin
-    .from('lessons')
-    .update({
-      mux_asset_id: assetId,
-      mux_playback_id: playbackId,
-      mux_status: 'ready',
-      duration_sec: durationSec,
-    })
-    .eq('id', lessonId);
-
-  if (error) {
-    console.error('[mux/webhook] Errore aggiornamento lesson (ready):', error);
-    throw error;
+  // Try to parse as lesson passthrough (VOD upload)
+  let parsed: Record<string, unknown>;
+  try {
+    parsed = JSON.parse(passthrough) as Record<string, unknown>;
+  } catch {
+    console.error('[mux/webhook] video.asset.ready: passthrough non valido');
+    return;
   }
 
-  console.log(`[mux/webhook] Lesson ${lessonId} ready — asset ${assetId}`);
+  // Case 1: VOD asset for a lesson
+  if ('lessonId' in parsed && typeof parsed.lessonId === 'string') {
+    const durationSec = duration ? Math.round(duration) : null;
+
+    const { error } = await admin
+      .from('lessons')
+      .update({
+        mux_asset_id: assetId,
+        mux_playback_id: playbackId,
+        mux_status: 'ready',
+        duration_sec: durationSec,
+      })
+      .eq('id', parsed.lessonId);
+
+    if (error) {
+      console.error('[mux/webhook] Errore aggiornamento lesson (ready):', error);
+      throw error;
+    }
+
+    console.log(`[mux/webhook] Lesson ${parsed.lessonId} ready — asset ${assetId}`);
+    return;
+  }
+
+  // Case 2: Recording asset from a live stream (replay)
+  if ('sessionId' in parsed && typeof parsed.sessionId === 'string') {
+    if (!playbackId) {
+      console.error('[mux/webhook] Recording asset ready but no playback ID');
+      return;
+    }
+
+    const { error } = await admin
+      .from('live_sessions')
+      .update({ mux_replay_playback_id: playbackId })
+      .eq('id', parsed.sessionId);
+
+    if (error) {
+      console.error('[mux/webhook] Errore aggiornamento replay sessione:', error);
+      throw error;
+    }
+
+    console.log(`[mux/webhook] Session ${parsed.sessionId} replay ready — asset ${assetId}`);
+    return;
+  }
+
+  console.warn('[mux/webhook] video.asset.ready: passthrough non riconosciuto:', passthrough);
 }
 
 async function handleAssetErrored(
@@ -133,4 +183,99 @@ async function handleAssetErrored(
     console.error('[mux/webhook] Errore aggiornamento lesson (errored):', error);
     throw error;
   }
+}
+
+// ── Live Stream Event Handlers ──────────────────────
+
+async function handleLiveStreamActive(
+  event: MuxWebhookEvent,
+  admin: ReturnType<typeof getSupabaseAdmin> & object,
+) {
+  const { id: liveStreamId, passthrough } = event.data;
+
+  // Try passthrough first, then fall back to matching by mux_live_stream_id
+  let sessionId: string | null = null;
+  if (passthrough) {
+    try {
+      const parsed = JSON.parse(passthrough) as MuxLivePassthrough;
+      sessionId = parsed.sessionId;
+    } catch {
+      // Not a valid JSON passthrough
+    }
+  }
+
+  if (sessionId) {
+    const { error } = await admin
+      .from('live_sessions')
+      .update({ status: 'live' })
+      .eq('id', sessionId);
+
+    if (error) {
+      console.error('[mux/webhook] Errore aggiornamento sessione (live):', error);
+      throw error;
+    }
+  } else {
+    // Fall back to matching by mux_live_stream_id
+    const { error } = await admin
+      .from('live_sessions')
+      .update({ status: 'live' })
+      .eq('mux_live_stream_id', liveStreamId);
+
+    if (error) {
+      console.error('[mux/webhook] Errore aggiornamento sessione per stream_id (live):', error);
+      throw error;
+    }
+  }
+
+  console.log(`[mux/webhook] Live stream ${liveStreamId} is now active`);
+}
+
+async function handleLiveStreamIdle(
+  event: MuxWebhookEvent,
+  admin: ReturnType<typeof getSupabaseAdmin> & object,
+) {
+  const { id: liveStreamId, passthrough, active_asset_id } = event.data;
+
+  let sessionId: string | null = null;
+  if (passthrough) {
+    try {
+      const parsed = JSON.parse(passthrough) as MuxLivePassthrough;
+      sessionId = parsed.sessionId;
+    } catch {
+      // Not a valid JSON passthrough
+    }
+  }
+
+  const updateData: Record<string, unknown> = { status: 'ended' };
+
+  // If there's a recording asset, we'll get a separate video.asset.ready event
+  // for it. For now, just mark the session as ended.
+  // The replay playback ID will be set when the recording asset is ready.
+  if (active_asset_id) {
+    console.log(`[mux/webhook] Live stream ${liveStreamId} idle — recording asset: ${active_asset_id}`);
+  }
+
+  if (sessionId) {
+    const { error } = await admin
+      .from('live_sessions')
+      .update(updateData)
+      .eq('id', sessionId);
+
+    if (error) {
+      console.error('[mux/webhook] Errore aggiornamento sessione (ended):', error);
+      throw error;
+    }
+  } else {
+    const { error } = await admin
+      .from('live_sessions')
+      .update(updateData)
+      .eq('mux_live_stream_id', liveStreamId);
+
+    if (error) {
+      console.error('[mux/webhook] Errore aggiornamento sessione per stream_id (ended):', error);
+      throw error;
+    }
+  }
+
+  console.log(`[mux/webhook] Live stream ${liveStreamId} is now idle (ended)`);
 }

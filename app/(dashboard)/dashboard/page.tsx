@@ -13,6 +13,8 @@ import {
   getContinueStudyingCourses,
   getWeeklyActivity,
 } from '@/lib/dashboard/queries';
+import { getUpcomingLiveSessions } from '@/lib/live/queries';
+import type { LiveSessionDisplay } from '@/types';
 
 export default async function DashboardPage() {
   const supabase = createServerClient();
@@ -44,12 +46,14 @@ export default async function DashboardPage() {
     { label: 'Sab', minutes: 0 },
     { label: 'Dom', minutes: 0 },
   ];
+  let upcomingSessions: LiveSessionDisplay[] = [];
 
   try {
-    [stats, continueCourses, weeklyDays] = await Promise.all([
+    [stats, continueCourses, weeklyDays, upcomingSessions] = await Promise.all([
       getDashboardStats(supabase, user.id),
       getContinueStudyingCourses(supabase, user.id),
       getWeeklyActivity(supabase, user.id),
+      getUpcomingLiveSessions(supabase),
     ]);
   } catch {
     // Keep defaults on error
@@ -84,7 +88,7 @@ export default async function DashboardPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 animate-fadeIn" style={{ animationDelay: '0.24s' }}>
         <LearningPaths />
         <Achievements />
-        <UpcomingEvents />
+        <UpcomingEvents sessions={upcomingSessions} />
       </div>
     </div>
   );

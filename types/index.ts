@@ -169,6 +169,50 @@ export type Database = {
         };
         Update: Partial<Database['public']['Tables']['profiles']['Insert']>;
       };
+      live_sessions: {
+        Row: {
+          id: string;
+          type: 'webinar' | 'mentoring';
+          title: string;
+          description: string | null;
+          host_name: string;
+          scheduled_at: string;
+          duration_min: number;
+          max_participants: number | null;
+          status: 'scheduled' | 'live' | 'ended' | 'canceled';
+          mux_live_stream_id: string | null;
+          mux_playback_id: string | null;
+          mux_stream_key: string | null;
+          meeting_url: string | null;
+          mux_replay_playback_id: string | null;
+          is_published: boolean;
+          created_at: string;
+        };
+        Insert: Omit<Database['public']['Tables']['live_sessions']['Row'], 'id' | 'created_at' | 'status' | 'is_published'> & {
+          id?: string;
+          created_at?: string;
+          status?: 'scheduled' | 'live' | 'ended' | 'canceled';
+          is_published?: boolean;
+        };
+        Update: Partial<Database['public']['Tables']['live_sessions']['Insert']>;
+      };
+      live_session_bookings: {
+        Row: {
+          id: string;
+          session_id: string;
+          user_id: string;
+          status: 'confirmed' | 'canceled';
+          reminder_sent: boolean;
+          created_at: string;
+        };
+        Insert: Omit<Database['public']['Tables']['live_session_bookings']['Row'], 'id' | 'created_at' | 'status' | 'reminder_sent'> & {
+          id?: string;
+          created_at?: string;
+          status?: 'confirmed' | 'canceled';
+          reminder_sent?: boolean;
+        };
+        Update: Partial<Database['public']['Tables']['live_session_bookings']['Insert']>;
+      };
     };
     Views: Record<string, never>;
     Functions: Record<string, never>;
@@ -188,6 +232,8 @@ export type Subscription = Database['public']['Tables']['subscriptions']['Row'];
 export type QuizQuestion = Database['public']['Tables']['quiz_questions']['Row'];
 export type QuizAttempt = Database['public']['Tables']['quiz_attempts']['Row'];
 export type Certificate = Database['public']['Tables']['certificates']['Row'];
+export type LiveSession = Database['public']['Tables']['live_sessions']['Row'];
+export type LiveSessionBooking = Database['public']['Tables']['live_session_bookings']['Row'];
 
 // ── Dashboard UI Types ──────────────────────────────
 
@@ -422,4 +468,83 @@ export interface QuizQuestionDisplay {
   question: string;
   options: string[];
   orderNum: number | null;
+}
+
+// ── Sessioni Live Types ──────────────────────────────
+
+export type LiveSessionType = 'webinar' | 'mentoring';
+export type LiveSessionStatus = 'scheduled' | 'live' | 'ended' | 'canceled';
+export type BookingStatus = 'confirmed' | 'canceled';
+
+/** Public-facing session data (excludes mux_stream_key) */
+export interface LiveSessionPublic {
+  id: string;
+  type: LiveSessionType;
+  title: string;
+  description: string | null;
+  hostName: string;
+  scheduledAt: string;
+  durationMin: number;
+  maxParticipants: number | null;
+  status: LiveSessionStatus;
+  muxPlaybackId: string | null;
+  meetingUrl: string | null;
+  muxReplayPlaybackId: string | null;
+  isPublished: boolean;
+  createdAt: string;
+}
+
+/** Session card display data with computed fields */
+export interface LiveSessionDisplay {
+  id: string;
+  type: LiveSessionType;
+  title: string;
+  description: string | null;
+  hostName: string;
+  scheduledAt: string;
+  durationMin: number;
+  status: LiveSessionStatus;
+  bookedCount: number;
+  maxParticipants: number | null;
+  isBooked: boolean;
+  hasReplay: boolean;
+}
+
+/** Booking API request/response */
+export interface BookSessionRequest {
+  sessionId: string;
+}
+
+export interface BookSessionResponse {
+  success: boolean;
+  bookingId: string;
+}
+
+/** Join session API response */
+export interface JoinSessionResponse {
+  type: LiveSessionType;
+  playbackToken?: string;
+  thumbnailToken?: string;
+  storyboardToken?: string;
+  playbackId?: string;
+  meetingUrl?: string;
+}
+
+/** Admin: create session request */
+export interface CreateLiveSessionRequest {
+  type: LiveSessionType;
+  title: string;
+  description?: string;
+  hostName: string;
+  scheduledAt: string;
+  durationMin?: number;
+  maxParticipants?: number;
+  meetingUrl?: string;
+}
+
+/** Admin: create session response (includes stream key for webinars) */
+export interface CreateLiveSessionResponse {
+  session: LiveSessionPublic;
+  streamKey?: string;
+  rtmpUrl?: string;
 }

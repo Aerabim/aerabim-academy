@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { Sidebar } from './Sidebar';
 import { Header } from './Header';
+import { Footer } from './Footer';
 import { SearchProvider, useSearch } from '@/lib/search-context';
 import type { DashboardUser } from '@/types';
 
@@ -48,6 +49,7 @@ function DashboardShellInner({ user, courseCount, children }: DashboardShellProp
         <main className="flex-1 overflow-y-auto w-full">
           {children}
         </main>
+        <Footer />
       </div>
     </div>
   );

@@ -114,3 +114,44 @@ export async function createMuxUploadUrl(
     uploadId: upload.id,
   };
 }
+
+// ── Live Stream Helpers ─────────────────────────────
+
+export interface MuxLiveStreamResult {
+  liveStreamId: string;
+  streamKey: string;
+  playbackId: string;
+}
+
+/**
+ * Creates a Mux live stream for a webinar session.
+ * The live stream uses signed playback, low latency, and auto-recording.
+ * The `passthrough` stores the session ID for webhook association.
+ */
+export async function createMuxLiveStream(sessionId: string): Promise<MuxLiveStreamResult> {
+  const mux = getMuxClient();
+  if (!mux) {
+    throw new Error('Mux non configurato: MUX_TOKEN_ID o MUX_TOKEN_SECRET mancante');
+  }
+
+  const liveStream = await mux.video.liveStreams.create({
+    playback_policies: ['signed'],
+    new_asset_settings: {
+      playback_policies: ['signed'],
+    },
+    max_continuous_duration: 14400, // 4 hours max
+    latency_mode: 'low',
+    passthrough: JSON.stringify({ sessionId }),
+  });
+
+  const playbackId = liveStream.playback_ids?.[0]?.id;
+  if (!playbackId || !liveStream.stream_key) {
+    throw new Error('Mux live stream creato senza playback ID o stream key');
+  }
+
+  return {
+    liveStreamId: liveStream.id,
+    streamKey: liveStream.stream_key,
+    playbackId,
+  };
+}

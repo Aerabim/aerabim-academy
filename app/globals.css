@@ -61,6 +61,21 @@ body {
   border-radius: 3px;
 }
 
+/* Global scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #040B11;
+}
+::-webkit-scrollbar-thumb {
+  background: #304057;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #58758C;
+}
+
 .gradient-text-cyan {
   background: linear-gradient(135deg, #4ECDC4, #7EE8E0);
   -webkit-background-clip: text;
