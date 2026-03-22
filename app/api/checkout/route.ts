@@ -2,7 +2,6 @@ import { NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/server';
 import { getStripeServer } from '@/lib/stripe/client';
 import { getSupabaseAdmin } from '@/lib/supabase/admin';
-import { PLACEHOLDER_COURSES } from '@/lib/placeholder-data';
 import type { CheckoutRequest } from '@/types';
 
 export async function POST(request: Request) {
@@ -23,9 +22,25 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Parametri mancanti' }, { status: 400 });
     }
 
-    // 3. Find course data
-    const course = PLACEHOLDER_COURSES.find((c) => c.id === courseId);
-    if (!course) {
+    // 3. Find course data from DB
+    interface CourseCheckout {
+      id: string;
+      slug: string;
+      title: string;
+      description: string | null;
+      price_single: number;
+      is_free: boolean;
+      is_published: boolean;
+    }
+
+    const { data: course, error: courseError } = await supabase
+      .from('courses')
+      .select('id, slug, title, description, price_single, is_free, is_published')
+      .eq('id', courseId)
+      .eq('is_published', true)
+      .maybeSingle() as { data: CourseCheckout | null; error: unknown };
+
+    if (courseError || !course) {
       return NextResponse.json({ error: 'Corso non trovato' }, { status: 404 });
     }
 
@@ -33,7 +48,7 @@ export async function POST(request: Request) {
 
     // 4. Handle free enrollment (no Stripe needed)
     if (type === 'free') {
-      if (!course.isFree) {
+      if (!course.is_free) {
         return NextResponse.json({ error: 'Questo corso non è gratuito' }, { status: 400 });
       }
 
@@ -78,7 +93,12 @@ export async function POST(request: Request) {
       );
     }
 
-    // 6. Create Stripe Checkout Session
+    // 6. Validate price
+    if (type === 'single' && (!course.price_single || course.price_single <= 0)) {
+      return NextResponse.json({ error: 'Prezzo del corso non valido' }, { status: 400 });
+    }
+
+    // 7. Create Stripe Checkout Session
     if (type === 'single') {
       const session = await stripe.checkout.sessions.create({
         mode: 'payment',
@@ -87,10 +107,10 @@ export async function POST(request: Request) {
           {
             price_data: {
               currency: 'eur',
-              unit_amount: course.priceSingle,
+              unit_amount: course.price_single,
               product_data: {
                 name: course.title,
-                description: course.description,
+                description: course.description ?? undefined,
               },
             },
             quantity: 1,

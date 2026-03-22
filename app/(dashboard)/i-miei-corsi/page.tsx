@@ -7,7 +7,6 @@ import { ProgressBar } from '@/components/ui/ProgressBar';
 import { AREA_CONFIG } from '@/lib/area-config';
 import { createServerClient } from '@/lib/supabase/server';
 import { computeCourseProgress } from '@/lib/learn/queries';
-import { PLACEHOLDER_ENROLLED } from '@/lib/placeholder-data';
 import type { AreaCode, EnrolledCourse } from '@/types';
 
 export default async function IMieiCorsiPage() {
@@ -22,20 +21,26 @@ export default async function IMieiCorsiPage() {
     // Fetch real enrollments with course data
     const { data: rawEnrollments } = await supabase
       .from('enrollments')
-      .select('course_id, courses(id, slug, title, area)')
+      .select('course_id, expires_at, courses(id, slug, title, area)')
       .eq('user_id', user.id);
 
     interface EnrollmentWithCourse {
       course_id: string;
+      expires_at: string | null;
       courses: { id: string; slug: string; title: string; area: AreaCode } | null;
     }
 
     const enrollments = (rawEnrollments ?? []) as unknown as EnrollmentWithCourse[];
 
-    if (enrollments.length > 0) {
+    // Filter out expired enrollments
+    const activeEnrollments = enrollments.filter(
+      (e) => !e.expires_at || new Date(e.expires_at) > new Date(),
+    );
+
+    if (activeEnrollments.length > 0) {
       // Build enrolled courses with real progress
       const coursesWithProgress = await Promise.all(
-        enrollments
+        activeEnrollments
           .filter((e) => e.courses)
           .map(async (enrollment) => {
             const course = enrollment.courses!;
@@ -61,13 +66,8 @@ export default async function IMieiCorsiPage() {
       courses = coursesWithProgress;
     }
   } catch {
-    // Fallback to placeholder data if DB is not available
-    courses = PLACEHOLDER_ENROLLED;
-  }
-
-  // If no real enrollments found, show placeholder
-  if (courses.length === 0) {
-    courses = PLACEHOLDER_ENROLLED;
+    // DB not available — leave courses empty
+    courses = [];
   }
 
   const inProgress = courses.filter((c) => !c.isCompleted);
@@ -82,6 +82,24 @@ export default async function IMieiCorsiPage() {
       <p className="mt-2 text-text-secondary text-sm">
         {inProgress.length} corsi in corso · {completed.length} completati
       </p>
+
+      {/* Empty state */}
+      {courses.length === 0 && (
+        <div className="mt-10 text-center">
+          <div className="w-16 h-16 rounded-full bg-surface-2 flex items-center justify-center mx-auto mb-4">
+            <span className="text-2xl">📚</span>
+          </div>
+          <p className="text-text-secondary text-sm max-w-sm mx-auto mb-4">
+            Non hai ancora iniziato nessun corso. Esplora il catalogo per trovare il corso giusto per te!
+          </p>
+          <Link
+            href="/catalogo-corsi"
+            className="inline-block font-heading text-[0.8rem] font-semibold bg-accent-cyan text-brand-dark px-6 py-2.5 rounded-full hover:brightness-110 transition-all"
+          >
+            Esplora il catalogo
+          </Link>
+        </div>
+      )}
 
       {/* Course list */}
       <div className="mt-6 space-y-2.5">

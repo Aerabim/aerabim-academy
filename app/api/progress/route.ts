@@ -71,7 +71,8 @@ export async function POST(req: Request) {
     }
 
     if (body.watchTimeSec !== undefined && typeof body.watchTimeSec === 'number') {
-      upsertData.watch_time_sec = body.watchTimeSec;
+      // Clamp to reasonable bounds (0 to 24 hours)
+      upsertData.watch_time_sec = Math.max(0, Math.min(body.watchTimeSec, 86400));
     }
 
     // 6. Upsert progress via admin client (user verified server-side)

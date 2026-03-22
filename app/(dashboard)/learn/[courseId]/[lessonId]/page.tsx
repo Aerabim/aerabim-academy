@@ -80,7 +80,7 @@ export default async function LessonPage({ params }: PageProps) {
       </div>
 
       {/* Two-column layout */}
-      <div className="grid grid-cols-1 xl:grid-cols-[1fr_320px] gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-6">
         {/* Main content */}
         <main>
           {/* Video player or type-specific content */}
@@ -182,7 +182,7 @@ export default async function LessonPage({ params }: PageProps) {
         </main>
 
         {/* Sidebar */}
-        <div className="hidden xl:block">
+        <div className="hidden lg:block">
           <LessonSidebar
             courseId={params.courseId}
             currentLessonId={params.lessonId}

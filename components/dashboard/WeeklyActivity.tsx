@@ -1,20 +1,18 @@
-'use client';
-
 import { Card } from '@/components/ui/Card';
 
-const DAYS = [
-  { label: 'Lun', minutes: 42 },
-  { label: 'Mar', minutes: 28 },
-  { label: 'Mer', minutes: 65 },
-  { label: 'Gio', minutes: 51 },
-  { label: 'Ven', minutes: 37 },
-  { label: 'Sab', minutes: 18 },
-  { label: 'Dom', minutes: 0 },
-];
+interface DayData {
+  label: string;
+  minutes: number;
+}
 
-const MAX = Math.max(...DAYS.map((d) => d.minutes), 1);
+interface WeeklyActivityProps {
+  days: DayData[];
+}
 
-export function WeeklyActivity() {
+export function WeeklyActivity({ days }: WeeklyActivityProps) {
+  const max = Math.max(...days.map((d) => d.minutes), 1);
+  const totalMinutes = days.reduce((sum, d) => sum + d.minutes, 0);
+
   return (
     <Card>
       <div className="px-5 pt-5">
@@ -22,13 +20,15 @@ export function WeeklyActivity() {
           Attivit&agrave; Settimanale
         </div>
         <div className="text-[0.72rem] text-text-muted mt-px">
-          Minuti di studio per giorno
+          {totalMinutes > 0
+            ? `${Math.round(totalMinutes / 60)}h ${totalMinutes % 60}min questa settimana`
+            : 'Nessuna attività questa settimana'}
         </div>
       </div>
       <div className="px-5 pb-5 pt-4">
         <div className="flex items-end gap-1.5 h-[130px] pt-2.5">
-          {DAYS.map((day) => {
-            const heightPct = day.minutes > 0 ? (day.minutes / MAX) * 100 : 3;
+          {days.map((day) => {
+            const heightPct = day.minutes > 0 ? (day.minutes / max) * 100 : 3;
             return (
               <div key={day.label} className="flex-1 flex flex-col items-center gap-2 h-full">
                 <div className="flex-1 w-full flex items-end justify-center">

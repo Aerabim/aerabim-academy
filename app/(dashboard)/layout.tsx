@@ -17,11 +17,28 @@ export default async function DashboardLayout({ children }: { children: React.Re
 
   const fullName = (user.user_metadata?.full_name as string) || user.email || 'Utente';
 
+  // Fetch active subscription to determine user plan
+  let plan: DashboardUser['plan'] = 'free';
+  try {
+    const { data: subscription } = await supabase
+      .from('subscriptions')
+      .select('plan, status')
+      .eq('user_id', user.id)
+      .eq('status', 'active')
+      .maybeSingle() as { data: { plan: string; status: string } | null };
+
+    if (subscription) {
+      plan = subscription.plan as DashboardUser['plan'];
+    }
+  } catch {
+    // Default to free if subscriptions table not available
+  }
+
   const dashboardUser: DashboardUser = {
     fullName,
     email: user.email || '',
     initials: getInitials(fullName),
-    plan: 'pro', // placeholder — will be fetched from subscriptions table
+    plan,
   };
 
   return (

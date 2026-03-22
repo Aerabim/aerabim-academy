@@ -104,7 +104,7 @@ export async function POST(req: Request) {
 
     // 7. If passed, also mark the lesson as completed in progress
     if (passed) {
-      await admin
+      const { error: progressError } = await admin
         .from('progress')
         .upsert(
           {
@@ -115,6 +115,10 @@ export async function POST(req: Request) {
           },
           { onConflict: 'user_id,lesson_id' },
         );
+
+      if (progressError) {
+        console.error('Quiz: errore salvataggio progress:', progressError);
+      }
     }
 
     return NextResponse.json({

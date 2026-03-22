@@ -8,6 +8,11 @@ import { WeeklyActivity } from '@/components/dashboard/WeeklyActivity';
 import { LearningPaths } from '@/components/dashboard/LearningPaths';
 import { Achievements } from '@/components/dashboard/Achievements';
 import { UpcomingEvents } from '@/components/dashboard/UpcomingEvents';
+import {
+  getDashboardStats,
+  getContinueStudyingCourses,
+  getWeeklyActivity,
+} from '@/lib/dashboard/queries';
 
 export default async function DashboardPage() {
   const supabase = createServerClient();
@@ -20,6 +25,36 @@ export default async function DashboardPage() {
   const fullName = (user.user_metadata?.full_name as string) || user.email || 'Utente';
   const firstName = fullName.split(' ')[0];
 
+  // Fetch dashboard data in parallel
+  let stats = {
+    activeCourses: 0,
+    totalCourses: 0,
+    studyHours: 0,
+    quizzesPassed: 0,
+    avgScore: 0,
+    certificates: 0,
+  };
+  let continueCourses: Awaited<ReturnType<typeof getContinueStudyingCourses>> = [];
+  let weeklyDays: Awaited<ReturnType<typeof getWeeklyActivity>> = [
+    { label: 'Lun', minutes: 0 },
+    { label: 'Mar', minutes: 0 },
+    { label: 'Mer', minutes: 0 },
+    { label: 'Gio', minutes: 0 },
+    { label: 'Ven', minutes: 0 },
+    { label: 'Sab', minutes: 0 },
+    { label: 'Dom', minutes: 0 },
+  ];
+
+  try {
+    [stats, continueCourses, weeklyDays] = await Promise.all([
+      getDashboardStats(supabase, user.id),
+      getContinueStudyingCourses(supabase, user.id),
+      getWeeklyActivity(supabase, user.id),
+    ]);
+  } catch {
+    // Keep defaults on error
+  }
+
   return (
     <div className="w-full px-6 lg:px-9 py-7 space-y-7">
       <div className="animate-fadeIn">
@@ -31,12 +66,19 @@ export default async function DashboardPage() {
       </div>
 
       <div className="animate-fadeIn" style={{ animationDelay: '0.12s' }}>
-        <StatsGrid />
+        <StatsGrid
+          activeCourses={stats.activeCourses}
+          totalCourses={stats.totalCourses}
+          studyHours={stats.studyHours}
+          quizzesPassed={stats.quizzesPassed}
+          avgScore={stats.avgScore}
+          certificates={stats.certificates}
+        />
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-[1fr_360px] gap-5 animate-fadeIn" style={{ animationDelay: '0.18s' }}>
-        <ContinueStudying />
-        <WeeklyActivity />
+        <ContinueStudying courses={continueCourses} />
+        <WeeklyActivity days={weeklyDays} />
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 animate-fadeIn" style={{ animationDelay: '0.24s' }}>

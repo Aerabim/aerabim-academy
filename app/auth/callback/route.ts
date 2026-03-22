@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
+import { sendEmail } from '@/lib/resend/client';
+import { welcomeEmail } from '@/lib/resend/templates';
 
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = request.nextUrl;
@@ -29,6 +31,24 @@ export async function GET(request: NextRequest) {
     const { error } = await supabase.auth.exchangeCodeForSession(code);
 
     if (!error) {
+      // Send welcome email for newly registered users (created in the last 2 minutes)
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          const createdAt = new Date(user.created_at);
+          const isNewUser = Date.now() - createdAt.getTime() < 2 * 60 * 1000;
+          if (isNewUser && user.email) {
+            const name = (user.user_metadata?.full_name as string) || 'studente';
+            const email = welcomeEmail(name);
+            await sendEmail({ to: user.email, ...email }).catch(() => {
+              // Email failure must never block auth callback
+            });
+          }
+        }
+      } catch {
+        // Email failure must never block auth callback
+      }
+
       return response;
     }
   }

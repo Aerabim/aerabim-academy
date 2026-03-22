@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import type Stripe from 'stripe';
 import { getStripeServer } from '@/lib/stripe/client';
 import { getSupabaseAdmin } from '@/lib/supabase/admin';
+import { sendEmail } from '@/lib/resend/client';
+import { purchaseConfirmationEmail, subscriptionCanceledEmail } from '@/lib/resend/templates';
 import type { SupabaseClient } from '@supabase/supabase-js';
 
 export const dynamic = 'force-dynamic';
@@ -81,6 +83,11 @@ async function handleCheckoutCompleted(
   }
 
   if (metadata.type === 'single') {
+    if (!metadata.courseId) {
+      console.error('Webhook: courseId mancante nella metadata per acquisto single');
+      throw new Error('Missing courseId in metadata for single purchase');
+    }
+
     const expiresAt = new Date();
     expiresAt.setMonth(expiresAt.getMonth() + 24);
 
@@ -105,6 +112,33 @@ async function handleCheckoutCompleted(
       console.error('Webhook: errore creazione enrollment single:', error);
       throw error;
     }
+
+    // Send purchase confirmation email
+    try {
+      const customerEmail = session.customer_email ?? session.customer_details?.email;
+      if (customerEmail && metadata.courseId) {
+        const { data: course } = await admin
+          .from('courses')
+          .select('title, slug, price_single')
+          .eq('id', metadata.courseId)
+          .single();
+        const courseData = course as { title: string; slug: string; price_single: number } | null;
+        if (courseData) {
+          const amount = `€${(courseData.price_single / 100).toFixed(2)}`;
+          const { data: userData } = await admin.auth.admin.getUserById(metadata.userId);
+          const userName = (userData?.user?.user_metadata?.full_name as string) || 'studente';
+          const email = purchaseConfirmationEmail({
+            userName,
+            courseName: courseData.title,
+            amount,
+            courseSlug: courseData.slug,
+          });
+          sendEmail({ to: customerEmail, ...email });
+        }
+      }
+    } catch (emailErr) {
+      console.error('Webhook: errore invio email conferma acquisto:', emailErr);
+    }
   }
 
   if (metadata.type === 'pro_subscription') {
@@ -120,12 +154,12 @@ async function handleCheckoutCompleted(
       return;
     }
 
-    // Fetch subscription details for period_end
+    // Fetch subscription details for period_end (on items in Stripe SDK v20+)
     let periodEnd: string | null = null;
-    const sub = await stripe.subscriptions.retrieve(subscriptionId);
-    const periodEndTs = (sub as unknown as Record<string, unknown>).current_period_end as number | undefined;
-    if (periodEndTs) {
-      periodEnd = new Date(periodEndTs * 1000).toISOString();
+    const sub = await stripe.subscriptions.retrieve(subscriptionId, { expand: ['items'] });
+    const firstItem = sub.items?.data?.[0];
+    if (firstItem?.current_period_end) {
+      periodEnd = new Date(firstItem.current_period_end * 1000).toISOString();
     }
 
     // Create subscription record
@@ -184,7 +218,8 @@ async function handleSubscriptionDeleted(
   subscription: Stripe.Subscription,
   admin: SupabaseClient,
 ) {
-  const periodEndTs = (subscription as unknown as Record<string, unknown>).current_period_end as number | undefined;
+  const firstItem = subscription.items?.data?.[0];
+  const periodEndTs = firstItem?.current_period_end;
   const periodEnd = periodEndTs
     ? new Date(periodEndTs * 1000).toISOString()
     : new Date().toISOString();
@@ -213,13 +248,32 @@ async function handleSubscriptionDeleted(
   if (enrollError) {
     console.error('Webhook: errore aggiornamento enrollments expiry:', enrollError);
   }
+
+  // Send cancellation email
+  try {
+    const { data: userData } = await admin.auth.admin.getUserById(userId);
+    const userEmail = userData?.user?.email;
+    if (userEmail) {
+      const userName = (userData?.user?.user_metadata?.full_name as string) || 'studente';
+      const endDate = new Date(periodEnd).toLocaleDateString('it-IT', {
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric',
+      });
+      const email = subscriptionCanceledEmail({ userName, endDate });
+      sendEmail({ to: userEmail, ...email });
+    }
+  } catch (emailErr) {
+    console.error('Webhook: errore invio email cancellazione:', emailErr);
+  }
 }
 
 async function handleSubscriptionUpdated(
   subscription: Stripe.Subscription,
   admin: SupabaseClient,
 ) {
-  const periodEndTs = (subscription as unknown as Record<string, unknown>).current_period_end as number | undefined;
+  const firstItem = subscription.items?.data?.[0];
+  const periodEndTs = firstItem?.current_period_end;
   const periodEnd = periodEndTs
     ? new Date(periodEndTs * 1000).toISOString()
     : null;

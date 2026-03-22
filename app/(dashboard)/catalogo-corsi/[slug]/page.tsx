@@ -7,12 +7,7 @@ import { LessonList } from '@/components/corso/LessonList';
 import { CourseDetailSidebar } from '@/components/corso/CourseDetailSidebar';
 import { AREA_CONFIG, LEVEL_LABELS } from '@/lib/area-config';
 import { formatDuration } from '@/lib/utils';
-import {
-  PLACEHOLDER_COURSES,
-  PLACEHOLDER_MODULES,
-  PLACEHOLDER_OBJECTIVES,
-  PLACEHOLDER_MATERIALS,
-} from '@/lib/placeholder-data';
+import { getCourseBySlug, getCourseModulesWithLessons } from '@/lib/catalog/queries';
 
 interface PageProps {
   params: { slug: string };
@@ -20,7 +15,10 @@ interface PageProps {
 }
 
 export default async function CourseDetailPage({ params, searchParams }: PageProps) {
-  const course = PLACEHOLDER_COURSES.find((c) => c.slug === params.slug);
+  const supabase = createServerClient();
+
+  // Fetch course from DB
+  const course = await getCourseBySlug(supabase, params.slug);
   if (!course) notFound();
 
   // Check enrollment status
@@ -28,12 +26,10 @@ export default async function CourseDetailPage({ params, searchParams }: PagePro
   let isAuthenticated = false;
 
   try {
-    const supabase = createServerClient();
     const { data: { user } } = await supabase.auth.getUser();
     isAuthenticated = !!user;
 
     if (user) {
-      // RLS policy allows users to read their own enrollments
       const { data: enrollment } = await supabase
         .from('enrollments')
         .select('id, expires_at')
@@ -46,13 +42,13 @@ export default async function CourseDetailPage({ params, searchParams }: PagePro
       }
     }
   } catch {
-    // DB tables may not exist yet — default to not enrolled
+    // Default to not enrolled
   }
 
+  // Fetch modules + lessons
+  const modules = await getCourseModulesWithLessons(supabase, course.id);
+
   const area = AREA_CONFIG[course.area];
-  const modules = PLACEHOLDER_MODULES[course.slug] || [];
-  const objectives = PLACEHOLDER_OBJECTIVES[course.slug] || [];
-  const materials = PLACEHOLDER_MATERIALS[course.slug] || [];
 
   return (
     <div className="w-full px-6 lg:px-9 py-7">
@@ -101,13 +97,16 @@ export default async function CourseDetailPage({ params, searchParams }: PagePro
 
           {/* Meta row */}
           <div className="flex flex-wrap items-center gap-3 text-[0.72rem] text-text-muted mb-5">
-            <span className="flex items-center gap-0.5">
-              <span className="text-accent-amber">★</span> {course.rating}
+            {course.enrolledCount > 0 && (
+              <>
+                <span>{course.enrolledCount} iscritti</span>
+                <span className="text-border-hover">·</span>
+              </>
+            )}
+            <span>
+              {course.durationMin > 0 ? `⏱ ${formatDuration(course.durationMin)} · ` : ''}
+              {course.lessonCount} lezioni
             </span>
-            <span className="text-border-hover">·</span>
-            <span>{course.enrolledCount} iscritti</span>
-            <span className="text-border-hover">·</span>
-            <span>⏱ {formatDuration(course.durationMin)} · {course.lessonCount} lezioni</span>
             <span className="text-border-hover">·</span>
             <span>Aggiornato {course.updatedAt}</span>
           </div>
@@ -132,8 +131,8 @@ export default async function CourseDetailPage({ params, searchParams }: PagePro
         {/* Sidebar */}
         <CourseDetailSidebar
           course={course}
-          materials={materials}
-          objectives={objectives}
+          materials={[]}
+          objectives={[]}
           isEnrolled={isEnrolled}
           isAuthenticated={isAuthenticated}
         />

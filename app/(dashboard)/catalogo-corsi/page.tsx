@@ -1,14 +1,44 @@
+import { createServerClient } from '@/lib/supabase/server';
 import { CatalogHero } from '@/components/corso/CatalogHero';
 import { CatalogBrowser } from '@/components/corso/CatalogBrowser';
-import { PLACEHOLDER_COURSES, FEATURED_COURSE_SLUG } from '@/lib/placeholder-data';
+import { getPublishedCourses, getFeaturedCourse } from '@/lib/catalog/queries';
+import type { CourseWithMeta } from '@/types';
 
-export default function CatalogoCorsiPage() {
-  const featured = PLACEHOLDER_COURSES.find((c) => c.slug === FEATURED_COURSE_SLUG);
+export default async function CatalogoCorsiPage() {
+  let courses: CourseWithMeta[] = [];
+  let featured: CourseWithMeta | null = null;
+
+  try {
+    const supabase = createServerClient();
+    courses = await getPublishedCourses(supabase);
+    featured = await getFeaturedCourse(supabase, courses);
+  } catch {
+    courses = [];
+    featured = null;
+  }
+
+  if (courses.length === 0) {
+    return (
+      <div className="w-full px-6 lg:px-9 py-7">
+        <div className="text-center py-20">
+          <div className="w-16 h-16 rounded-full bg-surface-2 flex items-center justify-center mx-auto mb-4">
+            <span className="text-2xl">📚</span>
+          </div>
+          <h2 className="font-heading text-lg font-bold text-text-primary mb-2">
+            Nessun corso disponibile
+          </h2>
+          <p className="text-text-secondary text-sm max-w-sm mx-auto">
+            I corsi sono in fase di preparazione. Torna presto per scoprire il catalogo completo!
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="w-full px-6 lg:px-9 py-7 space-y-8">
       {featured && <CatalogHero course={featured} />}
-      <CatalogBrowser courses={PLACEHOLDER_COURSES} />
+      <CatalogBrowser courses={courses} />
     </div>
   );
 }
