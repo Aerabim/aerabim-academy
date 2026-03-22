@@ -1,6 +1,7 @@
 'use client';
 
 import { useRef, useState, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import type { ProgressUpdateRequest } from '@/types';
 
@@ -43,6 +44,7 @@ export function VideoPlayer({
   initialWatchTimeSec,
   tokens,
 }: VideoPlayerProps) {
+  const router = useRouter();
   const [completed, setCompleted] = useState(false);
   const lastSavedTimeRef = useRef(initialWatchTimeSec);
   const lastSaveTimestampRef = useRef(0);
@@ -88,6 +90,9 @@ export function VideoPlayer({
     const result = await updateProgress({ lessonId, completed: true });
     setCompleted(true);
 
+    // Refresh server components so sidebar progress updates
+    router.refresh();
+
     if (result.allCompleted) {
       try {
         const certRes = await fetch('/api/certificati/generate', {
@@ -103,7 +108,7 @@ export function VideoPlayer({
         // Certificate generation is best-effort; user can generate later
       }
     }
-  }, [lessonId, courseId]);
+  }, [lessonId, courseId, router]);
 
   return (
     <div className="relative w-full rounded-lg overflow-hidden bg-brand-dark">
