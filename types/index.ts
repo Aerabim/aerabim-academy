@@ -365,6 +365,68 @@ export type Database = {
           created_at?: string;
         };
       };
+      articles: {
+        Row: {
+          id: string;
+          slug: string;
+          title: string;
+          excerpt: string | null;
+          body: string;
+          cover_url: string | null;
+          area: string | null;
+          author_name: string;
+          author_role: string;
+          is_published: boolean;
+          published_at: string | null;
+          read_min: number;
+          related_course_id: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          slug: string;
+          title: string;
+          excerpt?: string | null;
+          body: string;
+          cover_url?: string | null;
+          area?: string | null;
+          author_name?: string;
+          author_role?: string;
+          is_published?: boolean;
+          published_at?: string | null;
+          read_min?: number;
+          related_course_id?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database['public']['Tables']['articles']['Insert']>;
+      };
+      press_mentions: {
+        Row: {
+          id: string;
+          title: string;
+          source_name: string;
+          source_url: string;
+          source_logo: string | null;
+          excerpt: string | null;
+          published_at: string;
+          is_published: boolean;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          title: string;
+          source_name: string;
+          source_url: string;
+          source_logo?: string | null;
+          excerpt?: string | null;
+          published_at: string;
+          is_published?: boolean;
+          created_at?: string;
+        };
+        Update: Partial<Database['public']['Tables']['press_mentions']['Insert']>;
+      };
       course_reviews: {
         Row: {
           id: string;
@@ -902,4 +964,215 @@ export interface CourseReviewStats {
   avgRating: number;
   reviewCount: number;
   distribution: Record<1 | 2 | 3 | 4 | 5, number>;
+}
+
+// ── Risorse (Blog + Press) Types ──────────────────────────
+
+export type Article = Database['public']['Tables']['articles']['Row'];
+export type PressMention = Database['public']['Tables']['press_mentions']['Row'];
+
+/** Article card for the risorse hub listing */
+export interface ArticleDisplay {
+  id: string;
+  slug: string;
+  title: string;
+  excerpt: string | null;
+  coverUrl: string | null;
+  area: AreaCode | null;
+  authorName: string;
+  authorRole: string;
+  publishedAt: string;
+  readMin: number;
+  relatedCourseSlug: string | null;
+}
+
+/** Full article for detail page */
+export interface ArticleDetail extends ArticleDisplay {
+  body: string;
+  relatedCourseTitle: string | null;
+}
+
+/** Press mention card for the risorse hub */
+export interface PressMentionDisplay {
+  id: string;
+  title: string;
+  sourceName: string;
+  sourceUrl: string;
+  sourceLogo: string | null;
+  excerpt: string | null;
+  publishedAt: string;
+}
+
+// ── Admin Panel Types ───────────────────────────────────
+
+/** Overview stats for the admin dashboard */
+export interface AdminOverviewStats {
+  totalUsers: number;
+  activeEnrollments: number;
+  publishedCourses: number;
+  totalCourses: number;
+  pendingSessionRequests: number;
+  recentEnrollments: AdminRecentEnrollment[];
+}
+
+/** A recent enrollment entry for the admin dashboard feed */
+export interface AdminRecentEnrollment {
+  id: string;
+  userEmail: string;
+  userName: string;
+  courseTitle: string;
+  accessType: string;
+  createdAt: string;
+}
+
+/** Admin course list item */
+export interface AdminCourseListItem {
+  id: string;
+  slug: string;
+  title: string;
+  area: AreaCode;
+  level: LevelCode;
+  priceSingle: number;
+  isFree: boolean;
+  isPublished: boolean;
+  enrolledCount: number;
+  moduleCount: number;
+  lessonCount: number;
+  createdAt: string;
+}
+
+/** Admin course detail with modules and lessons */
+export interface AdminCourseDetail {
+  course: Course;
+  modules: AdminModuleWithLessons[];
+}
+
+/** Module with nested lessons for admin */
+export interface AdminModuleWithLessons {
+  id: string;
+  courseId: string;
+  title: string;
+  orderNum: number;
+  lessons: AdminLessonDetail[];
+}
+
+/** Lesson detail for admin views */
+export interface AdminLessonDetail {
+  id: string;
+  moduleId: string;
+  title: string;
+  orderNum: number;
+  type: LessonType;
+  muxPlaybackId: string | null;
+  muxAssetId: string | null;
+  muxStatus: string;
+  durationSec: number | null;
+  isPreview: boolean;
+  quizQuestionCount: number;
+}
+
+/** Payload for creating a course */
+export interface CreateCoursePayload {
+  title: string;
+  slug: string;
+  description?: string;
+  area: AreaCode;
+  level: LevelCode;
+  priceSingle: number;
+  isFree: boolean;
+  thumbnailUrl?: string;
+  stripePriceId?: string;
+}
+
+/** Payload for creating a module */
+export interface CreateModulePayload {
+  courseId: string;
+  title: string;
+}
+
+/** Payload for creating a lesson */
+export interface CreateLessonPayload {
+  moduleId: string;
+  title: string;
+  type: LessonType;
+  isPreview?: boolean;
+}
+
+/** Payload for reordering items (modules or lessons) */
+export interface ReorderPayload {
+  items: { id: string; orderNum: number }[];
+}
+
+/** Admin user list item */
+export interface AdminUserListItem {
+  id: string;
+  email: string;
+  fullName: string;
+  role: 'student' | 'admin';
+  plan: 'free' | 'pro' | 'team' | 'pa';
+  enrollmentCount: number;
+  createdAt: string;
+}
+
+/** Admin user detail */
+export interface AdminUserDetail {
+  id: string;
+  email: string;
+  fullName: string;
+  role: 'student' | 'admin';
+  plan: 'free' | 'pro' | 'team' | 'pa';
+  enrollments: AdminEnrollmentItem[];
+  subscription: Subscription | null;
+  certificates: Certificate[];
+  courseProgress: AdminCourseProgress[];
+}
+
+/** Enrollment item for admin views */
+export interface AdminEnrollmentItem {
+  id: string;
+  userId: string;
+  userEmail: string;
+  userName: string;
+  courseId: string;
+  courseTitle: string;
+  accessType: string;
+  expiresAt: string | null;
+  createdAt: string;
+}
+
+/** Course progress summary for admin user detail */
+export interface AdminCourseProgress {
+  courseId: string;
+  courseTitle: string;
+  completedLessons: number;
+  totalLessons: number;
+  percentage: number;
+}
+
+/** Payload for manually granting enrollment */
+export interface GrantEnrollmentPayload {
+  userId: string;
+  courseId: string;
+  accessType: 'free' | 'single' | 'pro_subscription';
+  expiresAt?: string;
+}
+
+/** Admin analytics overview */
+export interface AdminAnalyticsOverview {
+  totalRevenue: number;
+  mrr: number;
+  activeUsers: number;
+  newEnrollments: number;
+  completionRate: number;
+  enrollmentTrend: { date: string; count: number }[];
+  userGrowth: { date: string; count: number }[];
+}
+
+/** Course completion rate for analytics */
+export interface CourseCompletionRate {
+  courseId: string;
+  courseTitle: string;
+  enrolledCount: number;
+  completedCount: number;
+  completionRate: number;
 }

@@ -59,6 +59,54 @@ function buildSections(courseCount: number): SidebarNavSection[] {
           </svg>
         ),
       },
+      {
+        href: '/risorse',
+        label: 'Risorse',
+        icon: (
+          <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24">
+            <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" />
+            <path d="M14 2v6h6" />
+            <path d="M16 13H8M16 17H8M10 9H8" />
+          </svg>
+        ),
+      },
+      {
+        href: '/community',
+        label: 'Community',
+        icon: (
+          <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24">
+            <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" />
+            <circle cx="9" cy="7" r="4" />
+            <path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75" />
+          </svg>
+        ),
+      },
+    ],
+  },
+  {
+    title: 'Certificazioni',
+    items: [
+      {
+        href: '/simulazioni',
+        label: 'Simulazioni Esame',
+        badge: 'Soon',
+        icon: (
+          <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24">
+            <path d="M9 11l3 3L22 4" />
+            <path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11" />
+          </svg>
+        ),
+      },
+      {
+        href: '/prenota-esame',
+        label: 'Prenota Esame',
+        badge: 'Soon',
+        icon: (
+          <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24">
+            <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+          </svg>
+        ),
+      },
     ],
   },
   {
@@ -103,17 +151,6 @@ function buildSections(courseCount: number): SidebarNavSection[] {
             <path d="M14.5 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V7.5L14.5 2z" />
             <path d="M14 2v6h6" />
             <path d="M9 15l2 2 4-4" />
-          </svg>
-        ),
-      },
-      {
-        href: '/community',
-        label: 'Community',
-        icon: (
-          <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24">
-            <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" />
-            <circle cx="9" cy="7" r="4" />
-            <path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75" />
           </svg>
         ),
       },
@@ -187,6 +224,22 @@ interface SidebarProps {
 export function Sidebar({ user, courseCount, open, collapsed, onClose, onCollapseToggle }: SidebarProps) {
   const pathname = usePathname();
   const sections = buildSections(courseCount);
+
+  // Add admin link for admin users
+  if (user.role === 'admin') {
+    const strumentiSection = sections.find((s) => s.title === 'Strumenti');
+    if (strumentiSection) {
+      strumentiSection.items.unshift({
+        href: '/admin',
+        label: 'Pannello Admin',
+        icon: (
+          <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24">
+            <path d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+          </svg>
+        ),
+      });
+    }
+  }
 
   return (
     <>

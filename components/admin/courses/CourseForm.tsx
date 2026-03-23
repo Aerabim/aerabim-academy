@@ -1,0 +1,232 @@
+'use client';
+
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { FormField } from '@/components/admin/ui/FormField';
+import { FormSelect } from '@/components/admin/ui/FormSelect';
+import { FormTextarea } from '@/components/admin/ui/FormTextarea';
+import type { Course } from '@/types';
+
+interface CourseFormProps {
+  course?: Course;
+}
+
+const AREA_OPTIONS = [
+  { value: 'SW', label: 'Software Operativo' },
+  { value: 'NL', label: 'Normativa & Legal' },
+  { value: 'OB', label: 'OpenBIM & Standard' },
+  { value: 'PG', label: 'Processi & Governance' },
+  { value: 'AI', label: 'AI & Automazione' },
+];
+
+const LEVEL_OPTIONS = [
+  { value: 'L1', label: 'Base' },
+  { value: 'L2', label: 'Intermedio' },
+  { value: 'L3', label: 'Avanzato' },
+];
+
+function slugify(text: string): string {
+  return text
+    .toLowerCase()
+    .replace(/[àáâãäå]/g, 'a')
+    .replace(/[èéêë]/g, 'e')
+    .replace(/[ìíîï]/g, 'i')
+    .replace(/[òóôõö]/g, 'o')
+    .replace(/[ùúûü]/g, 'u')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+}
+
+export function CourseForm({ course }: CourseFormProps) {
+  const router = useRouter();
+  const isEditing = !!course;
+
+  const [title, setTitle] = useState(course?.title ?? '');
+  const [slug, setSlug] = useState(course?.slug ?? '');
+  const [description, setDescription] = useState(course?.description ?? '');
+  const [area, setArea] = useState(course?.area ?? '');
+  const [level, setLevel] = useState(course?.level ?? '');
+  const [priceSingle, setPriceSingle] = useState(
+    course ? String(course.price_single / 100) : '',
+  );
+  const [isFree, setIsFree] = useState(course?.is_free ?? false);
+  const [thumbnailUrl, setThumbnailUrl] = useState(course?.thumbnail_url ?? '');
+  const [stripePriceId, setStripePriceId] = useState(course?.stripe_price_id ?? '');
+  const [slugManual, setSlugManual] = useState(isEditing);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+
+  function handleTitleChange(val: string) {
+    setTitle(val);
+    if (!slugManual) {
+      setSlug(slugify(val));
+    }
+  }
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setError('');
+    setSaving(true);
+
+    try {
+      const payload = {
+        title,
+        slug,
+        description: description || undefined,
+        area,
+        level,
+        priceSingle: isFree ? 0 : Math.round(parseFloat(priceSingle || '0') * 100),
+        isFree,
+        thumbnailUrl: thumbnailUrl || undefined,
+        stripePriceId: stripePriceId || undefined,
+      };
+
+      const url = isEditing
+        ? `/api/admin/courses/${course.id}`
+        : '/api/admin/courses';
+      const method = isEditing ? 'PATCH' : 'POST';
+
+      const res = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        setError(data.error ?? 'Errore durante il salvataggio.');
+        return;
+      }
+
+      if (isEditing) {
+        router.refresh();
+      } else {
+        router.push(`/admin/corsi/${data.course.id}`);
+      }
+    } catch {
+      setError('Errore di rete.');
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-5 w-full">
+      {error && (
+        <div className="px-4 py-3 bg-accent-rose/10 border border-accent-rose/20 rounded-md text-[0.82rem] text-accent-rose">
+          {error}
+        </div>
+      )}
+
+      <FormField
+        label="Titolo"
+        id="title"
+        value={title}
+        onChange={handleTitleChange}
+        placeholder="es. Modellazione BIM con Revit"
+        required
+      />
+
+      <div className="space-y-1.5">
+        <FormField
+          label="Slug"
+          id="slug"
+          value={slug}
+          onChange={(val) => { setSlug(val); setSlugManual(true); }}
+          placeholder="modellazione-bim-con-revit"
+          required
+          hint="Usato nell'URL del corso. Generato automaticamente dal titolo."
+        />
+      </div>
+
+      <FormTextarea
+        label="Descrizione"
+        id="description"
+        value={description}
+        onChange={setDescription}
+        placeholder="Descrizione del corso..."
+        rows={4}
+      />
+
+      <div className="grid grid-cols-2 gap-4">
+        <FormSelect
+          label="Area"
+          id="area"
+          value={area}
+          onChange={setArea}
+          options={AREA_OPTIONS}
+          placeholder="Seleziona area"
+          required
+        />
+        <FormSelect
+          label="Livello"
+          id="level"
+          value={level}
+          onChange={setLevel}
+          options={LEVEL_OPTIONS}
+          placeholder="Seleziona livello"
+          required
+        />
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        <FormField
+          label="Prezzo (EUR)"
+          id="price"
+          type="number"
+          value={isFree ? '0' : priceSingle}
+          onChange={setPriceSingle}
+          placeholder="89.00"
+          disabled={isFree}
+          hint="In euro, non centesimi."
+        />
+        <div className="flex items-end pb-1">
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={isFree}
+              onChange={(e) => setIsFree(e.target.checked)}
+              className="w-4 h-4 rounded border-border-subtle bg-surface-2 text-accent-cyan focus:ring-accent-cyan/20"
+            />
+            <span className="text-[0.82rem] text-text-secondary">Corso gratuito</span>
+          </label>
+        </div>
+      </div>
+
+      <FormField
+        label="URL Thumbnail"
+        id="thumbnail"
+        value={thumbnailUrl}
+        onChange={setThumbnailUrl}
+        placeholder="https://..."
+      />
+
+      <FormField
+        label="Stripe Price ID"
+        id="stripePriceId"
+        value={stripePriceId}
+        onChange={setStripePriceId}
+        placeholder="price_..."
+        hint="L'ID del prezzo Stripe per l'acquisto singolo."
+      />
+
+      <div className="flex items-center gap-3 pt-2">
+        <button
+          type="submit"
+          disabled={saving}
+          className="px-5 py-2.5 bg-accent-cyan/15 text-accent-cyan text-[0.82rem] font-semibold rounded-md border border-accent-cyan/20 hover:bg-accent-cyan/25 transition-colors disabled:opacity-50"
+        >
+          {saving ? 'Salvataggio...' : isEditing ? 'Salva modifiche' : 'Crea corso'}
+        </button>
+        <button
+          type="button"
+          onClick={() => router.back()}
+          className="px-5 py-2.5 text-[0.82rem] font-medium text-text-secondary hover:text-text-primary transition-colors"
+        >
+          Annulla
+        </button>
+      </div>
+    </form>
+  );
+}
