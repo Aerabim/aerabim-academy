@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { verifyAdmin } from '@/lib/admin/auth';
-import type { ApiError } from '@/types';
+import type { ApiError, UserRole, UserPlan, CreateUserPayload } from '@/types';
+
+const VALID_ROLES: UserRole[] = ['student', 'admin', 'docente', 'tutor', 'moderatore'];
 
 /** GET /api/admin/users — list all users with profile + subscription info */
 export async function GET(req: Request) {
@@ -70,8 +72,8 @@ export async function GET(req: Request) {
         id: u.id,
         email: u.email ?? '',
         fullName: (u.user_metadata?.full_name as string) ?? profile?.display_name ?? 'Utente',
-        role: (profile?.role ?? 'student') as 'student' | 'admin',
-        plan: (subMap.get(u.id) ?? 'free') as 'free' | 'pro' | 'team' | 'pa',
+        role: (profile?.role ?? 'student') as UserRole,
+        plan: (subMap.get(u.id) ?? 'free') as UserPlan,
         enrollmentCount: enrollCountMap.get(u.id) ?? 0,
         createdAt: u.created_at,
       };
@@ -83,6 +85,108 @@ export async function GET(req: Request) {
     });
   } catch (err) {
     console.error('GET /api/admin/users error:', err);
+    return NextResponse.json(
+      { error: 'Errore interno del server.' } satisfies ApiError,
+      { status: 500 },
+    );
+  }
+}
+
+/** POST /api/admin/users — create a new user from admin */
+export async function POST(req: Request) {
+  try {
+    const result = await verifyAdmin();
+    if (result instanceof NextResponse) return result;
+    const { admin } = result;
+
+    const body = (await req.json()) as CreateUserPayload;
+
+    if (!body.email || !body.fullName || !body.password) {
+      return NextResponse.json(
+        { error: 'Campi obbligatori mancanti: email, fullName, password.' } satisfies ApiError,
+        { status: 400 },
+      );
+    }
+
+    if (body.password.length < 6) {
+      return NextResponse.json(
+        { error: 'La password deve avere almeno 6 caratteri.' } satisfies ApiError,
+        { status: 400 },
+      );
+    }
+
+    const roleToSet = body.role ?? 'student';
+    if (!VALID_ROLES.includes(roleToSet)) {
+      return NextResponse.json(
+        { error: `Ruolo non valido. Usa: ${VALID_ROLES.join(', ')}.` } satisfies ApiError,
+        { status: 400 },
+      );
+    }
+
+    // Create auth user via Supabase Admin API
+    const { data: authData, error: authError } = await admin.auth.admin.createUser({
+      email: body.email,
+      password: body.password,
+      email_confirm: true,
+      user_metadata: { full_name: body.fullName },
+    });
+
+    if (authError || !authData?.user) {
+      console.error('Create user auth error:', authError);
+      const msg = authError?.message?.includes('already been registered')
+        ? 'Questa email è già registrata.'
+        : 'Errore durante la creazione dell\'utente.';
+      return NextResponse.json(
+        { error: msg } satisfies ApiError,
+        { status: authError?.message?.includes('already been registered') ? 409 : 500 },
+      );
+    }
+
+    const newUserId = authData.user.id;
+
+    // Create profile with the specified role
+    const { error: profileError } = await admin
+      .from('profiles')
+      .upsert({
+        id: newUserId,
+        role: roleToSet,
+        display_name: body.fullName,
+      });
+
+    if (profileError) {
+      console.error('Create profile error:', profileError);
+      // User was created but profile failed — try to clean up
+    }
+
+    // If a non-free plan is specified, create a manual subscription record
+    if (body.plan && body.plan !== 'free') {
+      const { error: subError } = await admin
+        .from('subscriptions')
+        .insert({
+          user_id: newUserId,
+          stripe_subscription_id: `manual_${Date.now()}`,
+          stripe_customer_id: `manual_${newUserId}`,
+          status: 'active',
+          plan: body.plan,
+          current_period_end: null,
+        });
+
+      if (subError) {
+        console.error('Create subscription error:', subError);
+      }
+    }
+
+    return NextResponse.json({
+      user: {
+        id: newUserId,
+        email: body.email,
+        fullName: body.fullName,
+        role: roleToSet,
+        plan: body.plan ?? 'free',
+      },
+    }, { status: 201 });
+  } catch (err) {
+    console.error('POST /api/admin/users error:', err);
     return NextResponse.json(
       { error: 'Errore interno del server.' } satisfies ApiError,
       { status: 500 },

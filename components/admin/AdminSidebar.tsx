@@ -125,6 +125,31 @@ const ADMIN_SECTIONS: AdminNavSection[] = [
     ],
   },
   {
+    title: 'Marketing',
+    items: [
+      {
+        href: '/admin/coupon',
+        label: 'Coupon',
+        icon: (
+          <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24">
+            <path d="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z" />
+            <line x1="7" y1="7" x2="7.01" y2="7" />
+          </svg>
+        ),
+      },
+      {
+        href: '/admin/comunicazioni',
+        label: 'Comunicazioni',
+        icon: (
+          <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24">
+            <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
+            <polyline points="22,6 12,13 2,6" />
+          </svg>
+        ),
+      },
+    ],
+  },
+  {
     title: 'Analisi',
     items: [
       {
@@ -169,7 +194,7 @@ export function AdminSidebar({ open, collapsed, onClose, onCollapseToggle }: Adm
 
       <aside
         className={cn(
-          'fixed top-0 left-0 z-40 h-screen bg-surface-1 border-r border-border-subtle',
+          'fixed top-0 left-0 z-40 h-screen bg-[#0A1018] border-r border-accent-amber/10',
           'flex flex-col transition-all duration-200 shrink-0',
           'lg:translate-x-0 lg:sticky lg:z-30',
           collapsed ? 'lg:w-[68px]' : 'lg:w-[200px]',
@@ -179,21 +204,16 @@ export function AdminSidebar({ open, collapsed, onClose, onCollapseToggle }: Adm
       >
         {/* Brand + Admin badge */}
         <div className={cn(
-          'border-b border-border-subtle transition-all duration-200 flex items-center h-[62px]',
+          'border-b border-accent-amber/10 transition-all duration-200 flex items-center h-[62px]',
           collapsed ? 'px-3 justify-center' : 'px-5 justify-between',
         )}>
           <Link href="/admin" onClick={onClose} className="block min-w-0">
             {collapsed ? (
               <span className="font-heading text-[1.2rem] font-extrabold text-accent-amber">A</span>
             ) : (
-              <div className="flex items-center gap-2">
-                <h1 className="font-heading text-[1.3rem] font-bold tracking-tight text-text-primary">
-                  Aer<span className="text-accent-cyan font-extrabold">ACADEMY</span>
-                </h1>
-                <span className="bg-accent-amber/15 text-accent-amber text-[0.55rem] font-bold font-heading uppercase tracking-wider px-1.5 py-[1px] rounded">
-                  Admin
-                </span>
-              </div>
+              <h1 className="font-heading text-[1.3rem] font-bold tracking-tight text-text-primary">
+                Aer<span className="text-accent-cyan font-extrabold">ACADEMY</span>
+              </h1>
             )}
           </Link>
         </div>
@@ -201,7 +221,7 @@ export function AdminSidebar({ open, collapsed, onClose, onCollapseToggle }: Adm
         {/* Collapse toggle */}
         <button
           onClick={onCollapseToggle}
-          className="hidden lg:flex absolute top-[52px] -right-3 z-50 items-center justify-center w-6 h-6 rounded-full bg-surface-1 border border-border-subtle text-text-muted hover:text-text-primary hover:bg-surface-2 transition-colors shadow-sm"
+          className="hidden lg:flex absolute top-[52px] -right-3 z-50 items-center justify-center w-6 h-6 rounded-full bg-[#0A1018] border border-accent-amber/15 text-text-muted hover:text-accent-amber hover:bg-surface-2 transition-colors shadow-sm"
           aria-label={collapsed ? 'Espandi sidebar' : 'Comprimi sidebar'}
         >
           <svg
@@ -225,7 +245,7 @@ export function AdminSidebar({ open, collapsed, onClose, onCollapseToggle }: Adm
           {ADMIN_SECTIONS.map((section) => (
             <div key={section.title}>
               {!collapsed && (
-                <div className="font-heading text-[0.62rem] uppercase tracking-[0.16em] text-text-muted px-3 pt-[18px] pb-2 font-bold">
+                <div className="font-heading text-[0.62rem] uppercase tracking-[0.16em] text-accent-amber/50 px-3 pt-[18px] pb-2 font-bold">
                   {section.title}
                 </div>
               )}
@@ -264,7 +284,7 @@ export function AdminSidebar({ open, collapsed, onClose, onCollapseToggle }: Adm
 
         {/* Back to dashboard link */}
         <div className={cn(
-          'border-t border-border-subtle h-[60px] flex items-center',
+          'border-t border-accent-amber/10 h-[60px] flex items-center',
           collapsed ? 'px-1.5 justify-center' : 'px-3.5',
         )}>
           <Link
@@ -273,12 +293,12 @@ export function AdminSidebar({ open, collapsed, onClose, onCollapseToggle }: Adm
               'flex items-center rounded-sm text-[0.82rem] font-medium text-text-secondary hover:text-text-primary transition-colors',
               collapsed ? 'justify-center p-2.5' : 'gap-[11px] p-2.5 w-full',
             )}
-            title={collapsed ? 'Torna alla Dashboard' : undefined}
+            title={collapsed ? 'Esci da Admin' : undefined}
           >
             <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24" className="shrink-0">
               <path strokeLinecap="round" strokeLinejoin="round" d="M19 12H5M12 19l-7-7 7-7" />
             </svg>
-            {!collapsed && <span>Torna alla Dashboard</span>}
+            {!collapsed && <span>Esci da Admin</span>}
           </Link>
         </div>
       </aside>

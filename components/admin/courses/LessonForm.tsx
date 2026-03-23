@@ -4,13 +4,14 @@ import { useState } from 'react';
 import { FormField } from '@/components/admin/ui/FormField';
 import { FormSelect } from '@/components/admin/ui/FormSelect';
 import { VideoUploader } from './VideoUploader';
+import { MaterialUploader } from './MaterialUploader';
 import type { AdminLessonDetail } from '@/types';
 
 interface LessonFormProps {
   courseId: string;
   moduleId: string;
   lesson?: AdminLessonDetail;
-  onSaved: () => void;
+  onSaved: (lesson?: AdminLessonDetail) => void;
   onCancel: () => void;
 }
 
@@ -58,7 +59,27 @@ export function LessonForm({ courseId, moduleId, lesson, onSaved, onCancel }: Le
         return;
       }
 
-      onSaved();
+      const data = await res.json();
+
+      if (!isEditing && data.lesson) {
+        const created: AdminLessonDetail = {
+          id: data.lesson.id,
+          moduleId: data.lesson.module_id,
+          title: data.lesson.title,
+          orderNum: data.lesson.order_num,
+          type: data.lesson.type,
+          muxPlaybackId: null,
+          muxAssetId: null,
+          muxStatus: data.lesson.mux_status ?? 'waiting',
+          durationSec: null,
+          isPreview: data.lesson.is_preview ?? false,
+          quizQuestionCount: 0,
+          materialUrl: null,
+        };
+        onSaved(created);
+      } else {
+        onSaved();
+      }
     } catch {
       setError('Errore di rete.');
     } finally {
@@ -124,6 +145,13 @@ export function LessonForm({ courseId, moduleId, lesson, onSaved, onCancel }: Le
       {isEditing && lesson.type === 'video' && (
         <div className="pt-2 border-t border-border-subtle">
           <VideoUploader courseId={courseId} lessonId={lesson.id} currentStatus={lesson.muxStatus} />
+        </div>
+      )}
+
+      {/* Material uploader for existing material lessons */}
+      {isEditing && lesson.type === 'material' && (
+        <div className="pt-2 border-t border-border-subtle">
+          <MaterialUploader courseId={courseId} lessonId={lesson.id} currentUrl={lesson.materialUrl} />
         </div>
       )}
     </div>

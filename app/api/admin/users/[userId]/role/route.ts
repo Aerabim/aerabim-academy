@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { verifyAdmin } from '@/lib/admin/auth';
-import type { ApiError } from '@/types';
+import type { ApiError, UserRole } from '@/types';
+
+const VALID_ROLES: UserRole[] = ['student', 'admin', 'docente', 'tutor', 'moderatore'];
 
 interface RouteParams {
   params: { userId: string };
@@ -14,11 +16,11 @@ export async function PATCH(req: Request, { params }: RouteParams) {
     const { admin } = result;
 
     const body = await req.json();
-    const newRole = body.role;
+    const newRole = body.role as string;
 
-    if (!newRole || !['student', 'admin'].includes(newRole)) {
+    if (!newRole || !VALID_ROLES.includes(newRole as UserRole)) {
       return NextResponse.json(
-        { error: 'Ruolo non valido. Usa "student" o "admin".' } satisfies ApiError,
+        { error: `Ruolo non valido. Usa: ${VALID_ROLES.join(', ')}.` } satisfies ApiError,
         { status: 400 },
       );
     }

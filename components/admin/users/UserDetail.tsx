@@ -1,17 +1,32 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { Badge } from '@/components/ui/Badge';
 import { ConfirmDialog } from '@/components/admin/ui/ConfirmDialog';
 import { timeAgo } from '@/lib/utils';
+import type { UserRole, UserPlan } from '@/types';
+
+const ROLE_OPTIONS: { value: UserRole; label: string }[] = [
+  { value: 'student', label: 'Membro (student)' },
+  { value: 'docente', label: 'Docente' },
+  { value: 'tutor', label: 'Tutor' },
+  { value: 'moderatore', label: 'Moderatore' },
+  { value: 'admin', label: 'Admin' },
+];
+
+const PLAN_OPTIONS: { value: UserPlan; label: string }[] = [
+  { value: 'free', label: 'Free' },
+  { value: 'pro', label: 'Pro' },
+  { value: 'team', label: 'Team' },
+  { value: 'pa', label: 'PA' },
+];
 
 interface UserData {
   id: string;
   email: string;
   fullName: string;
-  role: 'student' | 'admin';
-  plan: 'free' | 'pro' | 'team' | 'pa';
+  role: UserRole;
+  plan: UserPlan;
   createdAt: string;
 }
 
@@ -38,14 +53,15 @@ interface UserDetailProps {
 }
 
 export function UserDetail({ user, enrollments: initialEnrollments, certificates }: UserDetailProps) {
-  const router = useRouter();
-  const [role, setRole] = useState(user.role);
+  const [role, setRole] = useState<UserRole>(user.role);
+  const [plan, setPlan] = useState<UserPlan>(user.plan);
   const [enrollments, setEnrollments] = useState(initialEnrollments);
   const [changingRole, setChangingRole] = useState(false);
+  const [changingPlan, setChangingPlan] = useState(false);
   const [revokeTarget, setRevokeTarget] = useState<EnrollmentData | null>(null);
   const [revoking, setRevoking] = useState(false);
 
-  async function handleRoleChange(newRole: 'student' | 'admin') {
+  async function handleRoleChange(newRole: UserRole) {
     setChangingRole(true);
     try {
       const res = await fetch(`/api/admin/users/${user.id}/role`, {
@@ -60,6 +76,24 @@ export function UserDetail({ user, enrollments: initialEnrollments, certificates
       console.error('Change role error:', err);
     } finally {
       setChangingRole(false);
+    }
+  }
+
+  async function handlePlanChange(newPlan: UserPlan) {
+    setChangingPlan(true);
+    try {
+      const res = await fetch(`/api/admin/users/${user.id}/plan`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ plan: newPlan }),
+      });
+      if (res.ok) {
+        setPlan(newPlan);
+      }
+    } catch (err) {
+      console.error('Change plan error:', err);
+    } finally {
+      setChangingPlan(false);
     }
   }
 
@@ -96,20 +130,48 @@ export function UserDetail({ user, enrollments: initialEnrollments, certificates
 
   return (
     <div className="space-y-8">
-      {/* Role management */}
+      {/* Role & Plan management */}
       <section className="bg-surface-1 border border-border-subtle rounded-lg p-5">
-        <h3 className="text-[0.9rem] font-heading font-semibold text-text-primary mb-3">Ruolo</h3>
-        <div className="flex items-center gap-3">
-          <select
-            value={role}
-            onChange={(e) => handleRoleChange(e.target.value as 'student' | 'admin')}
-            disabled={changingRole}
-            className="px-3 py-2 bg-surface-2 border border-border-subtle rounded-md text-[0.82rem] text-text-primary focus:outline-none focus:border-accent-cyan/50"
-          >
-            <option value="student">Membro (student)</option>
-            <option value="admin">Admin</option>
-          </select>
-          {changingRole && <span className="text-[0.78rem] text-text-muted">Aggiornamento...</span>}
+        <h3 className="text-[0.9rem] font-heading font-semibold text-text-primary mb-4">Ruolo e Piano</h3>
+        <div className="flex flex-wrap items-start gap-6">
+          {/* Role */}
+          <div className="space-y-1.5">
+            <label className="text-[0.72rem] font-heading font-bold uppercase tracking-wider text-text-muted">Ruolo</label>
+            <div className="flex items-center gap-2">
+              <select
+                value={role}
+                onChange={(e) => handleRoleChange(e.target.value as UserRole)}
+                disabled={changingRole}
+                className="px-3 py-2 bg-surface-2 border border-border-subtle rounded-md text-[0.82rem] text-text-primary focus:outline-none focus:border-accent-cyan/50"
+              >
+                {ROLE_OPTIONS.map((opt) => (
+                  <option key={opt.value} value={opt.value}>{opt.label}</option>
+                ))}
+              </select>
+              {changingRole && <span className="text-[0.78rem] text-text-muted">Aggiornamento...</span>}
+            </div>
+          </div>
+
+          {/* Plan */}
+          <div className="space-y-1.5">
+            <label className="text-[0.72rem] font-heading font-bold uppercase tracking-wider text-text-muted">Piano</label>
+            <div className="flex items-center gap-2">
+              <select
+                value={plan}
+                onChange={(e) => handlePlanChange(e.target.value as UserPlan)}
+                disabled={changingPlan}
+                className="px-3 py-2 bg-surface-2 border border-border-subtle rounded-md text-[0.82rem] text-text-primary focus:outline-none focus:border-accent-cyan/50"
+              >
+                {PLAN_OPTIONS.map((opt) => (
+                  <option key={opt.value} value={opt.value}>{opt.label}</option>
+                ))}
+              </select>
+              {changingPlan && <span className="text-[0.78rem] text-text-muted">Aggiornamento...</span>}
+            </div>
+            <p className="text-[0.68rem] text-text-muted">
+              Modifica manuale del piano (sovrascrive lo stato abbonamento Stripe).
+            </p>
+          </div>
         </div>
       </section>
 

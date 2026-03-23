@@ -48,9 +48,15 @@ export function LessonManager({ courseId, moduleId, lessons: initialLessons }: L
     }
   }
 
-  function handleCreated() {
+  function handleSaved(newLesson?: AdminLessonDetail) {
+    if (newLesson) {
+      setLessons((prev) => [...prev, newLesson]);
+    } else if (editingLesson) {
+      // Edit case — refresh to get updated data
+      router.refresh();
+    }
     setShowForm(false);
-    router.refresh();
+    setEditingLesson(null);
   }
 
   return (
@@ -92,6 +98,12 @@ export function LessonManager({ courseId, moduleId, lessons: initialLessons }: L
               </span>
             )}
 
+            {lesson.type === 'material' && (
+              <span className={cn('text-[0.68rem] font-medium', lesson.materialUrl ? 'text-accent-emerald' : 'text-text-muted')}>
+                {lesson.materialUrl ? 'File caricato' : 'Nessun file'}
+              </span>
+            )}
+
             {lesson.type === 'quiz' && (
               <span className="text-[0.68rem] text-text-muted">
                 {lesson.quizQuestionCount} domande
@@ -128,7 +140,7 @@ export function LessonManager({ courseId, moduleId, lessons: initialLessons }: L
           courseId={courseId}
           moduleId={moduleId}
           lesson={editingLesson ?? undefined}
-          onSaved={handleCreated}
+          onSaved={handleSaved}
           onCancel={() => { setShowForm(false); setEditingLesson(null); }}
         />
       )}

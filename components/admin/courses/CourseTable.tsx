@@ -19,6 +19,7 @@ export function CourseTable({ courses: initialCourses }: CourseTableProps) {
   const [filter, setFilter] = useState('');
   const [deleteTarget, setDeleteTarget] = useState<AdminCourseListItem | null>(null);
   const [loading, setLoading] = useState(false);
+  const [duplicating, setDuplicating] = useState<string | null>(null);
 
   const filtered = courses.filter((c) =>
     c.title.toLowerCase().includes(filter.toLowerCase()) ||
@@ -59,6 +60,23 @@ export function CourseTable({ courses: initialCourses }: CourseTableProps) {
     } finally {
       setLoading(false);
       setDeleteTarget(null);
+    }
+  }
+
+  async function handleDuplicate(course: AdminCourseListItem) {
+    setDuplicating(course.id);
+    try {
+      const res = await fetch(`/api/admin/courses/${course.id}/duplicate`, {
+        method: 'POST',
+      });
+      if (res.ok) {
+        const data = await res.json();
+        router.push(`/admin/corsi/${data.course.id}`);
+      }
+    } catch (err) {
+      console.error('Duplicate course error:', err);
+    } finally {
+      setDuplicating(null);
     }
   }
 
@@ -159,6 +177,13 @@ export function CourseTable({ courses: initialCourses }: CourseTableProps) {
                         >
                           Modifica
                         </Link>
+                        <button
+                          onClick={() => handleDuplicate(course)}
+                          disabled={duplicating === course.id}
+                          className="text-[0.78rem] text-accent-amber hover:underline disabled:opacity-50"
+                        >
+                          {duplicating === course.id ? '...' : 'Duplica'}
+                        </button>
                         <button
                           onClick={() => setDeleteTarget(course)}
                           className="text-[0.78rem] text-accent-rose hover:underline"

@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { verifyAdmin } from '@/lib/admin/auth';
+import { getStripeServer } from '@/lib/stripe/client';
 import type { ApiError } from '@/types';
 
 interface RouteParams {
@@ -35,6 +36,59 @@ export async function PATCH(req: Request, { params }: RouteParams) {
         { error: 'Nessun campo da aggiornare.' } satisfies ApiError,
         { status: 400 },
       );
+    }
+
+    // Auto-create/update Stripe price if price changed and course is not free
+    if (body.priceSingle !== undefined && !body.isFree && body.priceSingle > 0) {
+      const stripe = getStripeServer();
+      if (stripe) {
+        try {
+          // Fetch current course to check if price actually changed
+          const { data: currentCourse } = await admin
+            .from('courses')
+            .select('price_single, stripe_price_id, title, slug')
+            .eq('id', courseId)
+            .single();
+
+          const current = currentCourse as { price_single: number; stripe_price_id: string | null; title: string; slug: string } | null;
+
+          if (current && current.price_single !== body.priceSingle) {
+            // Price changed — create new Stripe price
+            // Try to find existing product or create new one
+            let productId: string | null = null;
+
+            if (current.stripe_price_id) {
+              try {
+                const existingPrice = await stripe.prices.retrieve(current.stripe_price_id);
+                productId = typeof existingPrice.product === 'string'
+                  ? existingPrice.product
+                  : existingPrice.product.id;
+              } catch {
+                // Price not found, will create new product
+              }
+            }
+
+            if (!productId) {
+              const product = await stripe.products.create({
+                name: body.title ?? current.title,
+                metadata: { slug: body.slug ?? current.slug },
+              });
+              productId = product.id;
+            }
+
+            const newPrice = await stripe.prices.create({
+              product: productId,
+              unit_amount: body.priceSingle,
+              currency: 'eur',
+            });
+
+            updateData.stripe_price_id = newPrice.id;
+          }
+        } catch (stripeErr) {
+          console.error('Stripe price update error:', stripeErr);
+          // Non-blocking
+        }
+      }
     }
 
     // If slug is being changed, check uniqueness

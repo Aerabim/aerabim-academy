@@ -24,7 +24,13 @@ export function AdminShell({ children }: AdminShellProps) {
       <div className="flex-1 flex flex-col min-w-0">
         <AdminHeader onMenuToggle={() => setSidebarOpen((o) => !o)} />
 
-        <main className="flex-1 overflow-y-auto w-full">
+        <main
+          className="flex-1 overflow-y-auto w-full"
+          style={{
+            backgroundImage: 'radial-gradient(circle, rgba(240,165,0,0.04) 1px, transparent 1px)',
+            backgroundSize: '24px 24px',
+          }}
+        >
           {children}
         </main>
       </div>

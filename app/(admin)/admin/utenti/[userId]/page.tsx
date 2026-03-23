@@ -2,6 +2,15 @@ import { redirect } from 'next/navigation';
 import { getSupabaseAdmin } from '@/lib/supabase/admin';
 import { Badge } from '@/components/ui/Badge';
 import { UserDetail } from '@/components/admin/users/UserDetail';
+import type { UserRole, UserPlan } from '@/types';
+
+const ROLE_BADGE_MAP: Record<UserRole, { label: string; variant: 'cyan' | 'amber' | 'emerald' | 'violet' | 'rose' }> = {
+  student: { label: 'Membro', variant: 'violet' },
+  docente: { label: 'Docente', variant: 'cyan' },
+  tutor: { label: 'Tutor', variant: 'emerald' },
+  moderatore: { label: 'Moderatore', variant: 'rose' },
+  admin: { label: 'Admin', variant: 'amber' },
+};
 
 interface PageProps {
   params: { userId: string };
@@ -84,8 +93,8 @@ export default async function AdminUserDetailPage({ params }: PageProps) {
     id: authUser.id,
     email: authUser.email ?? '',
     fullName: (authUser.user_metadata?.full_name as string) ?? profile?.display_name ?? 'Utente',
-    role: (profile?.role ?? 'student') as 'student' | 'admin',
-    plan: (subscription ? (subscription as { plan: string }).plan : 'free') as 'free' | 'pro' | 'team' | 'pa',
+    role: (profile?.role ?? 'student') as UserRole,
+    plan: (subscription ? (subscription as { plan: string }).plan : 'free') as UserPlan,
     createdAt: authUser.created_at,
   };
 
@@ -97,8 +106,8 @@ export default async function AdminUserDetailPage({ params }: PageProps) {
         </h1>
         <div className="flex items-center gap-2 mt-1">
           <span className="text-[0.82rem] text-text-muted">{userData.email}</span>
-          <Badge variant={userData.role === 'admin' ? 'amber' : 'violet'}>
-            {userData.role === 'admin' ? 'Admin' : 'Membro'}
+          <Badge variant={(ROLE_BADGE_MAP[userData.role] ?? ROLE_BADGE_MAP.student).variant}>
+            {(ROLE_BADGE_MAP[userData.role] ?? ROLE_BADGE_MAP.student).label}
           </Badge>
         </div>
       </div>

@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { FormField } from '@/components/admin/ui/FormField';
 import { FormSelect } from '@/components/admin/ui/FormSelect';
 import { FormTextarea } from '@/components/admin/ui/FormTextarea';
+import { ThumbnailUploader } from './ThumbnailUploader';
 import type { Course } from '@/types';
 
 interface CourseFormProps {
@@ -51,7 +52,6 @@ export function CourseForm({ course }: CourseFormProps) {
   );
   const [isFree, setIsFree] = useState(course?.is_free ?? false);
   const [thumbnailUrl, setThumbnailUrl] = useState(course?.thumbnail_url ?? '');
-  const [stripePriceId, setStripePriceId] = useState(course?.stripe_price_id ?? '');
   const [slugManual, setSlugManual] = useState(isEditing);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -78,7 +78,6 @@ export function CourseForm({ course }: CourseFormProps) {
         priceSingle: isFree ? 0 : Math.round(parseFloat(priceSingle || '0') * 100),
         isFree,
         thumbnailUrl: thumbnailUrl || undefined,
-        stripePriceId: stripePriceId || undefined,
       };
 
       const url = isEditing
@@ -194,22 +193,13 @@ export function CourseForm({ course }: CourseFormProps) {
         </div>
       </div>
 
-      <FormField
-        label="URL Thumbnail"
-        id="thumbnail"
-        value={thumbnailUrl}
-        onChange={setThumbnailUrl}
-        placeholder="https://..."
+      <ThumbnailUploader
+        courseId={course?.id}
+        currentUrl={thumbnailUrl}
+        onUploaded={setThumbnailUrl}
       />
 
-      <FormField
-        label="Stripe Price ID"
-        id="stripePriceId"
-        value={stripePriceId}
-        onChange={setStripePriceId}
-        placeholder="price_..."
-        hint="L'ID del prezzo Stripe per l'acquisto singolo."
-      />
+
 
       <div className="flex items-center gap-3 pt-2">
         <button

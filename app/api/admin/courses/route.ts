@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { verifyAdmin } from '@/lib/admin/auth';
+import { getStripeServer } from '@/lib/stripe/client';
 import type { CreateCoursePayload, ApiError } from '@/types';
 
 /** GET /api/admin/courses — list all courses (published + draft) */
@@ -112,6 +113,31 @@ export async function POST(req: Request) {
       );
     }
 
+    // Auto-create Stripe product + price if course is not free
+    let stripePriceId: string | null = null;
+    const priceCents = body.priceSingle ?? 0;
+
+    if (!body.isFree && priceCents > 0) {
+      const stripe = getStripeServer();
+      if (stripe) {
+        try {
+          const product = await stripe.products.create({
+            name: body.title,
+            metadata: { slug: body.slug },
+          });
+          const price = await stripe.prices.create({
+            product: product.id,
+            unit_amount: priceCents,
+            currency: 'eur',
+          });
+          stripePriceId = price.id;
+        } catch (stripeErr) {
+          console.error('Stripe auto-create error:', stripeErr);
+          // Non-blocking: course gets created without stripe_price_id
+        }
+      }
+    }
+
     const { data: course, error: insertError } = await admin
       .from('courses')
       .insert({
@@ -120,11 +146,11 @@ export async function POST(req: Request) {
         description: body.description ?? null,
         area: body.area,
         level: body.level,
-        price_single: body.priceSingle ?? 0,
+        price_single: priceCents,
         is_free: body.isFree ?? false,
         is_published: false,
         thumbnail_url: body.thumbnailUrl ?? null,
-        stripe_price_id: body.stripePriceId ?? null,
+        stripe_price_id: stripePriceId,
       })
       .select('id, slug, title')
       .single();

@@ -163,13 +163,13 @@ export type Database = {
       profiles: {
         Row: {
           id: string;
-          role: 'student' | 'admin';
+          role: 'student' | 'admin' | 'docente' | 'tutor' | 'moderatore';
           display_name: string | null;
           created_at: string;
         };
         Insert: {
           id: string;
-          role?: 'student' | 'admin';
+          role?: 'student' | 'admin' | 'docente' | 'tutor' | 'moderatore';
           display_name?: string | null;
           created_at?: string;
         };
@@ -499,12 +499,18 @@ export interface NavSection {
   items: NavItem[];
 }
 
+/** All possible user roles in the platform */
+export type UserRole = 'student' | 'admin' | 'docente' | 'tutor' | 'moderatore';
+
+/** All possible subscription plans */
+export type UserPlan = 'free' | 'pro' | 'team' | 'pa';
+
 export interface DashboardUser {
   fullName: string;
   email: string;
   initials: string;
-  role: 'student' | 'admin';
-  plan: 'free' | 'pro' | 'team' | 'pa';
+  role: UserRole;
+  plan: UserPlan;
 }
 
 export type AccentColor = 'cyan' | 'amber' | 'rose' | 'emerald' | 'violet';
@@ -852,7 +858,7 @@ export interface CommunityAuthor {
   id: string;
   displayName: string;
   initials: string;
-  plan: 'free' | 'pro' | 'team' | 'pa';
+  plan: UserPlan;
   certificateCount: number;
 }
 
@@ -1069,6 +1075,7 @@ export interface AdminLessonDetail {
   durationSec: number | null;
   isPreview: boolean;
   quizQuestionCount: number;
+  materialUrl: string | null;
 }
 
 /** Payload for creating a course */
@@ -1108,8 +1115,8 @@ export interface AdminUserListItem {
   id: string;
   email: string;
   fullName: string;
-  role: 'student' | 'admin';
-  plan: 'free' | 'pro' | 'team' | 'pa';
+  role: UserRole;
+  plan: UserPlan;
   enrollmentCount: number;
   createdAt: string;
 }
@@ -1119,8 +1126,8 @@ export interface AdminUserDetail {
   id: string;
   email: string;
   fullName: string;
-  role: 'student' | 'admin';
-  plan: 'free' | 'pro' | 'team' | 'pa';
+  role: UserRole;
+  plan: UserPlan;
   enrollments: AdminEnrollmentItem[];
   subscription: Subscription | null;
   certificates: Certificate[];
@@ -1175,4 +1182,66 @@ export interface CourseCompletionRate {
   enrolledCount: number;
   completedCount: number;
   completionRate: number;
+}
+
+// ── Coupon Management Types ─────────────────────────────
+
+/** Admin coupon list item (Stripe promotion code + coupon) */
+export interface AdminCouponListItem {
+  id: string;
+  code: string;
+  couponId: string;
+  percentOff: number | null;
+  amountOff: number | null;
+  currency: string | null;
+  duration: 'once' | 'repeating' | 'forever';
+  durationInMonths: number | null;
+  maxRedemptions: number | null;
+  timesRedeemed: number;
+  expiresAt: string | null;
+  active: boolean;
+}
+
+/** Payload for creating a coupon */
+export interface CreateCouponPayload {
+  code: string;
+  discountType: 'percent' | 'amount';
+  percentOff?: number;
+  amountOff?: number;
+  duration: 'once' | 'repeating' | 'forever';
+  durationInMonths?: number;
+  maxRedemptions?: number;
+  expiresAt?: string;
+}
+
+// ── Communication Types ─────────────────────────────────
+
+/** Payload for sending a communication email */
+export interface SendCommunicationPayload {
+  subject: string;
+  body: string;
+  recipientType: 'all' | 'course';
+  courseId?: string;
+}
+
+/** Response from communication send */
+export interface SendCommunicationResponse {
+  success: boolean;
+  sentCount: number;
+}
+
+// ── User Management Types ─────────────────────────────────
+
+/** Payload for creating a new user from admin */
+export interface CreateUserPayload {
+  email: string;
+  fullName: string;
+  password: string;
+  role: UserRole;
+  plan?: UserPlan;
+}
+
+/** Payload for updating a user's plan from admin */
+export interface UpdatePlanPayload {
+  plan: UserPlan;
 }

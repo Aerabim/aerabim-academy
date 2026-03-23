@@ -44,8 +44,17 @@ export function ModuleManager({ courseId, modules: initialModules }: ModuleManag
         body: JSON.stringify({ title: newTitle.trim() }),
       });
       if (res.ok) {
+        const data = await res.json();
+        const newModule: AdminModuleWithLessons = {
+          id: data.module.id,
+          courseId,
+          title: newTitle.trim(),
+          orderNum: modules.length + 1,
+          lessons: [],
+        };
+        setModules((prev) => [...prev, newModule]);
+        setExpandedIds((prev) => { const next = new Set(Array.from(prev)); next.add(data.module.id); return next; });
         setNewTitle('');
-        router.refresh();
       }
     } catch (err) {
       console.error('Add module error:', err);

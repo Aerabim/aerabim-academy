@@ -208,6 +208,9 @@ const PLAN_LABELS: Record<string, string> = {
 const ROLE_LABELS: Record<string, string> = {
   admin: 'Admin',
   student: 'Membro',
+  docente: 'Docente',
+  tutor: 'Tutor',
+  moderatore: 'Moderatore',
 };
 
 /* ── Component ── */
