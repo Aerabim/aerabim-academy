@@ -1,4 +1,4 @@
-import { UserTable } from '@/components/admin/users/UserTable';
+import { UsersTabView } from '@/components/admin/users/UsersTabView';
 
 export default function AdminUsersPage() {
   return (
@@ -8,10 +8,10 @@ export default function AdminUsersPage() {
           Gestione Utenti
         </h1>
         <p className="text-[0.82rem] text-text-secondary mt-1">
-          Visualizza e gestisci gli utenti della piattaforma.
+          Visualizza e gestisci utenti e iscrizioni della piattaforma.
         </p>
       </div>
-      <UserTable />
+      <UsersTabView />
     </div>
   );
 }

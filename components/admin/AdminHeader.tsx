@@ -12,7 +12,6 @@ const ROUTE_TITLES: Record<string, string> = {
   '/admin/sessioni-live': 'Sessioni Live',
   '/admin/risorse': 'Risorse',
   '/admin/utenti': 'Utenti',
-  '/admin/iscrizioni': 'Iscrizioni',
   '/admin/community': 'Community',
   '/admin/richieste-sessioni': 'Richieste Sessioni',
   '/admin/coupon': 'Coupon',
