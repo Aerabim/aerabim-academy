@@ -1,7 +1,6 @@
 import { redirect } from 'next/navigation';
 import { createServerClient } from '@/lib/supabase/server';
 import { WelcomeSection } from '@/components/dashboard/WelcomeSection';
-import { BimAlertBanner } from '@/components/dashboard/BimAlertBanner';
 import { StatsGrid } from '@/components/dashboard/StatsGrid';
 import { ContinueStudying } from '@/components/dashboard/ContinueStudying';
 import { WeeklyActivity } from '@/components/dashboard/WeeklyActivity';
@@ -66,10 +65,6 @@ export default async function DashboardPage() {
       </div>
 
       <div className="animate-fadeIn" style={{ animationDelay: '0.06s' }}>
-        <BimAlertBanner />
-      </div>
-
-      <div className="animate-fadeIn" style={{ animationDelay: '0.12s' }}>
         <StatsGrid
           activeCourses={stats.activeCourses}
           totalCourses={stats.totalCourses}

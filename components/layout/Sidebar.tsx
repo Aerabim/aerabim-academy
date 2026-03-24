@@ -24,92 +24,6 @@ interface SidebarNavSection {
 function buildSections(courseCount: number): SidebarNavSection[] {
   return [
   {
-    title: 'Formazione',
-    items: [
-      {
-        href: '/catalogo-corsi',
-        label: 'Catalogo Corsi',
-        badge: courseCount > 0 ? String(courseCount) : undefined,
-        icon: (
-          <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24">
-            <path d="M4 19.5A2.5 2.5 0 016.5 17H20" />
-            <path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z" />
-          </svg>
-        ),
-      },
-      {
-        href: '/learning-paths',
-        label: 'Learning Paths',
-        icon: (
-          <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24">
-            <circle cx="12" cy="12" r="10" />
-            <path d="M12 6v6l4 2" />
-          </svg>
-        ),
-      },
-      {
-        href: '/sessioni-live',
-        label: 'Sessioni Live',
-        icon: (
-          <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24">
-            <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
-            <line x1="16" y1="2" x2="16" y2="6" />
-            <line x1="8" y1="2" x2="8" y2="6" />
-            <line x1="3" y1="10" x2="21" y2="10" />
-          </svg>
-        ),
-      },
-      {
-        href: '/risorse',
-        label: 'Risorse',
-        icon: (
-          <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24">
-            <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" />
-            <path d="M14 2v6h6" />
-            <path d="M16 13H8M16 17H8M10 9H8" />
-          </svg>
-        ),
-      },
-      {
-        href: '/community',
-        label: 'Community',
-        icon: (
-          <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24">
-            <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" />
-            <circle cx="9" cy="7" r="4" />
-            <path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75" />
-          </svg>
-        ),
-      },
-    ],
-  },
-  {
-    title: 'Certificazioni',
-    items: [
-      {
-        href: '/simulazioni',
-        label: 'Simulazioni Esame',
-        badge: 'Soon',
-        icon: (
-          <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24">
-            <path d="M9 11l3 3L22 4" />
-            <path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11" />
-          </svg>
-        ),
-      },
-      {
-        href: '/prenota-esame',
-        label: 'Prenota Esame',
-        badge: 'Soon',
-        icon: (
-          <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24">
-            <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
-          </svg>
-        ),
-      },
-    ],
-  },
-  {
     title: 'Il Mio Spazio',
     items: [
       {
@@ -157,39 +71,104 @@ function buildSections(courseCount: number): SidebarNavSection[] {
     ],
   },
   {
-    title: 'Strumenti',
+    title: 'Live',
     items: [
       {
-        href: '/ai-tutor',
-        label: 'AI Tutor',
+        href: '/feed',
+        label: 'Feed',
         icon: (
           <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24">
-            <path d="M12 2a4 4 0 014 4c0 1.95-1.4 3.58-3.25 3.93" />
-            <path d="M8.24 9.93A4 4 0 0112 2" />
-            <path d="M12 15v7" />
-            <path d="M8 18h8" />
-            <circle cx="12" cy="12" r="3" />
+            <path d="M4.9 19.1C1 15.2 1 8.8 4.9 4.9" />
+            <path d="M7.8 16.2c-2.3-2.3-2.3-6.1 0-8.4" />
+            <circle cx="12" cy="12" r="2" />
+            <path d="M16.2 7.8c2.3 2.3 2.3 6.1 0 8.4" />
+            <path d="M19.1 4.9C23 8.8 23 15.2 19.1 19.1" />
           </svg>
         ),
       },
       {
-        href: '/notifiche',
-        label: 'Notifiche',
+        href: '/community',
+        label: 'Community',
         icon: (
           <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24">
-            <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9" />
-            <path d="M13.73 21a2 2 0 01-3.46 0" />
+            <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" />
+            <circle cx="9" cy="7" r="4" />
+            <path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75" />
           </svg>
         ),
       },
       {
-        href: '/assistenza',
-        label: 'Assistenza',
+        href: '/sessioni-live',
+        label: 'Sessioni Live',
+        icon: (
+          <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24">
+            <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+            <line x1="16" y1="2" x2="16" y2="6" />
+            <line x1="8" y1="2" x2="8" y2="6" />
+            <line x1="3" y1="10" x2="21" y2="10" />
+          </svg>
+        ),
+      },
+      {
+        href: '/risorse',
+        label: 'Risorse',
+        icon: (
+          <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24">
+            <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" />
+            <path d="M14 2v6h6" />
+            <path d="M16 13H8M16 17H8M10 9H8" />
+          </svg>
+        ),
+      },
+    ],
+  },
+  {
+    title: 'Formazione',
+    items: [
+      {
+        href: '/catalogo-corsi',
+        label: 'Catalogo Corsi',
+        badge: courseCount > 0 ? String(courseCount) : undefined,
+        icon: (
+          <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24">
+            <path d="M4 19.5A2.5 2.5 0 016.5 17H20" />
+            <path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z" />
+          </svg>
+        ),
+      },
+      {
+        href: '/learning-paths',
+        label: 'Learning Paths',
         icon: (
           <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24">
             <circle cx="12" cy="12" r="10" />
-            <path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3" />
-            <line x1="12" y1="17" x2="12.01" y2="17" />
+            <path d="M12 6v6l4 2" />
+          </svg>
+        ),
+      },
+    ],
+  },
+  {
+    title: 'Certificazioni',
+    items: [
+      {
+        href: '/simulazioni',
+        label: 'Simulazioni Esame',
+        badge: 'Soon',
+        icon: (
+          <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24">
+            <path d="M9 11l3 3L22 4" />
+            <path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11" />
+          </svg>
+        ),
+      },
+      {
+        href: '/prenota-esame',
+        label: 'Prenota Esame',
+        badge: 'Soon',
+        icon: (
+          <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24">
+            <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
           </svg>
         ),
       },
@@ -227,22 +206,6 @@ interface SidebarProps {
 export function Sidebar({ user, courseCount, open, collapsed, onClose, onCollapseToggle }: SidebarProps) {
   const pathname = usePathname();
   const sections = buildSections(courseCount);
-
-  // Add admin link for admin users
-  if (user.role === 'admin') {
-    const strumentiSection = sections.find((s) => s.title === 'Strumenti');
-    if (strumentiSection) {
-      strumentiSection.items.unshift({
-        href: '/admin',
-        label: 'Pannello Admin',
-        icon: (
-          <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24">
-            <path d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-          </svg>
-        ),
-      });
-    }
-  }
 
   return (
     <>
@@ -464,6 +427,24 @@ function UserMenu({
               </Link>
             ))}
           </div>
+
+          {/* Admin link — only for admin users */}
+          {user.role === 'admin' && (
+            <div className="border-t border-border-subtle py-1">
+              <Link
+                href="/admin"
+                onClick={() => { setMenuOpen(false); onClose(); }}
+                className="flex items-center gap-2.5 px-3.5 py-2 text-[0.8rem] text-accent-amber hover:bg-accent-amber/10 transition-colors"
+              >
+                <span className="w-4 h-4 flex items-center justify-center shrink-0">
+                  <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24">
+                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                  </svg>
+                </span>
+                Pannello Admin
+              </Link>
+            </div>
+          )}
 
           {/* Logout */}
           <div className="border-t border-border-subtle py-1">

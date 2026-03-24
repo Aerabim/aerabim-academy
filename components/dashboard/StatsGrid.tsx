@@ -1,3 +1,7 @@
+'use client';
+
+import { AnimatedCounter } from './AnimatedCounter';
+
 interface StatsGridProps {
   activeCourses: number;
   totalCourses: number;
@@ -12,21 +16,25 @@ const COLOR_MAP = {
     topBorder: 'before:bg-gradient-to-r before:from-accent-cyan before:to-transparent',
     iconBg: 'bg-accent-cyan/10 text-accent-cyan',
     value: 'text-accent-cyan',
+    glow: 'hover:shadow-[0_4px_24px_rgba(78,205,196,0.12)]',
   },
   amber: {
     topBorder: 'before:bg-gradient-to-r before:from-accent-amber before:to-transparent',
     iconBg: 'bg-accent-amber/10 text-accent-amber',
     value: 'text-accent-amber',
+    glow: 'hover:shadow-[0_4px_24px_rgba(240,165,0,0.12)]',
   },
   emerald: {
     topBorder: 'before:bg-gradient-to-r before:from-accent-emerald before:to-transparent',
     iconBg: 'bg-accent-emerald/10 text-accent-emerald',
     value: 'text-accent-emerald',
+    glow: 'hover:shadow-[0_4px_24px_rgba(52,211,153,0.12)]',
   },
   rose: {
     topBorder: 'before:bg-gradient-to-r before:from-accent-rose before:to-transparent',
     iconBg: 'bg-accent-rose/10 text-accent-rose',
     value: 'text-accent-rose',
+    glow: 'hover:shadow-[0_4px_24px_rgba(251,113,133,0.12)]',
   },
 };
 
@@ -91,23 +99,24 @@ export function StatsGrid({
 
   return (
     <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5">
-      {stats.map((stat) => {
+      {stats.map((stat, i) => {
         const colors = COLOR_MAP[stat.color];
         return (
           <div
             key={stat.label}
-            className={`relative overflow-hidden bg-surface-1 border border-border-subtle rounded-md px-5 py-5 hover:border-border-hover hover:-translate-y-0.5 transition-all before:absolute before:top-0 before:left-0 before:right-0 before:h-[2px] ${colors.topBorder}`}
+            className={`relative overflow-hidden bg-surface-1 border border-border-subtle rounded-md px-5 py-5 hover:border-border-hover hover:-translate-y-1 transition-all duration-300 before:absolute before:top-0 before:left-0 before:right-0 before:h-[2px] ${colors.topBorder} ${colors.glow} group`}
+            style={{ animationDelay: `${i * 0.08}s` }}
           >
             <div className="flex items-center justify-between mb-3">
               <span className="font-heading text-[0.7rem] uppercase tracking-wider text-text-muted font-bold">
                 {stat.label}
               </span>
-              <div className={`w-8 h-8 rounded-sm flex items-center justify-center ${colors.iconBg}`}>
+              <div className={`w-8 h-8 rounded-sm flex items-center justify-center ${colors.iconBg} group-hover:scale-110 transition-transform duration-300`}>
                 {stat.icon}
               </div>
             </div>
             <div className={`font-heading text-[1.75rem] font-extrabold tracking-tighter leading-none mb-1 ${colors.value}`}>
-              {stat.value}
+              <AnimatedCounter value={stat.value} duration={1000 + i * 200} />
             </div>
             <div className="text-[0.72rem] text-text-muted">
               {stat.change}

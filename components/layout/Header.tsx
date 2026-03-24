@@ -1,7 +1,8 @@
 'use client';
 
-import { useState, useCallback } from 'react';
-import { usePathname, useRouter } from 'next/navigation';
+import { useState } from 'react';
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { Breadcrumb } from './Breadcrumb';
 
 /** Pages where the search bar is shown */
@@ -40,6 +41,31 @@ export function Header({ onMenuToggle, onSearch, searchQuery = '' }: HeaderProps
       {showSearch && onSearch && (
         <HeaderSearch value={searchQuery} onChange={onSearch} />
       )}
+
+      {/* Header actions */}
+      <div className="flex items-center gap-1">
+        <Link
+          href="/notifiche"
+          className="p-2 text-text-muted hover:text-text-primary hover:bg-surface-2/50 rounded-md transition-colors"
+          title="Notifiche"
+        >
+          <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24">
+            <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9" />
+            <path d="M13.73 21a2 2 0 01-3.46 0" />
+          </svg>
+        </Link>
+        <Link
+          href="/assistenza"
+          className="p-2 text-text-muted hover:text-text-primary hover:bg-surface-2/50 rounded-md transition-colors"
+          title="Assistenza"
+        >
+          <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24">
+            <circle cx="12" cy="12" r="10" />
+            <path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3" />
+            <line x1="12" y1="17" x2="12.01" y2="17" />
+          </svg>
+        </Link>
+      </div>
     </header>
   );
 }
