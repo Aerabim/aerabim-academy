@@ -4,6 +4,7 @@ import { useState, useMemo } from 'react';
 import { CategoryFilter } from '@/components/corso/CategoryFilter';
 import { CourseRow } from '@/components/corso/CourseRow';
 import { useSearch } from '@/lib/search-context';
+import { useFavorites } from '@/lib/favorites/use-favorites';
 import { AREA_CONFIG, type CategoryFilterValue } from '@/lib/area-config';
 import type { AreaCode, CourseWithMeta } from '@/types';
 
@@ -16,6 +17,7 @@ const AREA_ORDER: AreaCode[] = ['SW', 'NL', 'OB', 'PG', 'AI'];
 export function CatalogBrowser({ courses }: CatalogBrowserProps) {
   const [active, setActive] = useState<CategoryFilterValue>('all');
   const { query: search } = useSearch();
+  const { favoriteIds } = useFavorites();
 
   const grouped = useMemo(() => {
     let filtered = active === 'all' ? courses : courses.filter((c) => c.area === active);
@@ -62,6 +64,7 @@ export function CatalogBrowser({ courses }: CatalogBrowserProps) {
           title={group.title}
           count={group.courses.length}
           courses={group.courses}
+          favoriteIds={favoriteIds}
         />
       ))}
       {grouped.length === 0 && (

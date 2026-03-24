@@ -8,9 +8,10 @@ interface CourseRowProps {
   title: string;
   count: number;
   courses: CourseWithMeta[];
+  favoriteIds?: Set<string>;
 }
 
-export function CourseRow({ title, count, courses }: CourseRowProps) {
+export function CourseRow({ title, count, courses, favoriteIds }: CourseRowProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
 
   function scroll(direction: 'left' | 'right') {
@@ -51,7 +52,7 @@ export function CourseRow({ title, count, courses }: CourseRowProps) {
           style={{ scrollbarWidth: 'none' }}
         >
           {courses.map((course) => (
-            <CourseCard key={course.id} course={course} />
+            <CourseCard key={course.id} course={course} isFavorited={favoriteIds?.has(course.id)} />
           ))}
         </div>
 

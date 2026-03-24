@@ -427,6 +427,19 @@ export type Database = {
         };
         Update: Partial<Database['public']['Tables']['press_mentions']['Insert']>;
       };
+      favorites: {
+        Row: {
+          id: string;
+          user_id: string;
+          course_id: string;
+          created_at: string;
+        };
+        Insert: Omit<Database['public']['Tables']['favorites']['Row'], 'id' | 'created_at'> & {
+          id?: string;
+          created_at?: string;
+        };
+        Update: Partial<Database['public']['Tables']['favorites']['Insert']>;
+      };
       notifications: {
         Row: {
           id: string;
@@ -499,6 +512,7 @@ export type Subscription = Database['public']['Tables']['subscriptions']['Row'];
 export type QuizQuestion = Database['public']['Tables']['quiz_questions']['Row'];
 export type QuizAttempt = Database['public']['Tables']['quiz_attempts']['Row'];
 export type Certificate = Database['public']['Tables']['certificates']['Row'];
+export type Favorite = Database['public']['Tables']['favorites']['Row'];
 export type LiveSession = Database['public']['Tables']['live_sessions']['Row'];
 export type LiveSessionBooking = Database['public']['Tables']['live_session_bookings']['Row'];
 export type SessionRequest = Database['public']['Tables']['session_requests']['Row'];
