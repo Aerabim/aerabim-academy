@@ -1,6 +1,6 @@
 export function Footer() {
   return (
-    <footer className="border-t border-border-subtle bg-surface-1 px-6 h-[60px] flex items-center justify-center shrink-0">
+    <footer className="border-t border-border-subtle bg-brand-dark px-6 h-[60px] flex items-center justify-center shrink-0">
       <div className="flex flex-col items-center gap-2.5">
         {/* Social links */}
         <div className="flex items-center gap-3.5">
