@@ -206,7 +206,7 @@ async function handleCheckoutCompleted(
     const { data: courses, error: coursesError } = await admin
       .from('courses')
       .select('id')
-      .eq('is_published', true);
+      .eq('status', 'published');
 
     if (coursesError) {
       console.error('Webhook: errore fetch corsi:', coursesError);

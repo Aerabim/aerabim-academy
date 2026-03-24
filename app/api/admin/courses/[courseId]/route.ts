@@ -26,7 +26,7 @@ export async function PATCH(req: Request, { params }: RouteParams) {
     if (body.level !== undefined) updateData.level = body.level;
     if (body.priceSingle !== undefined) updateData.price_single = body.priceSingle;
     if (body.isFree !== undefined) updateData.is_free = body.isFree;
-    if (body.isPublished !== undefined) updateData.is_published = body.isPublished;
+    if (body.status !== undefined) updateData.status = body.status;
     if (body.thumbnailUrl !== undefined) updateData.thumbnail_url = body.thumbnailUrl;
     if (body.stripePriceId !== undefined) updateData.stripe_price_id = body.stripePriceId;
     if (body.durationMin !== undefined) updateData.duration_min = body.durationMin;
@@ -112,7 +112,7 @@ export async function PATCH(req: Request, { params }: RouteParams) {
       .from('courses')
       .update(updateData)
       .eq('id', courseId)
-      .select('id, slug, title, is_published')
+      .select('id, slug, title, status')
       .single();
 
     if (updateError || !course) {

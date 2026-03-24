@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import { formatPrice, formatDuration } from '@/lib/utils';
@@ -20,16 +21,26 @@ export function CourseCard({ course, isFavorited = false }: CourseCardProps) {
   return (
     <div className="group relative w-[280px] shrink-0 rounded-md overflow-hidden transition-transform duration-300 hover:scale-[1.06] hover:z-20">
       {/* Full-card navigation link (sits below interactive elements) */}
-      <Link href={href} className="absolute inset-0 z-0" aria-label={course.title} />
+      <Link href={href} className="absolute inset-0 z-10" aria-label={course.title} />
 
       {/* Cover */}
       <div
         className={cn(
-          'relative h-[160px] bg-gradient-to-br flex items-center justify-center',
+          'relative h-[160px] bg-gradient-to-br flex items-center justify-center overflow-hidden',
           area.cardGradient,
         )}
       >
-        <span className="text-5xl opacity-80">{course.emoji}</span>
+        {course.thumbnailUrl ? (
+          <Image
+            src={course.thumbnailUrl}
+            alt={course.title}
+            fill
+            className="object-cover"
+            sizes="280px"
+          />
+        ) : (
+          <span className="text-5xl opacity-80">{course.emoji}</span>
+        )}
 
         {/* Favorite button — z-20 above the card link */}
         <div className="absolute top-3 left-3 z-20 opacity-0 group-hover:opacity-100 transition-opacity duration-200">

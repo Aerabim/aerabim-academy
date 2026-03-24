@@ -21,7 +21,7 @@ interface CourseRow {
   level: string;
   price_single: number;
   is_free: boolean;
-  is_published: boolean;
+  status: string;
   duration_min: number | null;
   thumbnail_url: string | null;
   avg_rating: number;
@@ -50,12 +50,17 @@ interface LessonRow {
 
 export async function getPublishedCourses(
   supabase: TypedClient,
+  options?: { isAdmin?: boolean },
 ): Promise<CourseWithMeta[]> {
-  const { data, error } = await supabase
+  let query = supabase
     .from('courses')
-    .select('*')
-    .eq('is_published', true)
-    .order('created_at', { ascending: false });
+    .select('*');
+
+  if (!options?.isAdmin) {
+    query = query.eq('status', 'published');
+  }
+
+  const { data, error } = await query.order('created_at', { ascending: false });
 
   if (error) {
     console.error('Error fetching courses:', error);
@@ -135,6 +140,7 @@ export async function getPublishedCourses(
       languages: ['Italiano'],
       instructor: { name: 'AERABIM', role: 'Team Formazione', initials: 'AE' },
       emoji: area?.emoji ?? '📚',
+      thumbnailUrl: c.thumbnail_url ?? null,
     };
   });
 }
@@ -144,13 +150,18 @@ export async function getPublishedCourses(
 export async function getCourseBySlug(
   supabase: TypedClient,
   slug: string,
+  options?: { isAdmin?: boolean },
 ): Promise<CourseWithMeta | null> {
-  const { data, error } = await supabase
+  let query = supabase
     .from('courses')
     .select('*')
-    .eq('slug', slug)
-    .eq('is_published', true)
-    .maybeSingle();
+    .eq('slug', slug);
+
+  if (!options?.isAdmin) {
+    query = query.in('status', ['published', 'hidden']);
+  }
+
+  const { data, error } = await query.maybeSingle();
 
   if (error || !data) return null;
   const c = data as unknown as CourseRow;
@@ -196,6 +207,7 @@ export async function getCourseBySlug(
     languages: ['Italiano'],
     instructor: { name: 'AERABIM', role: 'Team Formazione', initials: 'AE' },
     emoji: area?.emoji ?? '📚',
+    thumbnailUrl: c.thumbnail_url ?? null,
   };
 }
 

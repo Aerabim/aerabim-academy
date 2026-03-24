@@ -1,13 +1,42 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/Badge';
 import { ConfirmDialog } from '@/components/admin/ui/ConfirmDialog';
 import { AREA_CONFIG, LEVEL_LABELS } from '@/lib/area-config';
-import type { AdminCourseListItem } from '@/types';
+import type { AdminCourseListItem, CourseStatus } from '@/types';
+
+const STATUS_CONFIG: Record<CourseStatus, { label: string; dotClass: string; btnClass: string; btnActiveClass: string }> = {
+  draft: {
+    label: 'Bozza',
+    dotClass: 'bg-text-muted',
+    btnClass: 'bg-surface-3 text-text-muted hover:text-text-secondary',
+    btnActiveClass: 'text-text-muted bg-surface-3/50 cursor-default',
+  },
+  hidden: {
+    label: 'Nascosto',
+    dotClass: 'bg-accent-amber',
+    btnClass: 'bg-accent-amber/10 text-accent-amber hover:bg-accent-amber/20',
+    btnActiveClass: 'text-accent-amber bg-accent-amber/5 cursor-default',
+  },
+  published: {
+    label: 'Pubblicato',
+    dotClass: 'bg-accent-emerald',
+    btnClass: 'bg-accent-emerald/10 text-accent-emerald hover:bg-accent-emerald/20',
+    btnActiveClass: 'text-accent-emerald bg-accent-emerald/5 cursor-default',
+  },
+  archived: {
+    label: 'Archiviato',
+    dotClass: 'bg-accent-rose',
+    btnClass: 'bg-accent-rose/10 text-accent-rose hover:bg-accent-rose/20',
+    btnActiveClass: 'text-accent-rose bg-accent-rose/5 cursor-default',
+  },
+};
+
+const STATUS_ORDER: CourseStatus[] = ['draft', 'hidden', 'published', 'archived'];
 
 interface CourseTableProps {
   courses: AdminCourseListItem[];
@@ -20,28 +49,42 @@ export function CourseTable({ courses: initialCourses }: CourseTableProps) {
   const [deleteTarget, setDeleteTarget] = useState<AdminCourseListItem | null>(null);
   const [loading, setLoading] = useState(false);
   const [duplicating, setDuplicating] = useState<string | null>(null);
+  const [statusOpen, setStatusOpen] = useState<string | null>(null);
+  const tableRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!statusOpen) return;
+    function handleClickOutside(e: MouseEvent) {
+      if (tableRef.current && !tableRef.current.contains(e.target as Node)) {
+        setStatusOpen(null);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [statusOpen]);
 
   const filtered = courses.filter((c) =>
     c.title.toLowerCase().includes(filter.toLowerCase()) ||
     c.slug.toLowerCase().includes(filter.toLowerCase()),
   );
 
-  async function handleTogglePublish(course: AdminCourseListItem) {
+  async function handleChangeStatus(course: AdminCourseListItem, newStatus: CourseStatus) {
+    if (course.status === newStatus) return;
     try {
       const res = await fetch(`/api/admin/courses/${course.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ isPublished: !course.isPublished }),
+        body: JSON.stringify({ status: newStatus }),
       });
       if (res.ok) {
         setCourses((prev) =>
           prev.map((c) =>
-            c.id === course.id ? { ...c, isPublished: !c.isPublished } : c,
+            c.id === course.id ? { ...c, status: newStatus } : c,
           ),
         );
       }
     } catch (err) {
-      console.error('Toggle publish error:', err);
+      console.error('Change status error:', err);
     }
   }
 
@@ -109,7 +152,7 @@ export function CourseTable({ courses: initialCourses }: CourseTableProps) {
       </div>
 
       {/* Table */}
-      <div className="overflow-x-auto border border-border-subtle rounded-lg">
+      <div ref={tableRef} className="overflow-x-auto border border-border-subtle rounded-lg">
         <table className="w-full text-left">
           <thead>
             <tr className="border-b border-border-subtle bg-surface-2/50">
@@ -133,6 +176,7 @@ export function CourseTable({ courses: initialCourses }: CourseTableProps) {
             ) : (
               filtered.map((course) => {
                 const areaConf = AREA_CONFIG[course.area as keyof typeof AREA_CONFIG];
+                const statusConf = STATUS_CONFIG[course.status];
                 return (
                   <tr key={course.id} className="border-b border-border-subtle last:border-b-0 hover:bg-surface-2/30 transition-colors">
                     <td className="px-4 py-3">
@@ -157,17 +201,48 @@ export function CourseTable({ courses: initialCourses }: CourseTableProps) {
                     <td className="px-4 py-3 text-[0.82rem] text-text-secondary">{course.moduleCount}</td>
                     <td className="px-4 py-3 text-[0.82rem] text-text-secondary">{course.enrolledCount}</td>
                     <td className="px-4 py-3">
-                      <button
-                        onClick={() => handleTogglePublish(course)}
-                        className={cn(
-                          'text-[0.72rem] font-semibold px-2.5 py-1 rounded-md transition-colors',
-                          course.isPublished
-                            ? 'bg-accent-emerald/10 text-accent-emerald hover:bg-accent-emerald/20'
-                            : 'bg-surface-3 text-text-muted hover:text-text-secondary',
+                      <div className="relative">
+                        <button
+                          onClick={() => setStatusOpen(statusOpen === course.id ? null : course.id)}
+                          className={cn(
+                            'flex items-center gap-1.5 text-[0.72rem] font-semibold px-2.5 py-1 rounded-md transition-colors',
+                            statusConf.btnClass,
+                          )}
+                        >
+                          <span className={cn('w-2 h-2 rounded-full shrink-0', statusConf.dotClass)} />
+                          {statusConf.label}
+                          <svg width="12" height="12" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24" className={cn('transition-transform', statusOpen === course.id && 'rotate-180')}>
+                            <path d="M6 9l6 6 6-6" />
+                          </svg>
+                        </button>
+                        {statusOpen === course.id && (
+                          <div className="absolute left-0 top-full mt-1 z-20 min-w-[160px] bg-surface-2 border border-border-subtle rounded-lg shadow-lg py-1">
+                            {STATUS_ORDER.map((s) => {
+                              const conf = STATUS_CONFIG[s];
+                              const isCurrent = course.status === s;
+                              return (
+                                <button
+                                  key={s}
+                                  onClick={() => {
+                                    handleChangeStatus(course, s);
+                                    setStatusOpen(null);
+                                  }}
+                                  className={cn(
+                                    'w-full text-left px-3 py-1.5 text-[0.78rem] transition-colors flex items-center gap-2',
+                                    isCurrent
+                                      ? conf.btnActiveClass
+                                      : 'text-text-secondary hover:bg-surface-3 hover:text-text-primary',
+                                  )}
+                                >
+                                  <span className={cn('w-2 h-2 rounded-full shrink-0', conf.dotClass)} />
+                                  {conf.label}
+                                  {isCurrent && <span className="ml-auto text-[0.68rem] text-text-muted">attuale</span>}
+                                </button>
+                              );
+                            })}
+                          </div>
                         )}
-                      >
-                        {course.isPublished ? 'Pubblicato' : 'Bozza'}
-                      </button>
+                      </div>
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2">

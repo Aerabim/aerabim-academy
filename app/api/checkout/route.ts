@@ -30,14 +30,14 @@ export async function POST(request: Request) {
       description: string | null;
       price_single: number;
       is_free: boolean;
-      is_published: boolean;
+      status: string;
     }
 
     const { data: course, error: courseError } = await supabase
       .from('courses')
-      .select('id, slug, title, description, price_single, is_free, is_published')
+      .select('id, slug, title, description, price_single, is_free, status')
       .eq('id', courseId)
-      .eq('is_published', true)
+      .in('status', ['published', 'hidden'])
       .maybeSingle() as { data: CourseCheckout | null; error: unknown };
 
     if (courseError || !course) {

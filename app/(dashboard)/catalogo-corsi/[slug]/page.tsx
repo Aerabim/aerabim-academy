@@ -10,6 +10,7 @@ import { StarRatingDisplay } from '@/components/reviews/StarRating';
 import { AREA_CONFIG, LEVEL_LABELS } from '@/lib/area-config';
 import { formatDuration } from '@/lib/utils';
 import { getCourseBySlug, getCourseModulesWithLessons } from '@/lib/catalog/queries';
+import { checkIsAdmin } from '@/lib/learn/queries';
 import { getCourseReviews, getCourseReviewStats, getUserReview } from '@/lib/reviews/queries';
 
 interface PageProps {
@@ -20,34 +21,47 @@ interface PageProps {
 export default async function CourseDetailPage({ params, searchParams }: PageProps) {
   const supabase = createServerClient();
 
-  // Fetch course from DB
-  const course = await getCourseBySlug(supabase, params.slug);
-  if (!course) notFound();
-
-  // Check enrollment status
+  // Check auth + admin status early (needed for course visibility)
   let isEnrolled = false;
   let isAuthenticated = false;
   let currentUserId: string | null = null;
+  let isAdmin = false;
 
   try {
     const { data: { user } } = await supabase.auth.getUser();
     isAuthenticated = !!user;
     currentUserId = user?.id ?? null;
-
     if (user) {
-      const { data: enrollment } = await supabase
-        .from('enrollments')
-        .select('id, expires_at')
-        .eq('user_id', user.id)
-        .eq('course_id', course.id)
-        .maybeSingle() as { data: { id: string; expires_at: string | null } | null };
-
-      if (enrollment) {
-        isEnrolled = !enrollment.expires_at || new Date(enrollment.expires_at) > new Date();
-      }
+      isAdmin = await checkIsAdmin(supabase, user.id);
     }
   } catch {
-    // Default to not enrolled
+    // Default to not authenticated
+  }
+
+  // Fetch course from DB (admin sees all statuses)
+  const course = await getCourseBySlug(supabase, params.slug, { isAdmin });
+  if (!course) notFound();
+
+  // Check enrollment status
+  if (currentUserId) {
+    try {
+      if (isAdmin) {
+        isEnrolled = true;
+      } else {
+        const { data: enrollment } = await supabase
+          .from('enrollments')
+          .select('id, expires_at')
+          .eq('user_id', currentUserId)
+          .eq('course_id', course.id)
+          .maybeSingle() as { data: { id: string; expires_at: string | null } | null };
+
+        if (enrollment) {
+          isEnrolled = !enrollment.expires_at || new Date(enrollment.expires_at) > new Date();
+        }
+      }
+    } catch {
+      // Default to not enrolled
+    }
   }
 
   // Fetch modules + lessons and reviews in parallel

@@ -29,7 +29,7 @@ export default async function AdminAnalyticsPage() {
       const { data: courses } = await admin
         .from('courses')
         .select('id, title')
-        .eq('is_published', true);
+        .eq('status', 'published');
 
       if (courses && courses.length > 0) {
         const courseIds = (courses as { id: string; title: string }[]).map((c) => c.id);

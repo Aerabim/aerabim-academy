@@ -36,8 +36,8 @@ export default async function EditCoursePage({ params }: PageProps) {
           </h1>
           <div className="flex items-center gap-2 mt-1">
             <span className="text-[0.78rem] text-text-muted">/{course.slug}</span>
-            <Badge variant={course.is_published ? 'emerald' : 'amber'}>
-              {course.is_published ? 'Pubblicato' : 'Bozza'}
+            <Badge variant={course.status === 'published' ? 'emerald' : course.status === 'hidden' ? 'amber' : course.status === 'archived' ? 'rose' : 'amber'}>
+              {course.status === 'published' ? 'Pubblicato' : course.status === 'hidden' ? 'Nascosto' : course.status === 'archived' ? 'Archiviato' : 'Bozza'}
             </Badge>
           </div>
         </div>

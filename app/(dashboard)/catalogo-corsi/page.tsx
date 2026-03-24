@@ -2,6 +2,7 @@ import { createServerClient } from '@/lib/supabase/server';
 import { CatalogHero } from '@/components/corso/CatalogHero';
 import { CatalogBrowser } from '@/components/corso/CatalogBrowser';
 import { getPublishedCourses, getFeaturedCourse } from '@/lib/catalog/queries';
+import { checkIsAdmin } from '@/lib/learn/queries';
 import type { CourseWithMeta } from '@/types';
 
 export default async function CatalogoCorsiPage() {
@@ -10,7 +11,9 @@ export default async function CatalogoCorsiPage() {
 
   try {
     const supabase = createServerClient();
-    courses = await getPublishedCourses(supabase);
+    const { data: { user } } = await supabase.auth.getUser();
+    const isAdmin = user ? await checkIsAdmin(supabase, user.id) : false;
+    courses = await getPublishedCourses(supabase, { isAdmin });
     featured = await getFeaturedCourse(supabase, courses);
   } catch {
     courses = [];

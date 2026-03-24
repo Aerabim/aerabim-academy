@@ -12,7 +12,7 @@ export async function GET() {
 
     const { data, error } = await admin
       .from('courses')
-      .select('id, slug, title, area, level, price_single, is_free, is_published, created_at')
+      .select('id, slug, title, area, level, price_single, is_free, status, created_at')
       .order('created_at', { ascending: false });
 
     if (error) {
@@ -31,7 +31,7 @@ export async function GET() {
       level: string;
       price_single: number;
       is_free: boolean;
-      is_published: boolean;
+      status: string;
       created_at: string;
     }[];
 
@@ -67,7 +67,7 @@ export async function GET() {
       level: c.level,
       priceSingle: c.price_single,
       isFree: c.is_free,
-      isPublished: c.is_published,
+      status: c.status,
       moduleCount: modulesByCourse.get(c.id) ?? 0,
       enrolledCount: enrollmentsByCourse.get(c.id) ?? 0,
       createdAt: c.created_at,
@@ -148,7 +148,7 @@ export async function POST(req: Request) {
         level: body.level,
         price_single: priceCents,
         is_free: body.isFree ?? false,
-        is_published: false,
+        status: 'draft',
         thumbnail_url: body.thumbnailUrl ?? null,
         stripe_price_id: stripePriceId,
       })

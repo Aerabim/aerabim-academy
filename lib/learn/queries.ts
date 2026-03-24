@@ -12,6 +12,22 @@ import type {
 
 type SupabaseDb = SupabaseClient<Database>;
 
+/**
+ * Checks if a user has the admin role.
+ */
+export async function checkIsAdmin(
+  supabase: SupabaseDb,
+  userId: string,
+): Promise<boolean> {
+  const { data } = await supabase
+    .from('profiles')
+    .select('role')
+    .eq('id', userId)
+    .single();
+  const row = data as { role: string } | null;
+  return row?.role === 'admin';
+}
+
 // ── Query result types (Supabase select inference doesn't work well with
 //    the Database generic, so we define explicit shapes and cast) ──────
 
@@ -46,12 +62,17 @@ interface ProgressRow {
 
 /**
  * Verifies that the user has an active (non-expired) enrollment for the course.
+ * Admin users bypass this check and always have access.
  */
 export async function verifyEnrollment(
   supabase: SupabaseDb,
   userId: string,
   courseId: string,
 ): Promise<boolean> {
+  // Admin bypasses enrollment check
+  const admin = await checkIsAdmin(supabase, userId);
+  if (admin) return true;
+
   const { data } = await supabase
     .from('enrollments')
     .select('id, expires_at')

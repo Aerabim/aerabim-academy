@@ -10,12 +10,12 @@ export default async function AdminCoursesPage() {
     try {
       const { data } = await admin
         .from('courses')
-        .select('id, slug, title, area, level, price_single, is_free, is_published, created_at')
+        .select('id, slug, title, area, level, price_single, is_free, status, created_at')
         .order('created_at', { ascending: false });
 
       const rawCourses = (data ?? []) as {
         id: string; slug: string; title: string; area: string; level: string;
-        price_single: number; is_free: boolean; is_published: boolean; created_at: string;
+        price_single: number; is_free: boolean; status: string; created_at: string;
       }[];
 
       const courseIds = rawCourses.map((c) => c.id);
@@ -43,7 +43,7 @@ export default async function AdminCoursesPage() {
         level: c.level as AdminCourseListItem['level'],
         priceSingle: c.price_single,
         isFree: c.is_free,
-        isPublished: c.is_published,
+        status: c.status as AdminCourseListItem['status'],
         moduleCount: modulesByCourse.get(c.id) ?? 0,
         lessonCount: 0,
         enrolledCount: enrollsByCourse.get(c.id) ?? 0,

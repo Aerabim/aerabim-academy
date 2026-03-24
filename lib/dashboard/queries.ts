@@ -44,7 +44,7 @@ export async function getDashboardStats(
     supabase
       .from('courses')
       .select('id', { count: 'exact', head: true })
-      .eq('is_published', true),
+      .eq('status', 'published'),
     supabase
       .from('progress')
       .select('watch_time_sec')

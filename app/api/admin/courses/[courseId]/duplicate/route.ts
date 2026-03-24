@@ -52,7 +52,7 @@ export async function POST(
         price_single: course.price_single,
         is_free: course.is_free,
         thumbnail_url: course.thumbnail_url,
-        is_published: false,
+        status: 'draft',
         stripe_price_id: null,
       })
       .select('id, slug, title')

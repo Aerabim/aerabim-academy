@@ -41,7 +41,7 @@ export async function getAdminOverviewStats(
       admin
         .from('courses')
         .select('id', { count: 'exact', head: true })
-        .eq('is_published', true),
+        .eq('status', 'published'),
 
       // Total courses
       admin
