@@ -2,7 +2,8 @@ import { redirect } from 'next/navigation';
 import { createServerClient } from '@/lib/supabase/server';
 import { DashboardShell } from '@/components/layout/DashboardShell';
 import { getInitials } from '@/lib/utils';
-import type { DashboardUser } from '@/types';
+import { getUserNotifications, getUnreadCount } from '@/lib/notifications/queries';
+import type { DashboardUser, Notification } from '@/types';
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const supabase = createServerClient();
@@ -61,6 +62,18 @@ export default async function DashboardLayout({ children }: { children: React.Re
     // Default to 0 if courses table not available
   }
 
+  // Fetch unread notification count + recent notifications for popover
+  let unreadNotifications = 0;
+  let recentNotifications: Notification[] = [];
+  try {
+    [recentNotifications, unreadNotifications] = await Promise.all([
+      getUserNotifications(supabase, user.id, 5),
+      getUnreadCount(supabase, user.id),
+    ]);
+  } catch {
+    // Default to empty
+  }
+
   const dashboardUser: DashboardUser = {
     fullName,
     email: user.email || '',
@@ -70,7 +83,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
   };
 
   return (
-    <DashboardShell user={dashboardUser} courseCount={courseCount}>
+    <DashboardShell user={dashboardUser} courseCount={courseCount} unreadNotifications={unreadNotifications} recentNotifications={recentNotifications}>
       {children}
     </DashboardShell>
   );

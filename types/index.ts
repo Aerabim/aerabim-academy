@@ -427,6 +427,24 @@ export type Database = {
         };
         Update: Partial<Database['public']['Tables']['press_mentions']['Insert']>;
       };
+      notifications: {
+        Row: {
+          id: string;
+          user_id: string;
+          type: NotificationType;
+          title: string;
+          body: string | null;
+          href: string | null;
+          is_read: boolean;
+          created_at: string;
+        };
+        Insert: Omit<Database['public']['Tables']['notifications']['Row'], 'id' | 'created_at' | 'is_read'> & {
+          id?: string;
+          created_at?: string;
+          is_read?: boolean;
+        };
+        Update: Partial<Database['public']['Tables']['notifications']['Insert']>;
+      };
       course_reviews: {
         Row: {
           id: string;
@@ -1007,6 +1025,32 @@ export interface PressMentionDisplay {
   sourceLogo: string | null;
   excerpt: string | null;
   publishedAt: string;
+}
+
+// ── Notifications Types ─────────────────────────────────
+
+export type NotificationType =
+  | 'welcome'
+  | 'purchase_confirmed'
+  | 'subscription_activated'
+  | 'subscription_canceled'
+  | 'certificate_issued'
+  | 'session_booked'
+  | 'session_reminder'
+  | 'session_canceled'
+  | 'enrollment_granted'
+  | 'refund_processed'
+  | 'admin_message';
+
+export interface Notification {
+  id: string;
+  user_id: string;
+  type: NotificationType;
+  title: string;
+  body: string | null;
+  href: string | null;
+  is_read: boolean;
+  created_at: string;
 }
 
 // ── Admin Panel Types ───────────────────────────────────

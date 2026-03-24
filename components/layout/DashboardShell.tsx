@@ -6,25 +6,27 @@ import { Sidebar } from './Sidebar';
 import { Header } from './Header';
 import { Footer } from './Footer';
 import { SearchProvider, useSearch } from '@/lib/search-context';
-import type { DashboardUser } from '@/types';
+import type { DashboardUser, Notification } from '@/types';
 
 interface DashboardShellProps {
   user: DashboardUser;
   courseCount: number;
+  unreadNotifications?: number;
+  recentNotifications?: Notification[];
   children: React.ReactNode;
 }
 
-export function DashboardShell({ user, courseCount, children }: DashboardShellProps) {
+export function DashboardShell({ user, courseCount, unreadNotifications = 0, recentNotifications = [], children }: DashboardShellProps) {
   return (
     <SearchProvider>
-      <DashboardShellInner user={user} courseCount={courseCount}>
+      <DashboardShellInner user={user} courseCount={courseCount} unreadNotifications={unreadNotifications} recentNotifications={recentNotifications}>
         {children}
       </DashboardShellInner>
     </SearchProvider>
   );
 }
 
-function DashboardShellInner({ user, courseCount, children }: DashboardShellProps) {
+function DashboardShellInner({ user, courseCount, unreadNotifications = 0, recentNotifications = [], children }: DashboardShellProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
   const { query, setQuery } = useSearch();
@@ -45,6 +47,8 @@ function DashboardShellInner({ user, courseCount, children }: DashboardShellProp
           onMenuToggle={() => setSidebarOpen((o) => !o)}
           onSearch={setQuery}
           searchQuery={query}
+          unreadNotifications={unreadNotifications}
+          recentNotifications={recentNotifications}
         />
 
         <main className="flex-1 overflow-y-auto w-full">

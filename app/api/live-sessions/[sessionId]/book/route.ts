@@ -4,6 +4,7 @@ import { getSupabaseAdmin } from '@/lib/supabase/admin';
 import { hasActiveProSubscription } from '@/lib/live/queries';
 import { sendEmail } from '@/lib/resend/client';
 import { sessionBookingConfirmationEmail } from '@/lib/resend/templates';
+import { createNotification } from '@/lib/notifications/create';
 import type { ApiError } from '@/types';
 
 interface RouteParams {
@@ -109,6 +110,15 @@ export async function POST(_req: Request, { params }: RouteParams) {
     if (user.email) {
       sendEmail({ to: user.email, ...email }).catch(() => {});
     }
+
+    // Create notification
+    createNotification(admin, {
+      userId: user.id,
+      type: 'session_booked',
+      title: `Prenotazione confermata: ${session.title}`,
+      body: dateTime,
+      href: '/sessioni-live',
+    });
 
     return NextResponse.json({
       success: true,

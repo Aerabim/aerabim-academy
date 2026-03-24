@@ -4,6 +4,7 @@ import { getStripeServer } from '@/lib/stripe/client';
 import { getSupabaseAdmin } from '@/lib/supabase/admin';
 import { sendEmail } from '@/lib/resend/client';
 import { purchaseConfirmationEmail, subscriptionCanceledEmail } from '@/lib/resend/templates';
+import { createNotification } from '@/lib/notifications/create';
 import type { SupabaseClient } from '@supabase/supabase-js';
 
 export const dynamic = 'force-dynamic';
@@ -139,6 +140,25 @@ async function handleCheckoutCompleted(
     } catch (emailErr) {
       console.error('Webhook: errore invio email conferma acquisto:', emailErr);
     }
+
+    // Create notification for single purchase
+    try {
+      const { data: courseInfo } = await admin
+        .from('courses')
+        .select('title, slug')
+        .eq('id', metadata.courseId)
+        .single();
+      const course = courseInfo as { title: string; slug: string } | null;
+      createNotification(admin, {
+        userId: metadata.userId,
+        type: 'purchase_confirmed',
+        title: `Acquisto confermato: ${course?.title ?? 'corso'}`,
+        body: 'Puoi iniziare subito a studiare.',
+        href: course ? `/learn/${metadata.courseId}` : '/i-miei-corsi',
+      });
+    } catch {
+      // Notification failure must never block webhook
+    }
   }
 
   if (metadata.type === 'pro_subscription') {
@@ -211,6 +231,15 @@ async function handleCheckoutCompleted(
         throw enrollError;
       }
     }
+
+    // Create notification for Pro subscription
+    createNotification(admin, {
+      userId: metadata.userId,
+      type: 'subscription_activated',
+      title: 'Abbonamento Pro attivato',
+      body: 'Hai accesso a tutti i corsi della piattaforma.',
+      href: '/i-miei-corsi',
+    });
   }
 }
 
@@ -266,6 +295,19 @@ async function handleSubscriptionDeleted(
   } catch (emailErr) {
     console.error('Webhook: errore invio email cancellazione:', emailErr);
   }
+
+  // Create notification
+  const endDateShort = new Date(periodEnd).toLocaleDateString('it-IT', {
+    day: 'numeric',
+    month: 'long',
+  });
+  createNotification(admin, {
+    userId,
+    type: 'subscription_canceled',
+    title: 'Abbonamento cancellato',
+    body: `Il tuo accesso Pro resta attivo fino al ${endDateShort}.`,
+    href: '/profilo',
+  });
 }
 
 async function handleSubscriptionUpdated(

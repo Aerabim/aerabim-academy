@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 import { sendEmail } from '@/lib/resend/client';
 import { welcomeEmail } from '@/lib/resend/templates';
+import { getSupabaseAdmin } from '@/lib/supabase/admin';
+import { createNotification } from '@/lib/notifications/create';
 
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = request.nextUrl;
@@ -43,6 +45,18 @@ export async function GET(request: NextRequest) {
             await sendEmail({ to: user.email, ...email }).catch(() => {
               // Email failure must never block auth callback
             });
+
+            // Welcome notification
+            const admin = getSupabaseAdmin();
+            if (admin) {
+              createNotification(admin, {
+                userId: user.id,
+                type: 'welcome',
+                title: 'Benvenuto su AerACADEMY!',
+                body: 'Esplora il catalogo corsi e inizia la tua formazione BIM.',
+                href: '/catalogo-corsi',
+              });
+            }
           }
         }
       } catch {

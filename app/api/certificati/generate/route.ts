@@ -4,6 +4,7 @@ import { createServerClient } from '@/lib/supabase/server';
 import { getSupabaseAdmin } from '@/lib/supabase/admin';
 import { sendEmail } from '@/lib/resend/client';
 import { certificateEmail } from '@/lib/resend/templates';
+import { createNotification } from '@/lib/notifications/create';
 import {
   verifyEnrollment,
   checkCourseCompletionForCertificate,
@@ -97,7 +98,8 @@ export async function POST(req: Request) {
 
     const certRow = cert as { id: string; verify_code: string };
 
-    // Send certificate email
+    // Send certificate email + notification
+    let courseName = 'il corso completato';
     try {
       if (user.email) {
         const { data: courseData } = await supabase
@@ -106,10 +108,11 @@ export async function POST(req: Request) {
           .eq('id', body.courseId)
           .single();
         const course = courseData as { title: string } | null;
+        courseName = course?.title ?? courseName;
         const userName = (user.user_metadata?.full_name as string) || 'studente';
         const email = certificateEmail({
           userName,
-          courseName: course?.title ?? 'il corso completato',
+          courseName,
           verifyCode: certRow.verify_code,
         });
         sendEmail({ to: user.email, ...email });
@@ -117,6 +120,15 @@ export async function POST(req: Request) {
     } catch {
       // Email failure must never block certificate generation
     }
+
+    // Create notification
+    createNotification(admin, {
+      userId: user.id,
+      type: 'certificate_issued',
+      title: `Certificato ottenuto: ${courseName}`,
+      body: `Codice verifica: ${certRow.verify_code}`,
+      href: '/certificati',
+    });
 
     return NextResponse.json({
       success: true,

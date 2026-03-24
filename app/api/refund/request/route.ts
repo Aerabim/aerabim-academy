@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/server';
 import { getStripeServer } from '@/lib/stripe/client';
 import { getSupabaseAdmin } from '@/lib/supabase/admin';
+import { createNotification } from '@/lib/notifications/create';
 
 interface RefundRequest {
   enrollmentId: string;
@@ -113,6 +114,15 @@ export async function POST(request: Request) {
       // Refund on Stripe succeeded, but enrollment deletion failed.
       // Log the error but still return success — the refund is what matters.
     }
+
+    // Create refund notification
+    createNotification(admin, {
+      userId: user.id,
+      type: 'refund_processed',
+      title: 'Rimborso elaborato',
+      body: 'Il rimborso è stato processato. L\'importo sarà riaccreditato entro 5-10 giorni lavorativi.',
+      href: '/profilo',
+    });
 
     return NextResponse.json({ success: true });
   } catch (err) {
