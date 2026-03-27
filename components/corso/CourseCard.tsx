@@ -4,7 +4,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import { formatPrice, formatDuration } from '@/lib/utils';
-import { AREA_CONFIG, LEVEL_LABELS } from '@/lib/area-config';
+import { AREA_CONFIG, LEVEL_LABELS, LEVEL_COLORS } from '@/lib/area-config';
 import { Badge } from '@/components/ui/Badge';
 import { FavoriteButton } from '@/components/corso/FavoriteButton';
 import type { CourseWithMeta } from '@/types';
@@ -51,17 +51,20 @@ export function CourseCard({ course, isFavorited = false }: CourseCardProps) {
         </div>
 
         {/* Level badge */}
-        <span className="absolute top-3 right-3 font-heading text-[0.65rem] font-bold bg-surface-0/70 backdrop-blur-sm text-text-primary px-2 py-0.5 rounded">
+        <span className={cn(
+          'absolute top-3 right-3 font-heading text-[0.65rem] font-bold backdrop-blur-sm px-2 py-0.5 rounded',
+          LEVEL_COLORS[course.level],
+        )}>
           {LEVEL_LABELS[course.level]}
         </span>
 
         {/* Price */}
         <span
           className={cn(
-            'absolute bottom-3 right-3 font-heading text-[0.7rem] font-bold px-2 py-0.5 rounded',
+            'absolute bottom-3 right-3 font-heading text-[0.8rem] font-extrabold px-2.5 py-1 rounded',
             course.isFree
               ? 'bg-accent-emerald/20 text-accent-emerald'
-              : 'bg-surface-0/70 backdrop-blur-sm text-text-primary',
+              : 'bg-accent-cyan/20 text-accent-cyan',
           )}
         >
           {formatPrice(course.priceSingle)}

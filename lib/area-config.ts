@@ -56,6 +56,12 @@ export const LEVEL_LABELS: Record<LevelCode, string> = {
   L3: 'Avanzato',
 };
 
+export const LEVEL_COLORS: Record<LevelCode, string> = {
+  L1: 'bg-accent-emerald/20 text-accent-emerald',
+  L2: 'bg-accent-amber/20 text-accent-amber',
+  L3: 'bg-rose-500/20 text-rose-400',
+};
+
 // ── Lesson Type Config ──────────────────────────────
 
 export interface LessonTypeConfig {
