@@ -21,6 +21,7 @@ const TYPE_ICONS: Record<NotificationType, string> = {
   session_canceled: '\u274C',
   enrollment_granted: '\u{1F381}',
   refund_processed: '\u{1F4B6}',
+  course_deleted: '\u{1F5D1}',
   admin_message: '\u{1F4E2}',
 };
 
@@ -144,13 +145,13 @@ function NotificationBell({
             )}
           </div>
 
-          {notifications.length === 0 ? (
+          {unreadCount === 0 ? (
             <div className="px-4 py-6 text-center text-sm text-text-muted">
-              Nessuna notifica
+              Nessuna nuova notifica
             </div>
           ) : (
             <div className="max-h-[320px] overflow-y-auto">
-              {notifications.map((n) => (
+              {notifications.filter((n) => !n.is_read).map((n) => (
                 <NotificationPreviewItem key={n.id} notification={n} onClose={() => setOpen(false)} />
               ))}
             </div>

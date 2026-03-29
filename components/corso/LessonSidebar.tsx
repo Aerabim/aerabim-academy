@@ -21,7 +21,7 @@ export function LessonSidebar({ courseId, currentLessonId, modules }: LessonSide
   const isCompleted = percentage === 100;
 
   return (
-    <aside className="bg-surface-1 border border-border-subtle rounded-lg overflow-hidden">
+    <aside className="bg-surface-1 border border-border-subtle rounded-lg overflow-hidden sticky top-5">
       <div className="px-4 py-3 border-b border-border-subtle">
         <div className="flex items-center justify-between mb-2">
           <h3 className="font-heading text-[0.78rem] font-bold text-text-primary">
@@ -37,7 +37,7 @@ export function LessonSidebar({ courseId, currentLessonId, modules }: LessonSide
         />
       </div>
 
-      <div className="overflow-y-auto max-h-[calc(100vh-280px)]">
+      <div className="overflow-y-auto max-h-[calc(100vh-160px)] sidebar-scroll">
         {modules.map((mod) => (
           <div key={mod.id}>
             {/* Module header */}

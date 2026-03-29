@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic';
+
 import { getSupabaseAdmin } from '@/lib/supabase/admin';
 import { CommunicationComposer } from '@/components/admin/communications/CommunicationComposer';
 

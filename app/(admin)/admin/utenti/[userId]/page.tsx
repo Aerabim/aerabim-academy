@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic';
+
 import { redirect } from 'next/navigation';
 import { getSupabaseAdmin } from '@/lib/supabase/admin';
 import { Badge } from '@/components/ui/Badge';

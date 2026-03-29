@@ -103,6 +103,16 @@ export function ModuleManager({ courseId, modules: initialModules }: ModuleManag
     }
   }
 
+  const [lessonCounts, setLessonCounts] = useState<Map<string, number>>(new Map());
+
+  function handleLessonCountChange(moduleId: string, count: number) {
+    setLessonCounts((prev) => {
+      const next = new Map(prev);
+      next.set(moduleId, count);
+      return next;
+    });
+  }
+
   async function handleDelete() {
     if (!deleteTarget) return;
     setDeleting(true);
@@ -167,7 +177,7 @@ export function ModuleManager({ courseId, modules: initialModules }: ModuleManag
               </span>
             )}
 
-            <span className="text-[0.7rem] text-text-muted">{mod.lessons.length} lezioni</span>
+            <span className="text-[0.7rem] text-text-muted">{lessonCounts.get(mod.id) ?? mod.lessons.length} lezioni</span>
 
             <div className="flex items-center gap-1">
               <button
@@ -205,7 +215,7 @@ export function ModuleManager({ courseId, modules: initialModules }: ModuleManag
           {/* Lessons */}
           {expandedIds.has(mod.id) && (
             <div className="px-4 py-3">
-              <LessonManager courseId={courseId} moduleId={mod.id} lessons={mod.lessons} />
+              <LessonManager courseId={courseId} moduleId={mod.id} lessons={mod.lessons} onLessonCountChange={handleLessonCountChange} />
             </div>
           )}
         </div>

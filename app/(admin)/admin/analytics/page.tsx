@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic';
+
 import { getSupabaseAdmin } from '@/lib/supabase/admin';
 import { StatCard } from '@/components/admin/ui/StatCard';
 import { CourseCompletionTable } from '@/components/admin/analytics/CourseCompletionTable';

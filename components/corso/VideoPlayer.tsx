@@ -111,7 +111,7 @@ export function VideoPlayer({
   }, [lessonId, courseId, router]);
 
   return (
-    <div className="relative w-full rounded-lg overflow-hidden bg-brand-dark">
+    <div className="relative w-full max-h-[50vh] rounded-lg overflow-hidden bg-brand-dark" style={{ aspectRatio: '16/9' }}>
       <MuxPlayer
         playbackId={playbackId}
         {...(tokens ? { tokens } : {})}
@@ -120,7 +120,7 @@ export function VideoPlayer({
         onLoadedMetadata={handleLoadedMetadata}
         onTimeUpdate={handleTimeUpdate}
         onEnded={handleEnded}
-        style={{ width: '100%', aspectRatio: '16/9' }}
+        style={{ width: '100%', height: '100%' }}
       />
 
       {/* Completion overlay */}

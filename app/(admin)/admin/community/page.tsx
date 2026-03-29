@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic';
+
 import { getSupabaseAdmin } from '@/lib/supabase/admin';
 import { CommunityModerationTable } from '@/components/admin/community/CommunityModerationTable';
 

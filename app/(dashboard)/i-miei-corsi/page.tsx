@@ -101,64 +101,86 @@ export default async function IMieiCorsiPage() {
         </div>
       )}
 
-      {/* Course list */}
-      <div className="mt-6 space-y-2.5">
-        {courses.map((course) => {
-          const area = AREA_CONFIG[course.area];
+      {/* In progress */}
+      {inProgress.length > 0 && (
+        <div className="mt-6">
+          <h2 className="font-heading text-sm font-semibold text-text-secondary mb-3">
+            In corso
+          </h2>
+          <div className="space-y-2.5">
+            {inProgress.map((course) => {
+              const area = AREA_CONFIG[course.area];
+              return (
+                <Link key={course.courseId} href={`/learn/${course.courseId}`}>
+                  <Card className="flex items-center gap-4 p-4 hover:translate-x-[3px] transition-all cursor-pointer">
+                    <div
+                      className={cn(
+                        'w-[52px] h-[52px] rounded-lg shrink-0 flex items-center justify-center bg-gradient-to-br',
+                        area.cardGradient,
+                      )}
+                    >
+                      <span className="text-xl">{course.emoji}</span>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-heading text-[0.88rem] font-semibold text-text-primary truncate">
+                        {course.title}
+                      </p>
+                      <div className="flex items-center gap-2 mt-1">
+                        <Badge variant={area.badgeVariant}>{area.label}</Badge>
+                        <span className="text-text-muted text-[0.68rem]">{course.currentModule}</span>
+                      </div>
+                      <ProgressBar percentage={course.progress} color="cyan" className="mt-2" />
+                    </div>
+                    <div className="shrink-0 text-right">
+                      <span className="font-heading text-[0.74rem] font-bold text-accent-cyan">
+                        {course.progress}%
+                      </span>
+                    </div>
+                  </Card>
+                </Link>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
-          return (
-            <Link key={course.courseId} href={`/learn/${course.courseId}`}>
-              <Card
-                className={cn(
-                  'flex items-center gap-4 p-4 hover:translate-x-[3px] transition-all cursor-pointer',
-                  course.isCompleted && 'opacity-50',
-                )}
-              >
-                {/* Thumbnail */}
-                <div
-                  className={cn(
-                    'w-[52px] h-[52px] rounded-lg shrink-0 flex items-center justify-center bg-gradient-to-br',
-                    course.isCompleted
-                      ? 'from-accent-emerald/20 to-accent-emerald/5'
-                      : area.cardGradient,
-                  )}
-                >
-                  <span className="text-xl">{course.emoji}</span>
-                </div>
-
-                {/* Info */}
-                <div className="flex-1 min-w-0">
-                  <p className="font-heading text-[0.88rem] font-semibold text-text-primary truncate">
-                    {course.title}
-                  </p>
-                  <div className="flex items-center gap-2 mt-1">
-                    <Badge variant={area.badgeVariant}>{area.label}</Badge>
-                    <span className="text-text-muted text-[0.68rem]">{course.currentModule}</span>
-                  </div>
-                  <ProgressBar
-                    percentage={course.progress}
-                    color={course.isCompleted ? 'emerald' : 'cyan'}
-                    className="mt-2"
-                  />
-                </div>
-
-                {/* Percentage */}
-                <div className="shrink-0 text-right">
-                  {course.isCompleted ? (
-                    <span className="font-heading text-[0.74rem] font-bold text-accent-emerald">
-                      Completato
-                    </span>
-                  ) : (
-                    <span className="font-heading text-[0.74rem] font-bold text-accent-cyan">
-                      {course.progress}%
-                    </span>
-                  )}
-                </div>
-              </Card>
-            </Link>
-          );
-        })}
-      </div>
+      {/* Completed */}
+      {completed.length > 0 && (
+        <div className="mt-8">
+          <h2 className="font-heading text-sm font-semibold text-text-secondary mb-3">
+            Completati
+          </h2>
+          <div className="space-y-2.5">
+            {completed.map((course) => {
+              const area = AREA_CONFIG[course.area];
+              return (
+                <Link key={course.courseId} href={`/learn/${course.courseId}`}>
+                  <Card className="flex items-center gap-4 p-4 hover:translate-x-[3px] transition-all cursor-pointer">
+                    <div className="w-[52px] h-[52px] rounded-lg shrink-0 flex items-center justify-center bg-gradient-to-br from-accent-emerald/20 to-accent-emerald/5">
+                      <span className="text-xl">{course.emoji}</span>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-heading text-[0.88rem] font-semibold text-text-primary truncate">
+                        {course.title}
+                      </p>
+                      <div className="flex items-center gap-2 mt-1">
+                        <Badge variant={area.badgeVariant}>{area.label}</Badge>
+                        <span className="text-text-muted text-[0.68rem]">{course.currentModule}</span>
+                      </div>
+                      <ProgressBar percentage={100} color="emerald" className="mt-2" />
+                    </div>
+                    <div className="shrink-0 text-right">
+                      <span className="font-heading text-[0.74rem] font-bold text-accent-emerald">
+                        Completato
+                      </span>
+                    </div>
+                  </Card>
+                </Link>
+              );
+            })}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

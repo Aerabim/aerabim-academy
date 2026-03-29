@@ -76,6 +76,28 @@ body {
   background: #58758C;
 }
 
+/* Sidebar lesson list scrollbar */
+.sidebar-scroll::-webkit-scrollbar {
+  width: 6px;
+}
+.sidebar-scroll::-webkit-scrollbar-track {
+  background: rgba(88, 117, 140, 0.08);
+  border-radius: 3px;
+  margin: 4px 0;
+}
+.sidebar-scroll::-webkit-scrollbar-thumb {
+  background: rgba(78, 205, 196, 0.25);
+  border-radius: 3px;
+}
+.sidebar-scroll::-webkit-scrollbar-thumb:hover {
+  background: rgba(78, 205, 196, 0.45);
+}
+/* Firefox */
+.sidebar-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(78, 205, 196, 0.25) rgba(88, 117, 140, 0.08);
+}
+
 .gradient-text-cyan {
   background: linear-gradient(135deg, #4ECDC4, #7EE8E0);
   -webkit-background-clip: text;

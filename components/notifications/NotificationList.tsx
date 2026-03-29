@@ -16,6 +16,7 @@ const TYPE_ICONS: Record<NotificationType, { icon: string; color: string }> = {
   session_canceled: { icon: '❌', color: 'text-rose-400' },
   enrollment_granted: { icon: '🎁', color: 'text-emerald-400' },
   refund_processed: { icon: '💶', color: 'text-text-muted' },
+  course_deleted: { icon: '🗑️', color: 'text-rose-400' },
   admin_message: { icon: '📢', color: 'text-accent-cyan' },
 };
 

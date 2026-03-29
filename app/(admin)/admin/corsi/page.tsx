@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic';
+
 import { getSupabaseAdmin } from '@/lib/supabase/admin';
 import { CourseTable } from '@/components/admin/courses/CourseTable';
 import type { AdminCourseListItem } from '@/types';

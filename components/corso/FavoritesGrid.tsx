@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { cn } from '@/lib/utils';
 import { formatPrice, formatDuration } from '@/lib/utils';
 import { AREA_CONFIG, LEVEL_LABELS } from '@/lib/area-config';
@@ -81,7 +82,17 @@ function FavoriteCard({
           area.cardGradient,
         )}
       >
-        <span className="text-5xl opacity-80">{course.emoji}</span>
+        {course.thumbnailUrl ? (
+          <Image
+            src={course.thumbnailUrl}
+            alt={course.title}
+            fill
+            className="object-cover"
+            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
+          />
+        ) : (
+          <span className="text-5xl opacity-80">{course.emoji}</span>
+        )}
 
         {/* Remove button */}
         <button

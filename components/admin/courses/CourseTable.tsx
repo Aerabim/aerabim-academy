@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
@@ -50,14 +51,35 @@ export function CourseTable({ courses: initialCourses }: CourseTableProps) {
   const [loading, setLoading] = useState(false);
   const [duplicating, setDuplicating] = useState<string | null>(null);
   const [statusOpen, setStatusOpen] = useState<string | null>(null);
+  const [dropdownPos, setDropdownPos] = useState<{ top: number; left: number } | null>(null);
+  const statusBtnRefs = useRef<Map<string, HTMLButtonElement>>(new Map());
+  const dropdownRef = useRef<HTMLDivElement>(null);
   const tableRef = useRef<HTMLDivElement>(null);
+
+  const openStatusDropdown = useCallback((courseId: string) => {
+    if (statusOpen === courseId) {
+      setStatusOpen(null);
+      setDropdownPos(null);
+      return;
+    }
+    const btn = statusBtnRefs.current.get(courseId);
+    if (btn) {
+      const rect = btn.getBoundingClientRect();
+      setDropdownPos({ top: rect.bottom + 4, left: rect.left });
+    }
+    setStatusOpen(courseId);
+  }, [statusOpen]);
 
   useEffect(() => {
     if (!statusOpen) return;
+    const openId = statusOpen;
     function handleClickOutside(e: MouseEvent) {
-      if (tableRef.current && !tableRef.current.contains(e.target as Node)) {
-        setStatusOpen(null);
-      }
+      const target = e.target as Node;
+      const btn = statusBtnRefs.current.get(openId);
+      if (btn?.contains(target)) return;
+      if (dropdownRef.current?.contains(target)) return;
+      setStatusOpen(null);
+      setDropdownPos(null);
     }
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
@@ -82,6 +104,7 @@ export function CourseTable({ courses: initialCourses }: CourseTableProps) {
             c.id === course.id ? { ...c, status: newStatus } : c,
           ),
         );
+        router.refresh();
       }
     } catch (err) {
       console.error('Change status error:', err);
@@ -97,6 +120,7 @@ export function CourseTable({ courses: initialCourses }: CourseTableProps) {
       });
       if (res.ok) {
         setCourses((prev) => prev.filter((c) => c.id !== deleteTarget.id));
+        router.refresh();
       }
     } catch (err) {
       console.error('Delete course error:', err);
@@ -201,9 +225,10 @@ export function CourseTable({ courses: initialCourses }: CourseTableProps) {
                     <td className="px-4 py-3 text-[0.82rem] text-text-secondary">{course.moduleCount}</td>
                     <td className="px-4 py-3 text-[0.82rem] text-text-secondary">{course.enrolledCount}</td>
                     <td className="px-4 py-3">
-                      <div className="relative">
+                      <div>
                         <button
-                          onClick={() => setStatusOpen(statusOpen === course.id ? null : course.id)}
+                          ref={(el) => { if (el) statusBtnRefs.current.set(course.id, el); }}
+                          onClick={() => openStatusDropdown(course.id)}
                           className={cn(
                             'flex items-center gap-1.5 text-[0.72rem] font-semibold px-2.5 py-1 rounded-md transition-colors',
                             statusConf.btnClass,
@@ -215,33 +240,6 @@ export function CourseTable({ courses: initialCourses }: CourseTableProps) {
                             <path d="M6 9l6 6 6-6" />
                           </svg>
                         </button>
-                        {statusOpen === course.id && (
-                          <div className="absolute left-0 top-full mt-1 z-20 min-w-[160px] bg-surface-2 border border-border-subtle rounded-lg shadow-lg py-1">
-                            {STATUS_ORDER.map((s) => {
-                              const conf = STATUS_CONFIG[s];
-                              const isCurrent = course.status === s;
-                              return (
-                                <button
-                                  key={s}
-                                  onClick={() => {
-                                    handleChangeStatus(course, s);
-                                    setStatusOpen(null);
-                                  }}
-                                  className={cn(
-                                    'w-full text-left px-3 py-1.5 text-[0.78rem] transition-colors flex items-center gap-2',
-                                    isCurrent
-                                      ? conf.btnActiveClass
-                                      : 'text-text-secondary hover:bg-surface-3 hover:text-text-primary',
-                                  )}
-                                >
-                                  <span className={cn('w-2 h-2 rounded-full shrink-0', conf.dotClass)} />
-                                  {conf.label}
-                                  {isCurrent && <span className="ml-auto text-[0.68rem] text-text-muted">attuale</span>}
-                                </button>
-                              );
-                            })}
-                          </div>
-                        )}
                       </div>
                     </td>
                     <td className="px-4 py-3">
@@ -286,6 +284,42 @@ export function CourseTable({ courses: initialCourses }: CourseTableProps) {
         onConfirm={handleDelete}
         onCancel={() => setDeleteTarget(null)}
       />
+
+      {/* Status dropdown portal */}
+      {statusOpen && dropdownPos && createPortal(
+        <div
+          ref={dropdownRef}
+          className="fixed z-50 min-w-[160px] bg-surface-2 border border-border-subtle rounded-lg shadow-lg py-1"
+          style={{ top: dropdownPos.top, left: dropdownPos.left }}
+        >
+          {STATUS_ORDER.map((s) => {
+            const conf = STATUS_CONFIG[s];
+            const course = courses.find((c) => c.id === statusOpen);
+            const isCurrent = course?.status === s;
+            return (
+              <button
+                key={s}
+                onClick={() => {
+                  if (course) handleChangeStatus(course, s);
+                  setStatusOpen(null);
+                  setDropdownPos(null);
+                }}
+                className={cn(
+                  'w-full text-left px-3 py-1.5 text-[0.78rem] transition-colors flex items-center gap-2',
+                  isCurrent
+                    ? conf.btnActiveClass
+                    : 'text-text-secondary hover:bg-surface-3 hover:text-text-primary',
+                )}
+              >
+                <span className={cn('w-2 h-2 rounded-full shrink-0', conf.dotClass)} />
+                {conf.label}
+                {isCurrent && <span className="ml-auto text-[0.68rem] text-text-muted">attuale</span>}
+              </button>
+            );
+          })}
+        </div>,
+        document.body,
+      )}
     </>
   );
 }

@@ -84,8 +84,8 @@ export default async function LessonPage({ params }: PageProps) {
         </span>
       </div>
 
-      {/* Two-column layout */}
-      <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-6">
+      {/* Two-column layout — main column sized to video max width, sidebar fills rest */}
+      <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,calc(50vh*16/9))_minmax(300px,1fr)] gap-6">
         {/* Main content */}
         <main>
           {/* Video player or type-specific content */}
@@ -98,7 +98,7 @@ export default async function LessonPage({ params }: PageProps) {
               tokens={playbackTokens}
             />
           ) : lesson.type === 'video' ? (
-            <div className="w-full aspect-video bg-surface-1 border border-border-subtle rounded-lg flex items-center justify-center">
+            <div className="w-full aspect-video max-h-[50vh] bg-surface-1 border border-border-subtle rounded-lg flex items-center justify-center">
               <div className="text-center">
                 <div className="text-3xl mb-2">🎬</div>
                 <p className="text-text-muted text-sm">Video in fase di caricamento</p>
@@ -170,7 +170,7 @@ export default async function LessonPage({ params }: PageProps) {
         </main>
 
         {/* Sidebar */}
-        <div className="hidden lg:block">
+        <div className="hidden lg:block self-start">
           <LessonSidebar
             courseId={params.courseId}
             currentLessonId={params.lessonId}
