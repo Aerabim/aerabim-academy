@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { revalidatePath } from 'next/cache';
 import { verifyAdmin } from '@/lib/admin/auth';
 import { getStripeServer } from '@/lib/stripe/client';
 import type { CreateCoursePayload, ApiError } from '@/types';
@@ -163,6 +164,7 @@ export async function POST(req: Request) {
       );
     }
 
+    revalidatePath('/admin/corsi');
     return NextResponse.json({ course }, { status: 201 });
   } catch (err) {
     console.error('POST /api/admin/courses error:', err);

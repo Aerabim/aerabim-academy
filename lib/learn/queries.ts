@@ -213,16 +213,42 @@ export async function getLessonPageData(
   const prev = currentIndex > 0 ? allLessons[currentIndex - 1] : null;
   const next = currentIndex < allLessons.length - 1 ? allLessons[currentIndex + 1] : null;
 
+  // Find the current module for stepper
+  const currentMod = overview.modules.find((m) =>
+    m.lessons.some((l) => l.id === lessonId),
+  );
+
+  const crossesModuleBoundary = !!next && next.moduleName !== current.moduleName;
+
   return {
     lesson: current.lesson,
     moduleName: current.moduleName,
     courseName: overview.course.title,
     courseSlug: overview.course.slug,
     navigation: {
-      prevLesson: prev ? { id: prev.lesson.id, title: prev.lesson.title } : null,
-      nextLesson: next ? { id: next.lesson.id, title: next.lesson.title } : null,
+      prevLesson: prev
+        ? { id: prev.lesson.id, title: prev.lesson.title, type: prev.lesson.type, moduleName: prev.moduleName }
+        : null,
+      nextLesson: next
+        ? { id: next.lesson.id, title: next.lesson.title, type: next.lesson.type, moduleName: next.moduleName }
+        : null,
       currentIndex,
       totalCount: allLessons.length,
+      currentModule: currentMod
+        ? {
+            id: currentMod.id,
+            title: currentMod.title,
+            orderNum: currentMod.orderNum,
+            lessons: currentMod.lessons.map((l) => ({
+              id: l.id,
+              title: l.title,
+              type: l.type,
+              completed: l.completed,
+            })),
+          }
+        : { id: '', title: '', orderNum: 0, lessons: [] },
+      crossesModuleBoundary,
+      nextModuleName: crossesModuleBoundary ? next.moduleName : null,
     },
     modules: overview.modules,
   };

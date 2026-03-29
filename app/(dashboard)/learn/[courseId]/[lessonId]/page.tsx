@@ -12,7 +12,10 @@ import {
 import { generatePlaybackTokens, type MuxPlaybackTokens } from '@/lib/mux/helpers';
 import { VideoPlayer } from '@/components/corso/VideoPlayer';
 import { LessonSidebar } from '@/components/corso/LessonSidebar';
+import { LessonStepper } from '@/components/corso/LessonStepper';
+import { LessonNavBar } from '@/components/corso/LessonNavBar';
 import { QuizBlock } from '@/components/quiz/QuizBlock';
+import { MarkLessonComplete } from '@/components/corso/MarkLessonComplete';
 
 interface PageProps {
   params: { courseId: string; lessonId: string };
@@ -127,9 +130,24 @@ export default async function LessonPage({ params }: PageProps) {
                 <p className="text-text-muted text-[0.78rem]">
                   Il materiale sarà disponibile nella prossima versione.
                 </p>
+                <MarkLessonComplete
+                  lessonId={lesson.id}
+                  initialCompleted={lesson.completed}
+                />
               </div>
             </div>
           )}
+
+          {/* Module stepper */}
+          <div className="mt-4">
+            <LessonStepper
+              courseId={params.courseId}
+              currentLessonId={params.lessonId}
+              moduleTitle={navigation.currentModule.title}
+              moduleOrder={navigation.currentModule.orderNum}
+              lessons={navigation.currentModule.lessons}
+            />
+          </div>
 
           {/* Lesson info */}
           <div className="mt-5">
@@ -141,46 +159,14 @@ export default async function LessonPage({ params }: PageProps) {
             </p>
           </div>
 
-          {/* Navigation buttons */}
-          <div className="flex items-center justify-between mt-6 pt-5 border-t border-border-subtle">
-            {navigation.prevLesson ? (
-              <Link
-                href={`/learn/${params.courseId}/${navigation.prevLesson.id}`}
-                className="inline-flex items-center gap-2 font-heading text-[0.78rem] font-semibold text-text-secondary hover:text-text-primary transition-colors"
-              >
-                <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-                  <path d="M9 3L4.5 7L9 11" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-                <span className="hidden sm:inline max-w-[200px] truncate">{navigation.prevLesson.title}</span>
-                <span className="sm:hidden">Precedente</span>
-              </Link>
-            ) : (
-              <div />
-            )}
-
-            {navigation.nextLesson ? (
-              <Link
-                href={`/learn/${params.courseId}/${navigation.nextLesson.id}`}
-                className="inline-flex items-center gap-2 font-heading text-[0.78rem] font-bold bg-accent-cyan text-brand-dark px-4 py-2 rounded-md hover:brightness-110 transition-all"
-              >
-                <span className="hidden sm:inline max-w-[200px] truncate">{navigation.nextLesson.title}</span>
-                <span className="sm:hidden">Successiva</span>
-                <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-                  <path d="M5 3L9.5 7L5 11" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-              </Link>
-            ) : (
-              <Link
-                href={`/learn/${params.courseId}`}
-                className="inline-flex items-center gap-2 font-heading text-[0.78rem] font-bold bg-accent-emerald text-brand-dark px-4 py-2 rounded-md hover:brightness-110 transition-all"
-              >
-                Torna all&apos;overview
-                <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-                  <path d="M5 3L9.5 7L5 11" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-              </Link>
-            )}
-          </div>
+          {/* Navigation */}
+          <LessonNavBar
+            courseId={params.courseId}
+            prevLesson={navigation.prevLesson}
+            nextLesson={navigation.nextLesson}
+            crossesModuleBoundary={navigation.crossesModuleBoundary}
+            nextModuleName={navigation.nextModuleName}
+          />
         </main>
 
         {/* Sidebar */}

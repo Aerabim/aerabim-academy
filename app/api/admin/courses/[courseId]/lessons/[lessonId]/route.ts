@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { revalidatePath } from 'next/cache';
 import { verifyAdmin } from '@/lib/admin/auth';
 import type { ApiError } from '@/types';
 
@@ -45,6 +46,7 @@ export async function PATCH(req: Request, { params }: RouteParams) {
       );
     }
 
+    revalidatePath(`/admin/corsi/${params.courseId}`);
     return NextResponse.json({ lesson });
   } catch (err) {
     console.error('PATCH lesson error:', err);
@@ -55,12 +57,21 @@ export async function PATCH(req: Request, { params }: RouteParams) {
   }
 }
 
-/** DELETE /api/admin/courses/[courseId]/lessons/[lessonId] — delete lesson */
+/** DELETE /api/admin/courses/[courseId]/lessons/[lessonId] — delete lesson and recompact order */
 export async function DELETE(_req: Request, { params }: RouteParams) {
   try {
     const result = await verifyAdmin();
     if (result instanceof NextResponse) return result;
     const { admin } = result;
+
+    // Get the module_id before deleting
+    const { data: lesson } = await admin
+      .from('lessons')
+      .select('module_id')
+      .eq('id', params.lessonId)
+      .single();
+
+    const moduleId = (lesson as { module_id: string } | null)?.module_id;
 
     const { error } = await admin
       .from('lessons')
@@ -75,6 +86,25 @@ export async function DELETE(_req: Request, { params }: RouteParams) {
       );
     }
 
+    // Recompact order_num for remaining lessons in the module
+    if (moduleId) {
+      const { data: remaining } = await admin
+        .from('lessons')
+        .select('id')
+        .eq('module_id', moduleId)
+        .order('order_num', { ascending: true });
+
+      const rows = (remaining ?? []) as { id: string }[];
+      if (rows.length > 0) {
+        await Promise.all(
+          rows.map((row, i) =>
+            admin.from('lessons').update({ order_num: i + 1 }).eq('id', row.id),
+          ),
+        );
+      }
+    }
+
+    revalidatePath(`/admin/corsi/${params.courseId}`);
     return NextResponse.json({ success: true });
   } catch (err) {
     console.error('DELETE lesson error:', err);

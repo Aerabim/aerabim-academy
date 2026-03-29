@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { revalidatePath } from 'next/cache';
 import { verifyAdmin } from '@/lib/admin/auth';
 import type { ApiError } from '@/types';
 
@@ -164,6 +165,7 @@ export async function POST(
       }
     }
 
+    revalidatePath('/admin/corsi');
     return NextResponse.json({
       success: true,
       course: newCourseRow,

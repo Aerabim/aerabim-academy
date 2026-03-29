@@ -689,12 +689,30 @@ export interface CourseLearnOverview {
   firstIncompleteLessonId: string | null;
 }
 
+/** Prev/next lesson link with enriched metadata */
+export interface LessonNavLink {
+  id: string;
+  title: string;
+  type: LessonType;
+  moduleName: string;
+}
+
 /** Navigation context for prev/next lesson */
 export interface LessonNavigation {
-  prevLesson: { id: string; title: string } | null;
-  nextLesson: { id: string; title: string } | null;
+  prevLesson: LessonNavLink | null;
+  nextLesson: LessonNavLink | null;
   currentIndex: number;
   totalCount: number;
+  /** Current module info for stepper */
+  currentModule: {
+    id: string;
+    title: string;
+    orderNum: number;
+    lessons: { id: string; title: string; type: LessonType; completed: boolean }[];
+  };
+  /** Whether the next lesson belongs to a different module */
+  crossesModuleBoundary: boolean;
+  nextModuleName: string | null;
 }
 
 /** Full lesson data for the lesson page (server-side) */
@@ -1057,6 +1075,7 @@ export type NotificationType =
   | 'session_canceled'
   | 'enrollment_granted'
   | 'refund_processed'
+  | 'course_deleted'
   | 'admin_message';
 
 export interface Notification {

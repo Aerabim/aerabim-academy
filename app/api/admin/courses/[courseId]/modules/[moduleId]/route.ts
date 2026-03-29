@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { revalidatePath } from 'next/cache';
 import { verifyAdmin } from '@/lib/admin/auth';
 import type { ApiError } from '@/types';
 
@@ -41,6 +42,7 @@ export async function PATCH(req: Request, { params }: RouteParams) {
       );
     }
 
+    revalidatePath(`/admin/corsi/${params.courseId}`);
     return NextResponse.json({ module: mod });
   } catch (err) {
     console.error('PATCH module error:', err);
@@ -72,6 +74,7 @@ export async function DELETE(_req: Request, { params }: RouteParams) {
       );
     }
 
+    revalidatePath(`/admin/corsi/${params.courseId}`);
     return NextResponse.json({ success: true });
   } catch (err) {
     console.error('DELETE module error:', err);

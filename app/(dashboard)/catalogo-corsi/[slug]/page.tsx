@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { createServerClient } from '@/lib/supabase/server';
 import { Badge } from '@/components/ui/Badge';
 import { VideoPlayerPlaceholder } from '@/components/corso/VideoPlayerPlaceholder';
+import { FavoriteButton } from '@/components/corso/FavoriteButton';
 import { LessonList } from '@/components/corso/LessonList';
 import { CourseDetailSidebar } from '@/components/corso/CourseDetailSidebar';
 import { ReviewSection } from '@/components/reviews/ReviewSection';
@@ -64,13 +65,23 @@ export default async function CourseDetailPage({ params, searchParams }: PagePro
     }
   }
 
-  // Fetch modules + lessons and reviews in parallel
-  const [modules, reviews, reviewStats, userReview] = await Promise.all([
+  // Fetch modules + lessons, reviews, and favorite status in parallel
+  const [modules, reviews, reviewStats, userReview, favoriteRow] = await Promise.all([
     getCourseModulesWithLessons(supabase, course.id),
     getCourseReviews(supabase, course.id),
     getCourseReviewStats(supabase, course.id),
     currentUserId ? getUserReview(supabase, currentUserId, course.id) : Promise.resolve(null),
+    currentUserId
+      ? supabase
+          .from('favorites')
+          .select('id')
+          .eq('user_id', currentUserId)
+          .eq('course_id', course.id)
+          .maybeSingle()
+          .then((r) => r.data)
+      : Promise.resolve(null),
   ]);
+  const isFavorited = !!favoriteRow;
 
   const area = AREA_CONFIG[course.area];
 
@@ -115,9 +126,18 @@ export default async function CourseDetailPage({ params, searchParams }: PagePro
           </div>
 
           {/* Title */}
-          <h1 className="font-heading text-xl lg:text-[1.65rem] font-extrabold text-text-primary leading-tight mb-4">
-            {course.title}
-          </h1>
+          <div className="flex items-start gap-3 mb-4">
+            <h1 className="font-heading text-xl lg:text-[1.65rem] font-extrabold text-text-primary leading-tight flex-1">
+              {course.title}
+            </h1>
+            {isAuthenticated && (
+              <FavoriteButton
+                courseId={course.id}
+                initialFavorited={isFavorited}
+                className="shrink-0 mt-1"
+              />
+            )}
+          </div>
 
           {/* Meta row */}
           <div className="flex flex-wrap items-center gap-3 text-[0.72rem] text-text-muted mb-5">
@@ -158,6 +178,17 @@ export default async function CourseDetailPage({ params, searchParams }: PagePro
               </p>
             </div>
           )}
+        </main>
+
+        {/* Sidebar + Reviews */}
+        <div className="space-y-5">
+          <CourseDetailSidebar
+            course={course}
+            materials={[]}
+            objectives={[]}
+            isEnrolled={isEnrolled}
+            isAuthenticated={isAuthenticated}
+          />
 
           {/* Reviews */}
           <ReviewSection
@@ -168,16 +199,7 @@ export default async function CourseDetailPage({ params, searchParams }: PagePro
             isEnrolled={isEnrolled}
             currentUserId={currentUserId}
           />
-        </main>
-
-        {/* Sidebar */}
-        <CourseDetailSidebar
-          course={course}
-          materials={[]}
-          objectives={[]}
-          isEnrolled={isEnrolled}
-          isAuthenticated={isAuthenticated}
-        />
+        </div>
       </div>
     </div>
   );

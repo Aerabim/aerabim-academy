@@ -1,9 +1,66 @@
 import { NextResponse } from 'next/server';
+import { revalidatePath } from 'next/cache';
 import { verifyAdmin } from '@/lib/admin/auth';
 import type { ApiError, CreateLessonPayload } from '@/types';
 
 interface RouteParams {
   params: { courseId: string };
+}
+
+interface ReorderItem {
+  id: string;
+  orderNum: number;
+}
+
+/** PATCH /api/admin/courses/[courseId]/lessons — reorder lessons */
+export async function PATCH(req: Request, { params }: RouteParams) {
+  try {
+    const result = await verifyAdmin();
+    if (result instanceof NextResponse) return result;
+    const { admin } = result;
+
+    const body = (await req.json()) as { items: ReorderItem[] };
+
+    if (!body.items || !Array.isArray(body.items)) {
+      return NextResponse.json(
+        { error: 'Formato non valido. Invia { items: [{ id, orderNum }] }.' } satisfies ApiError,
+        { status: 400 },
+      );
+    }
+
+    // Verify all lessons belong to a module of this course
+    const lessonIds = body.items.map((i) => i.id);
+    const { data: lessonRows } = await admin
+      .from('lessons')
+      .select('id, modules!inner(course_id)')
+      .in('id', lessonIds.length > 0 ? lessonIds : ['']);
+
+    const validIds = new Set(
+      ((lessonRows ?? []) as unknown as { id: string; modules: { course_id: string } }[])
+        .filter((l) => l.modules.course_id === params.courseId)
+        .map((l) => l.id),
+    );
+
+    const updates = body.items
+      .filter((item) => validIds.has(item.id))
+      .map((item) =>
+        admin
+          .from('lessons')
+          .update({ order_num: item.orderNum })
+          .eq('id', item.id),
+      );
+
+    await Promise.all(updates);
+
+    revalidatePath(`/admin/corsi/${params.courseId}`);
+    return NextResponse.json({ success: true });
+  } catch (err) {
+    console.error('PATCH reorder lessons error:', err);
+    return NextResponse.json(
+      { error: 'Errore interno del server.' } satisfies ApiError,
+      { status: 500 },
+    );
+  }
 }
 
 /** POST /api/admin/courses/[courseId]/lessons — create a lesson */
@@ -68,6 +125,7 @@ export async function POST(req: Request, { params }: RouteParams) {
       );
     }
 
+    revalidatePath(`/admin/corsi/${params.courseId}`);
     return NextResponse.json({ lesson }, { status: 201 });
   } catch (err) {
     console.error('POST lessons error:', err);

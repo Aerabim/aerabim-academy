@@ -42,8 +42,11 @@ export function CourseCard({ course, isFavorited = false }: CourseCardProps) {
           <span className="text-5xl opacity-80">{course.emoji}</span>
         )}
 
-        {/* Favorite button — z-20 above the card link */}
-        <div className="absolute top-3 left-3 z-20 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+        {/* Favorite button — z-20 above the card link, always visible when favorited */}
+        <div className={cn(
+          'absolute top-3 left-3 z-20 transition-opacity duration-200',
+          isFavorited ? 'opacity-100' : 'opacity-0 group-hover:opacity-100',
+        )}>
           <FavoriteButton
             courseId={course.id}
             initialFavorited={isFavorited}

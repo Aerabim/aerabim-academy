@@ -16,7 +16,6 @@ export function VideoPlayerPlaceholder({ courseTitle }: VideoPlayerPlaceholderPr
           </svg>
         </div>
         <p className="text-text-muted text-xs font-heading">Preview non disponibile</p>
-        <p className="text-text-muted/50 text-[0.65rem]">{courseTitle}</p>
       </div>
     </div>
   );

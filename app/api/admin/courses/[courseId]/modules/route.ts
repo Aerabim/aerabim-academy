@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { revalidatePath } from 'next/cache';
 import { verifyAdmin } from '@/lib/admin/auth';
 import type { ApiError, ReorderPayload } from '@/types';
 
@@ -52,6 +53,7 @@ export async function POST(req: Request, { params }: RouteParams) {
       );
     }
 
+    revalidatePath(`/admin/corsi/${params.courseId}`);
     return NextResponse.json({ module: mod }, { status: 201 });
   } catch (err) {
     console.error('POST modules error:', err);
@@ -89,6 +91,7 @@ export async function PATCH(req: Request, { params }: RouteParams) {
 
     await Promise.all(updates);
 
+    revalidatePath(`/admin/corsi/${params.courseId}`);
     return NextResponse.json({ success: true });
   } catch (err) {
     console.error('PATCH reorder modules error:', err);
