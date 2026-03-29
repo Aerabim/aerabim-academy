@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation';
 import { getSupabaseAdmin } from '@/lib/supabase/admin';
 import { getAdminCourseDetail } from '@/lib/admin/queries';
 import { CourseForm } from '@/components/admin/courses/CourseForm';
+import { CourseFormFooter } from '@/components/admin/courses/CourseFormFooter';
 import { ModuleManager } from '@/components/admin/courses/ModuleManager';
 import { QuizEditor } from '@/components/admin/courses/QuizEditor';
 import { Badge } from '@/components/ui/Badge';
@@ -74,6 +75,8 @@ export default async function EditCoursePage({ params }: PageProps) {
           ))}
         </section>
       )}
+
+      <CourseFormFooter isEditing />
     </div>
   );
 }

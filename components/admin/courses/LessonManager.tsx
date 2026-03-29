@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/Badge';
 import { ConfirmDialog } from '@/components/admin/ui/ConfirmDialog';
@@ -23,7 +22,6 @@ const MUX_STATUS_LABELS: Record<string, { label: string; color: string }> = {
 };
 
 export function LessonManager({ courseId, moduleId, lessons: initialLessons }: LessonManagerProps) {
-  const router = useRouter();
   const [lessons, setLessons] = useState(initialLessons);
   const [showForm, setShowForm] = useState(false);
   const [editingLesson, setEditingLesson] = useState<AdminLessonDetail | null>(null);
@@ -48,12 +46,13 @@ export function LessonManager({ courseId, moduleId, lessons: initialLessons }: L
     }
   }
 
-  function handleSaved(newLesson?: AdminLessonDetail) {
-    if (newLesson) {
-      setLessons((prev) => [...prev, newLesson]);
-    } else if (editingLesson) {
-      // Edit case — refresh to get updated data
-      router.refresh();
+  function handleSaved(lesson?: AdminLessonDetail) {
+    if (lesson && editingLesson) {
+      // Edit case — update the lesson in local state
+      setLessons((prev) => prev.map((l) => (l.id === lesson.id ? lesson : l)));
+    } else if (lesson) {
+      // Create case — append to list
+      setLessons((prev) => [...prev, lesson]);
     }
     setShowForm(false);
     setEditingLesson(null);

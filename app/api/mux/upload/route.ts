@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/server';
-import { createMuxUploadUrl } from '@/lib/mux/helpers';
+import { createMuxUploadUrl, getMuxClient } from '@/lib/mux/helpers';
 
 interface UploadRequestBody {
   lessonId: string;
@@ -44,7 +44,25 @@ export async function POST(request: Request) {
       );
     }
 
-    // 4. Create Mux Direct Upload
+    // 4. Delete old Mux asset if the lesson already has one
+    const { data: lesson } = await supabase
+      .from('lessons')
+      .select('mux_asset_id')
+      .eq('id', body.lessonId)
+      .single<{ mux_asset_id: string | null }>();
+
+    if (lesson?.mux_asset_id) {
+      const mux = getMuxClient();
+      if (mux) {
+        try {
+          await mux.video.assets.delete(lesson.mux_asset_id);
+        } catch {
+          // Asset may already be deleted on Mux side — continue
+        }
+      }
+    }
+
+    // 5. Create Mux Direct Upload
     const { uploadUrl, uploadId } = await createMuxUploadUrl(
       body.lessonId,
       body.courseId,

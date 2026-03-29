@@ -21,6 +21,7 @@ export async function PATCH(req: Request, { params }: RouteParams) {
     if (body.isPreview !== undefined) updateData.is_preview = body.isPreview;
     if (body.durationSec !== undefined) updateData.duration_sec = body.durationSec;
     if (body.moduleId !== undefined) updateData.module_id = body.moduleId;
+    if (body.muxStatus !== undefined) updateData.mux_status = body.muxStatus;
 
     if (Object.keys(updateData).length === 0) {
       return NextResponse.json(
@@ -33,7 +34,7 @@ export async function PATCH(req: Request, { params }: RouteParams) {
       .from('lessons')
       .update(updateData)
       .eq('id', params.lessonId)
-      .select('id, module_id, title, type, order_num, is_preview, mux_playback_id, mux_status, duration_sec')
+      .select('id, module_id, title, type, order_num, is_preview, mux_playback_id, mux_asset_id, mux_status, duration_sec, material_url')
       .single();
 
     if (error || !lesson) {

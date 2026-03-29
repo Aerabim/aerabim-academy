@@ -1,4 +1,5 @@
 import { CourseForm } from '@/components/admin/courses/CourseForm';
+import { CourseFormFooter } from '@/components/admin/courses/CourseFormFooter';
 
 export default function NewCoursePage() {
   return (
@@ -12,6 +13,7 @@ export default function NewCoursePage() {
         </p>
       </div>
       <CourseForm />
+      <CourseFormFooter isEditing={false} />
     </div>
   );
 }

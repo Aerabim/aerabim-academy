@@ -34,6 +34,7 @@ export function QuizEditor({ courseId, lessonId }: QuizEditorProps) {
   const [explanation, setExplanation] = useState('');
   const [saving, setSaving] = useState(false);
   const [showAdd, setShowAdd] = useState(false);
+  const [formError, setFormError] = useState('');
 
   const apiBase = `/api/admin/courses/${courseId}/lessons/${lessonId}/quiz`;
 
@@ -62,6 +63,7 @@ export function QuizEditor({ courseId, lessonId }: QuizEditorProps) {
     setExplanation('');
     setEditingIdx(null);
     setShowAdd(false);
+    setFormError('');
   }
 
   function startEdit(q: QuizQuestion, idx: number) {
@@ -81,47 +83,44 @@ export function QuizEditor({ courseId, lessonId }: QuizEditorProps) {
   async function handleSave() {
     if (!qText.trim() || options.filter((o) => o.trim()).length < 2) return;
     setSaving(true);
+    setFormError('');
 
     try {
       const cleanOptions = options.map((o) => o.trim()).filter(Boolean);
 
-      if (editingIdx !== null) {
-        // Update existing
-        const q = questions[editingIdx];
-        const res = await fetch(apiBase, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            questionId: q.id,
+      const isEdit = editingIdx !== null;
+      const payload = isEdit
+        ? {
+            questionId: questions[editingIdx].id,
             question: qText.trim(),
             options: cleanOptions,
             correctIndex: correctIdx,
             explanation: explanation.trim() || null,
-          }),
-        });
-        if (res.ok) {
-          await fetchQuestions();
-          resetForm();
-        }
-      } else {
-        // Create new
-        const res = await fetch(apiBase, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
+          }
+        : {
             question: qText.trim(),
             options: cleanOptions,
             correctIndex: correctIdx,
             explanation: explanation.trim() || null,
-          }),
-        });
-        if (res.ok) {
-          await fetchQuestions();
-          resetForm();
-        }
+          };
+
+      const res = await fetch(apiBase, {
+        method: isEdit ? 'PATCH' : 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        setFormError(data.error ?? 'Errore durante il salvataggio.');
+        return;
       }
+
+      await fetchQuestions();
+      resetForm();
     } catch (err) {
       console.error('Save question error:', err);
+      setFormError('Errore di rete.');
     } finally {
       setSaving(false);
     }
@@ -184,6 +183,7 @@ export function QuizEditor({ courseId, lessonId }: QuizEditorProps) {
               onExplanationChange={setExplanation}
               onSave={handleSave}
               onCancel={resetForm}
+              error={formError}
             />
           ) : (
             <div className="space-y-1">
@@ -222,6 +222,7 @@ export function QuizEditor({ courseId, lessonId }: QuizEditorProps) {
             onExplanationChange={setExplanation}
             onSave={handleSave}
             onCancel={resetForm}
+            error={formError}
           />
         </div>
       )}
@@ -254,12 +255,13 @@ interface QuestionFormProps {
   onExplanationChange: (v: string) => void;
   onSave: () => void;
   onCancel: () => void;
+  error: string;
 }
 
 function QuestionForm({
   qText, options, correctIdx, explanation, saving,
   onQTextChange, onOptionsChange, onCorrectIdxChange, onExplanationChange,
-  onSave, onCancel,
+  onSave, onCancel, error,
 }: QuestionFormProps) {
   function setOption(idx: number, val: string) {
     const next = [...options];
@@ -310,6 +312,10 @@ function QuestionForm({
         rows={2}
         hint="Mostrata dopo la risposta."
       />
+
+      {error && (
+        <div className="text-[0.72rem] text-accent-rose">{error}</div>
+      )}
 
       <div className="flex items-center gap-2 pt-1">
         <button

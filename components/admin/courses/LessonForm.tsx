@@ -61,22 +61,23 @@ export function LessonForm({ courseId, moduleId, lesson, onSaved, onCancel }: Le
 
       const data = await res.json();
 
-      if (!isEditing && data.lesson) {
-        const created: AdminLessonDetail = {
-          id: data.lesson.id,
-          moduleId: data.lesson.module_id,
-          title: data.lesson.title,
-          orderNum: data.lesson.order_num,
-          type: data.lesson.type,
-          muxPlaybackId: null,
-          muxAssetId: null,
-          muxStatus: data.lesson.mux_status ?? 'waiting',
-          durationSec: null,
-          isPreview: data.lesson.is_preview ?? false,
-          quizQuestionCount: 0,
-          materialUrl: null,
+      const l = data.lesson;
+      if (l) {
+        const mapped: AdminLessonDetail = {
+          id: l.id,
+          moduleId: l.module_id,
+          title: l.title,
+          orderNum: l.order_num,
+          type: l.type,
+          muxPlaybackId: l.mux_playback_id ?? null,
+          muxAssetId: l.mux_asset_id ?? null,
+          muxStatus: l.mux_status ?? 'waiting',
+          durationSec: l.duration_sec ?? null,
+          isPreview: l.is_preview ?? false,
+          quizQuestionCount: l.quiz_question_count ?? 0,
+          materialUrl: l.material_url ?? null,
         };
-        onSaved(created);
+        onSaved(mapped);
       } else {
         onSaved();
       }
@@ -144,7 +145,13 @@ export function LessonForm({ courseId, moduleId, lesson, onSaved, onCancel }: Le
       {/* Video uploader for existing video lessons */}
       {isEditing && lesson.type === 'video' && (
         <div className="pt-2 border-t border-border-subtle">
-          <VideoUploader courseId={courseId} lessonId={lesson.id} currentStatus={lesson.muxStatus} />
+          <VideoUploader
+            courseId={courseId}
+            lessonId={lesson.id}
+            currentStatus={lesson.muxStatus}
+            currentPlaybackId={lesson.muxPlaybackId}
+            currentDurationSec={lesson.durationSec}
+          />
         </div>
       )}
 

@@ -10,6 +10,8 @@ import type { Course } from '@/types';
 
 interface CourseFormProps {
   course?: Course;
+  /** Unique form ID so external submit buttons can trigger this form */
+  formId?: string;
 }
 
 const AREA_OPTIONS = [
@@ -38,7 +40,7 @@ function slugify(text: string): string {
     .replace(/^-+|-+$/g, '');
 }
 
-export function CourseForm({ course }: CourseFormProps) {
+export function CourseForm({ course, formId = 'course-form' }: CourseFormProps) {
   const router = useRouter();
   const isEditing = !!course;
 
@@ -99,6 +101,7 @@ export function CourseForm({ course }: CourseFormProps) {
       }
 
       if (isEditing) {
+        window.dispatchEvent(new CustomEvent('course-saved'));
         router.refresh();
       } else {
         router.push(`/admin/corsi/${data.course.id}`);
@@ -111,7 +114,7 @@ export function CourseForm({ course }: CourseFormProps) {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-5 w-full">
+    <form id={formId} onSubmit={handleSubmit} className="space-y-5 w-full">
       {error && (
         <div className="px-4 py-3 bg-accent-rose/10 border border-accent-rose/20 rounded-md text-[0.82rem] text-accent-rose">
           {error}
@@ -201,22 +204,6 @@ export function CourseForm({ course }: CourseFormProps) {
 
 
 
-      <div className="flex items-center gap-3 pt-2">
-        <button
-          type="submit"
-          disabled={saving}
-          className="px-5 py-2.5 bg-accent-cyan/15 text-accent-cyan text-[0.82rem] font-semibold rounded-md border border-accent-cyan/20 hover:bg-accent-cyan/25 transition-colors disabled:opacity-50"
-        >
-          {saving ? 'Salvataggio...' : isEditing ? 'Salva modifiche' : 'Crea corso'}
-        </button>
-        <button
-          type="button"
-          onClick={() => router.back()}
-          className="px-5 py-2.5 text-[0.82rem] font-medium text-text-secondary hover:text-text-primary transition-colors"
-        >
-          Annulla
-        </button>
-      </div>
     </form>
   );
 }
