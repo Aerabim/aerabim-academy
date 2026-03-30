@@ -167,7 +167,7 @@ export async function getAdminCourseDetail(
     // Fetch lessons for all modules
     const { data: lessonsRaw } = await admin
       .from('lessons')
-      .select('id, module_id, title, order_num, type, mux_playback_id, mux_asset_id, mux_status, duration_sec, is_preview, material_url')
+      .select('id, module_id, title, order_num, type, mux_playback_id, mux_asset_id, mux_status, duration_sec, is_preview')
       .in('module_id', moduleIds.length > 0 ? moduleIds : [''])
       .order('order_num', { ascending: true });
 
@@ -175,7 +175,6 @@ export async function getAdminCourseDetail(
       id: string; module_id: string; title: string; order_num: number;
       type: string; mux_playback_id: string | null; mux_asset_id: string | null;
       mux_status: string; duration_sec: number | null; is_preview: boolean;
-      material_url: string | null;
     }[];
 
     // Fetch quiz question counts per lesson
@@ -211,14 +210,13 @@ export async function getAdminCourseDetail(
         moduleId: l.module_id,
         title: l.title,
         orderNum: l.order_num,
-        type: l.type as 'video' | 'quiz' | 'material' | 'esercitazione',
+        type: l.type as 'video' | 'quiz' | 'esercitazione',
         muxPlaybackId: l.mux_playback_id,
         muxAssetId: l.mux_asset_id,
         muxStatus: l.mux_status,
         durationSec: l.duration_sec,
         isPreview: l.is_preview,
         quizQuestionCount: quizCountMap.get(l.id) ?? 0,
-        materialUrl: l.material_url,
       })),
     }));
 

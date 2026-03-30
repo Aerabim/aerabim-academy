@@ -97,13 +97,13 @@ export async function POST(
     if (oldModuleIds.length > 0) {
       const { data: lessonsRaw } = await admin
         .from('lessons')
-        .select('id, module_id, title, order_num, type, is_preview, material_url')
+        .select('id, module_id, title, order_num, type, is_preview')
         .in('module_id', oldModuleIds)
         .order('order_num', { ascending: true });
 
       const lessons = (lessonsRaw ?? []) as {
         id: string; module_id: string; title: string; order_num: number;
-        type: string; is_preview: boolean; material_url: string | null;
+        type: string; is_preview: boolean;
       }[];
 
       const lessonIdMap = new Map<string, string>();
@@ -120,7 +120,6 @@ export async function POST(
             order_num: lesson.order_num,
             type: lesson.type,
             is_preview: lesson.is_preview,
-            material_url: lesson.material_url,
             mux_playback_id: null,
             mux_asset_id: null,
             mux_status: 'waiting',

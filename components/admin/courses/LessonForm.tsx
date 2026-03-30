@@ -4,7 +4,6 @@ import { useState } from 'react';
 import { FormField } from '@/components/admin/ui/FormField';
 import { FormSelect } from '@/components/admin/ui/FormSelect';
 import { VideoUploader } from './VideoUploader';
-import { MaterialUploader } from './MaterialUploader';
 import type { AdminLessonDetail } from '@/types';
 
 interface LessonFormProps {
@@ -18,7 +17,6 @@ interface LessonFormProps {
 const TYPE_OPTIONS = [
   { value: 'video', label: 'Video' },
   { value: 'quiz', label: 'Quiz' },
-  { value: 'material', label: 'Materiale' },
   { value: 'esercitazione', label: 'Esercitazione' },
 ];
 
@@ -75,7 +73,6 @@ export function LessonForm({ courseId, moduleId, lesson, onSaved, onCancel }: Le
           durationSec: l.duration_sec ?? null,
           isPreview: l.is_preview ?? false,
           quizQuestionCount: l.quiz_question_count ?? 0,
-          materialUrl: l.material_url ?? null,
         };
         onSaved(mapped);
       } else {
@@ -155,12 +152,6 @@ export function LessonForm({ courseId, moduleId, lesson, onSaved, onCancel }: Le
         </div>
       )}
 
-      {/* Material uploader for existing material lessons */}
-      {isEditing && lesson.type === 'material' && (
-        <div className="pt-2 border-t border-border-subtle">
-          <MaterialUploader courseId={courseId} lessonId={lesson.id} currentUrl={lesson.materialUrl} />
-        </div>
-      )}
     </div>
   );
 }

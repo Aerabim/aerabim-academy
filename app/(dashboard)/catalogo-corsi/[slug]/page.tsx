@@ -65,8 +65,8 @@ export default async function CourseDetailPage({ params, searchParams }: PagePro
     }
   }
 
-  // Fetch modules + lessons, reviews, and favorite status in parallel
-  const [modules, reviews, reviewStats, userReview, favoriteRow] = await Promise.all([
+  // Fetch modules + lessons, reviews, materials, and favorite status in parallel
+  const [modules, reviews, reviewStats, userReview, favoriteRow, materialsRaw] = await Promise.all([
     getCourseModulesWithLessons(supabase, course.id),
     getCourseReviews(supabase, course.id),
     getCourseReviewStats(supabase, course.id),
@@ -80,8 +80,32 @@ export default async function CourseDetailPage({ params, searchParams }: PagePro
           .maybeSingle()
           .then((r) => r.data)
       : Promise.resolve(null),
+    isEnrolled
+      ? supabase
+          .from('materials')
+          .select('id, course_id, title, file_url, file_name, file_type, file_size, order_num, created_at')
+          .eq('course_id', course.id)
+          .order('order_num', { ascending: true })
+          .then((r) => r.data ?? [])
+      : Promise.resolve([]),
   ]);
   const isFavorited = !!favoriteRow;
+
+  const materials = (materialsRaw as {
+    id: string; course_id: string; title: string; file_url: string;
+    file_name: string; file_type: string; file_size: number | null;
+    order_num: number; created_at: string;
+  }[]).map((m) => ({
+    id: m.id,
+    courseId: m.course_id,
+    title: m.title,
+    fileUrl: m.file_url,
+    fileName: m.file_name,
+    fileType: m.file_type,
+    fileSize: m.file_size,
+    orderNum: m.order_num,
+    createdAt: m.created_at,
+  }));
 
   const area = AREA_CONFIG[course.area];
 
@@ -184,7 +208,7 @@ export default async function CourseDetailPage({ params, searchParams }: PagePro
         <div className="space-y-5">
           <CourseDetailSidebar
             course={course}
-            materials={[]}
+            materials={materials}
             objectives={[]}
             isEnrolled={isEnrolled}
             isAuthenticated={isAuthenticated}

@@ -20,7 +20,6 @@ interface LessonStepperProps {
 const TYPE_ICONS: Record<LessonType, string> = {
   video: 'V',
   quiz: 'Q',
-  material: 'M',
   esercitazione: 'E',
 };
 

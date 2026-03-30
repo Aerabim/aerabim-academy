@@ -6,8 +6,10 @@ import { getAdminCourseDetail } from '@/lib/admin/queries';
 import { CourseForm } from '@/components/admin/courses/CourseForm';
 import { CourseFormFooter } from '@/components/admin/courses/CourseFormFooter';
 import { ModuleManager } from '@/components/admin/courses/ModuleManager';
+import { CourseMaterialsManager } from '@/components/admin/courses/CourseMaterialsManager';
 import { QuizEditor } from '@/components/admin/courses/QuizEditor';
 import { Badge } from '@/components/ui/Badge';
+import type { CourseMaterial } from '@/types';
 
 interface PageProps {
   params: { courseId: string };
@@ -21,6 +23,29 @@ export default async function EditCoursePage({ params }: PageProps) {
   if (!detail) redirect('/admin/corsi');
 
   const { course, modules } = detail;
+
+  // Fetch materials for this course
+  const { data: materialsRaw } = await admin
+    .from('materials')
+    .select('id, course_id, title, file_url, file_name, file_type, file_size, order_num, created_at')
+    .eq('course_id', params.courseId)
+    .order('order_num', { ascending: true });
+
+  const materials: CourseMaterial[] = (materialsRaw ?? []).map((m: {
+    id: string; course_id: string; title: string; file_url: string;
+    file_name: string; file_type: string; file_size: number | null;
+    order_num: number; created_at: string;
+  }) => ({
+    id: m.id,
+    courseId: m.course_id,
+    title: m.title,
+    fileUrl: m.file_url,
+    fileName: m.file_name,
+    fileType: m.file_type,
+    fileSize: m.file_size,
+    orderNum: m.order_num,
+    createdAt: m.created_at,
+  }));
 
   // Find quiz lessons for quiz editors
   const quizLessons = modules.flatMap((m) =>
@@ -57,6 +82,11 @@ export default async function EditCoursePage({ params }: PageProps) {
       {/* Modules and lessons */}
       <section>
         <ModuleManager courseId={course.id} modules={modules} />
+      </section>
+
+      {/* Materials */}
+      <section className="bg-surface-1 border border-border-subtle rounded-lg p-5">
+        <CourseMaterialsManager courseId={course.id} initialMaterials={materials} />
       </section>
 
       {/* Quiz editors for each quiz lesson */}

@@ -114,11 +114,6 @@ function SortableLessonRow({
         </span>
       )}
 
-      {lesson.type === 'material' && (
-        <span className={cn('text-[0.68rem] font-medium', lesson.materialUrl ? 'text-accent-emerald' : 'text-text-muted')}>
-          {lesson.materialUrl ? 'File caricato' : 'Nessun file'}
-        </span>
-      )}
 
       {lesson.type === 'quiz' && (
         <span className="text-[0.68rem] text-text-muted">

@@ -72,7 +72,6 @@ export interface LessonTypeConfig {
 export const LESSON_TYPE_CONFIG: Record<LessonType, LessonTypeConfig> = {
   video: { label: 'Video', badgeVariant: 'cyan' },
   quiz: { label: 'Quiz', badgeVariant: 'amber' },
-  material: { label: 'Materiale', badgeVariant: 'violet' },
   esercitazione: { label: 'Esercitazione', badgeVariant: 'emerald' },
 };
 

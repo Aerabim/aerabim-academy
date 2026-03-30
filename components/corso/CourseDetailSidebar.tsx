@@ -11,11 +11,26 @@ interface CourseDetailSidebarProps {
 }
 
 const FORMAT_COLORS: Record<string, string> = {
-  PDF: 'bg-accent-rose/15 text-accent-rose',
-  RVT: 'bg-accent-cyan/15 text-accent-cyan',
-  XLSX: 'bg-accent-emerald/15 text-accent-emerald',
-  DWG: 'bg-accent-amber/15 text-accent-amber',
+  pdf:  'bg-accent-rose/15 text-accent-rose',
+  pptx: 'bg-accent-amber/15 text-accent-amber',
+  xlsx: 'bg-accent-emerald/15 text-accent-emerald',
+  docx: 'bg-brand-light/20 text-brand-light',
+  rvt:  'bg-accent-cyan/15 text-accent-cyan',
+  rfa:  'bg-accent-cyan/15 text-accent-cyan',
+  nwd:  'bg-violet-400/15 text-violet-400',
+  nwc:  'bg-violet-400/15 text-violet-400',
+  dwg:  'bg-accent-amber/15 text-accent-amber',
+  dxf:  'bg-accent-amber/15 text-accent-amber',
+  ifc:  'bg-accent-cyan/15 text-accent-cyan',
+  exe:  'bg-accent-rose/15 text-accent-rose',
+  zip:  'bg-brand-gray/20 text-brand-light',
 };
+
+function formatBytes(bytes: number | null): string {
+  if (!bytes) return '';
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
 
 export function CourseDetailSidebar({ course, materials, objectives, isEnrolled, isAuthenticated }: CourseDetailSidebarProps) {
   return (
@@ -81,22 +96,36 @@ export function CourseDetailSidebar({ course, materials, objectives, isEnrolled,
         </div>
       </Card>
 
-      {/* Materials */}
+      {/* Materials — only visible to enrolled users */}
       {materials.length > 0 && (
         <Card className="p-5">
           <h3 className="font-heading text-[0.85rem] font-bold text-text-primary mb-3">
             Materiali inclusi
           </h3>
           <ul className="space-y-2.5">
-            {materials.map((mat, i) => (
-              <li key={i} className="flex items-center gap-3">
-                <span className={`font-heading text-[0.6rem] font-bold px-1.5 py-0.5 rounded ${FORMAT_COLORS[mat.format] || 'bg-surface-3 text-text-muted'}`}>
-                  {mat.format}
+            {materials.map((mat) => (
+              <li key={mat.id} className="flex items-center gap-3 group">
+                <span className={`font-heading text-[0.6rem] font-bold uppercase px-1.5 py-0.5 rounded shrink-0 ${FORMAT_COLORS[mat.fileType] ?? 'bg-surface-3 text-text-muted'}`}>
+                  {mat.fileType}
                 </span>
                 <span className="text-[0.78rem] text-text-secondary flex-1 truncate">
                   {mat.title}
                 </span>
-                <span className="text-[0.65rem] text-text-muted shrink-0">{mat.sizeLabel}</span>
+                <span className="text-[0.65rem] text-text-muted shrink-0">
+                  {formatBytes(mat.fileSize)}
+                </span>
+                <a
+                  href={mat.fileUrl}
+                  download={mat.fileName}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                  title="Scarica"
+                >
+                  <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2" className="text-accent-cyan">
+                    <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                </a>
               </li>
             ))}
           </ul>

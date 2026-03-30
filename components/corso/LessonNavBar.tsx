@@ -29,13 +29,6 @@ function NavTypeIcon({ type }: { type: LessonType }) {
           <circle cx="12" cy="17" r="0.5" fill="currentColor" stroke="currentColor" strokeWidth="0.5" />
         </svg>
       );
-    case 'material':
-      return (
-        <svg width="14" height="14" fill="none" viewBox="0 0 24 24" className="shrink-0">
-          <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" stroke="currentColor" strokeWidth="1.8" />
-          <path d="M14 2v6h6" stroke="currentColor" strokeWidth="1.8" />
-        </svg>
-      );
     case 'esercitazione':
       return (
         <svg width="14" height="14" fill="none" viewBox="0 0 24 24" className="shrink-0">
@@ -48,14 +41,12 @@ function NavTypeIcon({ type }: { type: LessonType }) {
 const TYPE_LABELS: Record<LessonType, string> = {
   video: 'Video',
   quiz: 'Quiz',
-  material: 'Materiale',
   esercitazione: 'Esercitazione',
 };
 
 const TYPE_COLORS: Record<LessonType, string> = {
   video: 'text-accent-cyan',
   quiz: 'text-accent-amber',
-  material: 'text-violet-400',
   esercitazione: 'text-accent-emerald',
 };
 

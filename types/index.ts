@@ -562,8 +562,7 @@ export type AreaCode = 'SW' | 'NL' | 'OB' | 'PG' | 'AI';
 
 export type LevelCode = 'L1' | 'L2' | 'L3';
 
-/** Extended lesson type — includes 'esercitazione' for UI display (not in DB schema yet) */
-export type LessonType = 'video' | 'quiz' | 'material' | 'esercitazione';
+export type LessonType = 'video' | 'quiz' | 'esercitazione';
 
 export interface InstructorInfo {
   name: string;
@@ -615,9 +614,15 @@ export interface LessonDisplay {
 }
 
 export interface CourseMaterial {
+  id: string;
+  courseId: string;
   title: string;
-  format: string;
-  sizeLabel: string;
+  fileUrl: string;
+  fileName: string;
+  fileType: string;
+  fileSize: number | null;
+  orderNum: number;
+  createdAt: string;
 }
 
 export interface EnrolledCourse {
@@ -1155,7 +1160,6 @@ export interface AdminLessonDetail {
   durationSec: number | null;
   isPreview: boolean;
   quizQuestionCount: number;
-  materialUrl: string | null;
 }
 
 /** Payload for creating a course */

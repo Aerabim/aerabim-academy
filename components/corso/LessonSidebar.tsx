@@ -75,7 +75,7 @@ function SidebarLessonRow({
   isCurrent: boolean;
   moduleOrder: number;
 }) {
-  const typeConfig = LESSON_TYPE_CONFIG[lesson.type];
+  const typeConfig = LESSON_TYPE_CONFIG[lesson.type] ?? { label: lesson.type, badgeVariant: 'default' as const };
   const number = moduleOrder > 0 ? `${moduleOrder}.${lesson.orderNum}` : `0.${lesson.orderNum}`;
 
   const content = (

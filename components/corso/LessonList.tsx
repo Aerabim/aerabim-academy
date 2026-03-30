@@ -32,13 +32,6 @@ function LessonTypeIcon({ type, className }: { type: LessonType; className?: str
           <circle cx="12" cy="17" r="0.5" fill="currentColor" stroke="currentColor" strokeWidth="0.5" />
         </svg>
       );
-    case 'material':
-      return (
-        <svg width="16" height="16" fill="none" viewBox="0 0 24 24" className={base}>
-          <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-          <path d="M14 2v6h6M16 13H8M16 17H8M10 9H8" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
-      );
     case 'esercitazione':
       return (
         <svg width="16" height="16" fill="none" viewBox="0 0 24 24" className={base}>
@@ -57,7 +50,6 @@ function LessonTypeIcon({ type, className }: { type: LessonType; className?: str
 const TYPE_COLORS: Record<LessonType, string> = {
   video: 'text-accent-cyan',
   quiz: 'text-accent-amber',
-  material: 'text-violet-400',
   esercitazione: 'text-accent-emerald',
 };
 

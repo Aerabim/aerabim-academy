@@ -35,7 +35,7 @@ export async function PATCH(req: Request, { params }: RouteParams) {
       .from('lessons')
       .update(updateData)
       .eq('id', params.lessonId)
-      .select('id, module_id, title, type, order_num, is_preview, mux_playback_id, mux_asset_id, mux_status, duration_sec, material_url')
+      .select('id, module_id, title, type, order_num, is_preview, mux_playback_id, mux_asset_id, mux_status, duration_sec')
       .single();
 
     if (error || !lesson) {
