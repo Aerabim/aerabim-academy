@@ -130,6 +130,26 @@ export function CourseTable({ courses: initialCourses }: CourseTableProps) {
     }
   }
 
+  async function handleToggleFeatured(course: AdminCourseListItem) {
+    const setting = !course.isFeatured;
+    try {
+      const res = await fetch(`/api/admin/courses/${course.id}/feature`, {
+        method: setting ? 'POST' : 'DELETE',
+      });
+      if (res.ok) {
+        setCourses((prev) =>
+          prev.map((c) => ({
+            ...c,
+            isFeatured: c.id === course.id ? setting : false,
+          })),
+        );
+        router.refresh();
+      }
+    } catch (err) {
+      console.error('Toggle featured error:', err);
+    }
+  }
+
   async function handleDuplicate(course: AdminCourseListItem) {
     setDuplicating(course.id);
     try {
@@ -186,6 +206,7 @@ export function CourseTable({ courses: initialCourses }: CourseTableProps) {
               <th className="px-4 py-3 text-[0.7rem] font-heading font-bold uppercase tracking-wider text-text-muted">Prezzo</th>
               <th className="px-4 py-3 text-[0.7rem] font-heading font-bold uppercase tracking-wider text-text-muted">Moduli</th>
               <th className="px-4 py-3 text-[0.7rem] font-heading font-bold uppercase tracking-wider text-text-muted">Iscritti</th>
+              <th className="px-4 py-3 text-[0.7rem] font-heading font-bold uppercase tracking-wider text-text-muted">Evidenza</th>
               <th className="px-4 py-3 text-[0.7rem] font-heading font-bold uppercase tracking-wider text-text-muted">Stato</th>
               <th className="px-4 py-3 text-[0.7rem] font-heading font-bold uppercase tracking-wider text-text-muted">Azioni</th>
             </tr>
@@ -193,7 +214,7 @@ export function CourseTable({ courses: initialCourses }: CourseTableProps) {
           <tbody>
             {filtered.length === 0 ? (
               <tr>
-                <td colSpan={8} className="px-4 py-10 text-center text-[0.82rem] text-text-muted">
+                <td colSpan={9} className="px-4 py-10 text-center text-[0.82rem] text-text-muted">
                   {filter ? 'Nessun corso trovato.' : 'Nessun corso presente.'}
                 </td>
               </tr>
@@ -224,6 +245,22 @@ export function CourseTable({ courses: initialCourses }: CourseTableProps) {
                     </td>
                     <td className="px-4 py-3 text-[0.82rem] text-text-secondary">{course.moduleCount}</td>
                     <td className="px-4 py-3 text-[0.82rem] text-text-secondary">{course.enrolledCount}</td>
+                    <td className="px-4 py-3">
+                      <button
+                        onClick={() => handleToggleFeatured(course)}
+                        title={course.isFeatured ? 'Rimuovi da In Evidenza' : 'Imposta come In Evidenza'}
+                        className={cn(
+                          'w-7 h-7 rounded-md flex items-center justify-center transition-colors',
+                          course.isFeatured
+                            ? 'bg-accent-cyan/20 text-accent-cyan'
+                            : 'bg-surface-3 text-text-muted hover:text-accent-cyan hover:bg-accent-cyan/10',
+                        )}
+                      >
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill={course.isFeatured ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth={2}>
+                          <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+                        </svg>
+                      </button>
+                    </td>
                     <td className="px-4 py-3">
                       <div>
                         <button

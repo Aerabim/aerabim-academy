@@ -67,6 +67,9 @@ export default async function EditCoursePage({ params }: PageProps) {
             <Badge variant={course.status === 'published' ? 'emerald' : course.status === 'hidden' ? 'amber' : course.status === 'archived' ? 'rose' : 'amber'}>
               {course.status === 'published' ? 'Pubblicato' : course.status === 'hidden' ? 'Nascosto' : course.status === 'archived' ? 'Archiviato' : 'Bozza'}
             </Badge>
+            {course.is_featured && (
+              <Badge variant="cyan">In evidenza</Badge>
+            )}
           </div>
         </div>
       </div>

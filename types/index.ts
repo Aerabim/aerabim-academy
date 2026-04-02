@@ -22,6 +22,7 @@ export type Database = {
           stripe_price_id: string | null;
           avg_rating: number;
           review_count: number;
+          is_featured: boolean;
           created_at: string;
         };
         Insert: Omit<Database['public']['Tables']['courses']['Row'], 'id' | 'created_at' | 'avg_rating' | 'review_count'> & {
@@ -584,6 +585,7 @@ export interface CourseWithMeta {
   rating: number;
   reviewCount: number;
   enrolledCount: number;
+  isFeatured: boolean;
   moduleCount: number;
   lessonCount: number;
   updatedAt: string;
@@ -1127,6 +1129,7 @@ export interface AdminCourseListItem {
   isFree: boolean;
   status: CourseStatus;
   enrolledCount: number;
+  isFeatured: boolean;
   moduleCount: number;
   lessonCount: number;
   createdAt: string;

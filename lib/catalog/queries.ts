@@ -26,6 +26,7 @@ interface CourseRow {
   thumbnail_url: string | null;
   avg_rating: number;
   review_count: number;
+  is_featured: boolean;
   created_at: string;
 }
 
@@ -131,6 +132,7 @@ export async function getPublishedCourses(
       rating: c.avg_rating ?? 0,
       reviewCount: c.review_count ?? 0,
       enrolledCount: enrollCountMap.get(c.id) ?? 0,
+      isFeatured: c.is_featured ?? false,
       moduleCount: moduleCountMap.get(c.id) ?? 0,
       lessonCount: lessonCountMap.get(c.id) ?? 0,
       updatedAt: new Date(c.created_at).toLocaleDateString('it-IT', {
@@ -269,6 +271,9 @@ export async function getFeaturedCourse(
   courses: CourseWithMeta[],
 ): Promise<CourseWithMeta | null> {
   if (courses.length === 0) return null;
+  const explicit = courses.find((c) => c.isFeatured);
+  if (explicit) return explicit;
+  // Fallback: corso con più iscritti
   const sorted = [...courses].sort((a, b) => b.enrolledCount - a.enrolledCount);
   return sorted[0];
 }

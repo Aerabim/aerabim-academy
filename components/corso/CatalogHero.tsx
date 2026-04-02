@@ -36,7 +36,7 @@ export function CatalogHero({ course }: CatalogHeroProps) {
             <span className="relative inline-flex rounded-full h-2 w-2 bg-accent-cyan" />
           </span>
           <span className="font-heading text-[0.7rem] font-semibold text-accent-cyan uppercase tracking-wider">
-            Corso più popolare
+            {course.isFeatured ? 'In evidenza' : 'Corso più popolare'}
           </span>
         </div>
 
