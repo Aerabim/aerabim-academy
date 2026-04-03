@@ -53,6 +53,7 @@ function NewItemsBanner({ count, onRefresh }: { count: number; onRefresh: () => 
 /* ── Main component ── */
 export function FeedView(_props: FeedViewProps = {}) {
   const [items, setItems] = useState<FeedItem[]>([]);
+  const [newestId, setNewestId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(false);
@@ -62,8 +63,15 @@ export function FeedView(_props: FeedViewProps = {}) {
 
   const newestCreatedAtRef = useRef<string | null>(null);
   const pollTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const newestIdTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const loadFeed = useCallback(async (offset = 0, replace = true) => {
+  function setNewestIdFor(id: string) {
+    if (newestIdTimerRef.current) clearTimeout(newestIdTimerRef.current);
+    setNewestId(id);
+    newestIdTimerRef.current = setTimeout(() => setNewestId(null), 8000);
+  }
+
+  const loadFeed = useCallback(async (offset = 0, replace = true, markNewest = false) => {
     if (offset === 0) setLoading(true);
     else setLoadingMore(true);
 
@@ -74,7 +82,14 @@ export function FeedView(_props: FeedViewProps = {}) {
 
       if (replace) {
         setItems(data.items);
-        if (data.items.length > 0) newestCreatedAtRef.current = data.items[0].createdAt;
+        if (data.items.length > 0) {
+          const first = data.items[0];
+          // Only highlight newest when explicitly requested (user clicked banner)
+          if (markNewest && newestCreatedAtRef.current && first.createdAt > newestCreatedAtRef.current) {
+            setNewestIdFor(first.id);
+          }
+          newestCreatedAtRef.current = first.createdAt;
+        }
         setNewCount(0);
       } else {
         setItems((prev) => [...prev, ...data.items]);
@@ -88,9 +103,9 @@ export function FeedView(_props: FeedViewProps = {}) {
       setLoading(false);
       setLoadingMore(false);
     }
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  useEffect(() => { loadFeed(0, true); }, [loadFeed]);
+  useEffect(() => { loadFeed(0, true, false); }, [loadFeed]);
 
   // Poll every 60s for new items
   useEffect(() => {
@@ -125,13 +140,13 @@ export function FeedView(_props: FeedViewProps = {}) {
     <div className="w-full">
       {newCount > 0 && (
         <div className="mb-4">
-          <NewItemsBanner count={newCount} onRefresh={() => loadFeed(0, true)} />
+          <NewItemsBanner count={newCount} onRefresh={() => loadFeed(0, true, true)} />
         </div>
       )}
 
       {!loading && pinnedPosts.length > 0 && (
         <div className="space-y-3 mb-5">
-          {pinnedPosts.map((item) => <FeedItemCard key={item.id} item={item} />)}
+          {pinnedPosts.map((item) => <FeedItemCard key={item.id} item={item} isNewest={item.id === newestId} />)}
         </div>
       )}
 
@@ -150,7 +165,7 @@ export function FeedView(_props: FeedViewProps = {}) {
 
           <div className="flex items-center gap-3">
             <button
-              onClick={() => loadFeed(0, true)}
+              onClick={() => loadFeed(0, true, false)}
               disabled={loading}
               className="p-1.5 rounded text-text-muted hover:text-accent-cyan transition-colors disabled:opacity-30"
               title="Aggiorna feed"
@@ -172,7 +187,7 @@ export function FeedView(_props: FeedViewProps = {}) {
           ) : feedItems.length === 0 ? (
             <p className="py-10 text-center text-[0.82rem] text-text-muted">Nessuna attività recente nel feed.</p>
           ) : (
-            <div>{feedItems.map((item) => <FeedItemCard key={item.id} item={item} />)}</div>
+            <div>{feedItems.map((item) => <FeedItemCard key={item.id} item={item} isNewest={item.id === newestId} />)}</div>
           )}
         </div>
 

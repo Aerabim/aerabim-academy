@@ -1,9 +1,28 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import { RelativeTime } from './RelativeTime';
 import type { FeedItem, FeedItemAdminPost, FeedItemProgress, FeedItemCertificate, FeedItemEnrollment, FeedItemDiscussion } from '@/types';
+
+/* ── "Nuovo" pill — auto-disappears after 8s ── */
+function NewPill() {
+  const [visible, setVisible] = useState(true);
+
+  useEffect(() => {
+    const id = setTimeout(() => setVisible(false), 8000);
+    return () => clearTimeout(id);
+  }, []);
+
+  if (!visible) return null;
+
+  return (
+    <span className="shrink-0 text-[0.58rem] font-extrabold uppercase tracking-widest px-1.5 py-[2px] rounded bg-accent-cyan text-brand-dark animate-pulse">
+      Nuovo
+    </span>
+  );
+}
 
 /* ── Avatar ── */
 function Avatar({ initials, type }: { initials: string; type: string }) {
@@ -119,11 +138,11 @@ function ReelVideo({ playbackId }: { playbackId: string }) {
 }
 
 /* ── Admin post card ── */
-function AdminPostCard({ item }: { item: FeedItemAdminPost }) {
+function AdminPostCard({ item, isNewest }: { item: FeedItemAdminPost; isNewest: boolean }) {
   return (
     <div className={cn(
       'relative rounded-lg border overflow-hidden',
-      'bg-surface-1 border-accent-cyan/25',
+      isNewest ? 'bg-accent-cyan/[0.06] border-accent-cyan/50 animate-slide-in' : 'bg-surface-1 border-accent-cyan/25',
       item.isPinned && 'border-accent-cyan/40',
     )}>
       {/* Cyan left accent */}
@@ -149,6 +168,7 @@ function AdminPostCard({ item }: { item: FeedItemAdminPost }) {
           {item.isPinned && (
             <span className="text-[0.6rem] text-accent-amber font-bold uppercase tracking-wider">📌 Fissato</span>
           )}
+          {isNewest && <NewPill />}
           <RelativeTime date={item.createdAt} className="text-[0.7rem] text-text-muted ml-auto" />
         </div>
         <p className="text-[0.88rem] font-semibold text-text-primary mt-1">{item.title}</p>
@@ -170,14 +190,21 @@ function AdminPostCard({ item }: { item: FeedItemAdminPost }) {
 }
 
 /* ── Regular activity card ── */
-function ActivityCard({ item }: { item: FeedItem }) {
+function ActivityCard({ item, isNewest }: { item: FeedItem; isNewest: boolean }) {
   return (
-    <div className="flex items-start gap-3 py-3.5 border-b border-border-subtle last:border-0">
+    <div className={cn(
+      'relative flex items-start gap-3 py-3.5 border-b border-border-subtle last:border-0',
+      isNewest && 'bg-accent-cyan/[0.04] -mx-5 px-5 animate-slide-in',
+    )}>
+      {isNewest && (
+        <div className="absolute left-0 top-2 bottom-2 w-[3px] bg-accent-cyan rounded-r" />
+      )}
       <Avatar initials={item.authorInitials} type={item.type} />
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 flex-wrap mb-0.5">
           <span className="text-[0.8rem] font-semibold text-text-primary">{item.authorName}</span>
           <TypeBadge type={item.type} />
+          {isNewest && <NewPill />}
           <RelativeTime date={item.createdAt} className="text-[0.7rem] text-text-muted ml-auto shrink-0" />
         </div>
         <p className="text-[0.78rem] text-text-secondary leading-relaxed">
@@ -189,9 +216,9 @@ function ActivityCard({ item }: { item: FeedItem }) {
 }
 
 /* ── Public export ── */
-export function FeedItemCard({ item }: { item: FeedItem }) {
+export function FeedItemCard({ item, isNewest = false }: { item: FeedItem; isNewest?: boolean }) {
   if (item.type === 'admin_post') {
-    return <AdminPostCard item={item as FeedItemAdminPost} />;
+    return <AdminPostCard item={item as FeedItemAdminPost} isNewest={isNewest} />;
   }
-  return <ActivityCard item={item} />;
+  return <ActivityCard item={item} isNewest={isNewest} />;
 }

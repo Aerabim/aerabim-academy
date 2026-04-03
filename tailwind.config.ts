@@ -78,6 +78,10 @@ const config: Config = {
           '50%':  { backgroundPosition: '0% 60%' },
           '100%': { backgroundPosition: '0% 0%' },
         },
+        'slide-in': {
+          '0%':   { opacity: '0', transform: 'translateY(-12px)' },
+          '100%': { opacity: '1', transform: 'translateY(0)' },
+        },
       },
       animation: {
         fadeIn:      'fadeIn 0.45s cubic-bezier(0.4,0,0.2,1) forwards',
@@ -86,6 +90,7 @@ const config: Config = {
         slideInLeft: 'slideInLeft 0.18s cubic-bezier(0.4,0,0.2,1) forwards',
         cardExpand:  'cardExpand 0.2s cubic-bezier(0.4,0,0.2,1) forwards',
         aurora:      'aurora 6s ease-in-out infinite',
+        'slide-in':  'slide-in 0.35s ease-out',
       },
     },
   },
