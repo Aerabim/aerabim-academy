@@ -6,7 +6,8 @@ import { cn } from '@/lib/utils';
 type MediaType = 'image' | 'video';
 
 interface FeedMediaUploaderProps {
-  postId: string;
+  /** Called only when video upload needs a real postId. May create a draft server-side. */
+  getPostId: () => Promise<string | null>;
   onComplete: (mediaType: MediaType, mediaUrl: string) => void;
   onClear: () => void;
   currentType: MediaType | null;
@@ -15,10 +16,8 @@ interface FeedMediaUploaderProps {
 
 /* ── Image uploader ── */
 function ImageUploader({
-  postId,
   onComplete,
 }: {
-  postId: string;
   onComplete: (url: string) => void;
 }) {
   const [uploading, setUploading] = useState(false);
@@ -31,7 +30,6 @@ function ImageUploader({
     try {
       const form = new FormData();
       form.append('file', file);
-      void postId; // postId not needed for image — URL is returned directly
 
       const res = await fetch('/api/admin/feed/posts/upload-image', { method: 'POST', body: form });
       const data = await res.json() as { url?: string; error?: string };
@@ -94,19 +92,20 @@ function ImageUploader({
 
 /* ── Video uploader (Mux Direct Upload) ── */
 function VideoUploader({
-  postId,
+  getPostId,
   onComplete,
 }: {
-  postId: string;
+  getPostId: () => Promise<string | null>;
   onComplete: (playbackId: string) => void;
 }) {
   const [phase, setPhase] = useState<'idle' | 'uploading' | 'processing' | 'done' | 'error'>('idle');
   const [progress, setProgress] = useState(0);
   const [errorMsg, setErrorMsg] = useState('');
+  const [resolvedPostId, setResolvedPostId] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const pollRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const pollStatus = useCallback(() => {
+  const pollStatus = useCallback((postId: string) => {
     pollRef.current = setTimeout(async () => {
       try {
         const res = await fetch(`/api/admin/feed/posts/${postId}/video-status`);
@@ -115,13 +114,13 @@ function VideoUploader({
           setPhase('done');
           onComplete(data.playbackId);
         } else {
-          pollStatus();
+          pollStatus(postId);
         }
       } catch {
-        pollStatus();
+        pollStatus(postId);
       }
     }, 5000);
-  }, [postId, onComplete]);
+  }, [onComplete]);
 
   async function handleFile(file: File) {
     setErrorMsg('');
@@ -129,7 +128,16 @@ function VideoUploader({
     setProgress(0);
 
     try {
-      // 1. Get Mux Direct Upload URL
+      // 1. Ensure we have a postId (may create a draft)
+      const postId = resolvedPostId ?? await getPostId();
+      if (!postId) {
+        setPhase('error');
+        setErrorMsg('Impossibile inizializzare il post. Compila titolo e testo prima.');
+        return;
+      }
+      setResolvedPostId(postId);
+
+      // 2. Get Mux Direct Upload URL
       const initRes = await fetch('/api/admin/feed/posts/feed-video-upload', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -159,7 +167,7 @@ function VideoUploader({
 
       // 3. Poll for Mux processing
       setPhase('processing');
-      pollStatus();
+      pollStatus(postId);
     } catch (err) {
       setPhase('error');
       setErrorMsg(err instanceof Error ? err.message : 'Errore durante l\'upload.');
@@ -244,7 +252,7 @@ function VideoUploader({
 }
 
 /* ── Main component ── */
-export function FeedMediaUploader({ postId, onComplete, onClear, currentType, currentUrl }: FeedMediaUploaderProps) {
+export function FeedMediaUploader({ getPostId, onComplete, onClear, currentType, currentUrl }: FeedMediaUploaderProps) {
   const [selected, setSelected] = useState<MediaType | null>(currentType);
 
   function handleTypeSelect(type: MediaType) {
@@ -324,10 +332,10 @@ export function FeedMediaUploader({ postId, onComplete, onClear, currentType, cu
 
       {/* Uploader */}
       {selected === 'image' && (
-        <ImageUploader postId={postId} onComplete={(url) => onComplete('image', url)} />
+        <ImageUploader onComplete={(url) => onComplete('image', url)} />
       )}
       {selected === 'video' && (
-        <VideoUploader postId={postId} onComplete={(pid) => onComplete('video', pid)} />
+        <VideoUploader getPostId={getPostId} onComplete={(pid) => onComplete('video', pid)} />
       )}
     </div>
   );

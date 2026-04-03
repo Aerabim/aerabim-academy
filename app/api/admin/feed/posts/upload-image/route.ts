@@ -43,7 +43,7 @@ export async function POST(req: Request) {
     const bytes = await file.arrayBuffer();
 
     const { error: uploadError } = await admin.storage
-      .from('thumbnails')
+      .from('lesson-materials')
       .upload(fileName, bytes, { contentType: file.type, upsert: false });
 
     if (uploadError) {
@@ -51,7 +51,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Errore durante l\'upload.' } satisfies ApiError, { status: 500 });
     }
 
-    const { data: urlData } = admin.storage.from('thumbnails').getPublicUrl(fileName);
+    const { data: urlData } = admin.storage.from('lesson-materials').getPublicUrl(fileName);
 
     return NextResponse.json({ url: urlData.publicUrl }, { status: 201 });
   } catch (err) {

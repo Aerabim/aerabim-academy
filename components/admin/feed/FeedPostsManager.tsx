@@ -16,7 +16,6 @@ export function FeedPostsManager({ initial }: FeedPostsManagerProps) {
   const router = useRouter();
   const [posts, setPosts] = useState<AdminFeedPost[]>(initial);
 
-  // Sync local state whenever the server re-renders with fresh data (after router.refresh())
   useEffect(() => {
     setPosts(initial);
   }, [initial]);
@@ -32,28 +31,10 @@ export function FeedPostsManager({ initial }: FeedPostsManagerProps) {
   const [href, setHref] = useState('');
   const [isPinned, setIsPinned] = useState(false);
   const [isPublished, setIsPublished] = useState(true);
-  // Temporary post ID used while the form is open (for Mux upload passthrough)
-  const [draftId, setDraftId] = useState<string | null>(null);
   const [mediaType, setMediaType] = useState<'image' | 'video' | null>(null);
   const [mediaUrl, setMediaUrl] = useState<string | null>(null);
-
-  async function openForm() {
-    // Create a draft post so we have an ID for Mux passthrough before the form is submitted
-    try {
-      const res = await fetch('/api/admin/feed/posts', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title: '__draft__', body: '__draft__', isPublished: false }),
-      });
-      if (res.ok) {
-        const data = await res.json() as { id?: string };
-        if (data.id) setDraftId(data.id);
-      }
-    } catch {
-      // If draft creation fails, still open the form; video upload just won't be available
-    }
-    setShowForm(true);
-  }
+  // Created post ID — available after first save, needed for Mux video upload
+  const [savedPostId, setSavedPostId] = useState<string | null>(null);
 
   function resetForm() {
     setTitle('');
@@ -63,7 +44,7 @@ export function FeedPostsManager({ initial }: FeedPostsManagerProps) {
     setIsPublished(true);
     setMediaType(null);
     setMediaUrl(null);
-    setDraftId(null);
+    setSavedPostId(null);
     setError('');
     setShowForm(false);
   }
@@ -74,17 +55,14 @@ export function FeedPostsManager({ initial }: FeedPostsManagerProps) {
     setSaving(true);
 
     try {
-      if (draftId) {
-        // Update the draft in place
-        const res = await fetch(`/api/admin/feed/posts/${draftId}`, {
+      if (savedPostId) {
+        // Post already exists (created on first save) — just PATCH it
+        const res = await fetch(`/api/admin/feed/posts/${savedPostId}`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            title,
-            body,
-            href: href || null,
-            isPinned,
-            isPublished,
+            title, body, href: href || null,
+            isPinned, isPublished,
             mediaType: mediaType ?? null,
             mediaUrl: mediaUrl ?? null,
           }),
@@ -94,46 +72,32 @@ export function FeedPostsManager({ initial }: FeedPostsManagerProps) {
           setError(data.error ?? 'Errore durante il salvataggio.');
           return;
         }
-
-        // Optimistic update
-        const newPost: AdminFeedPost = {
-          id: draftId,
-          title,
-          body,
-          href: href || null,
-          isPinned,
-          isPublished,
-          createdAt: new Date().toISOString(),
-          mediaType,
-          mediaUrl,
-        };
-        setPosts((prev) => [newPost, ...prev.filter((p) => p.id !== draftId)]);
+        setPosts((prev) => prev.map((p) =>
+          p.id === savedPostId
+            ? { ...p, title, body, href: href || null, isPinned, isPublished, mediaType, mediaUrl }
+            : p,
+        ));
       } else {
-        // No draft ID — create fresh
+        // First save — create the post
         const res = await fetch('/api/admin/feed/posts', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ title, body, href: href || undefined, isPinned, isPublished, mediaType, mediaUrl }),
         });
-
         const data = await res.json() as { id?: string; error?: string };
         if (!res.ok) {
           setError(data.error ?? 'Errore durante la creazione.');
           return;
         }
-
-        const newPost: AdminFeedPost = {
+        setPosts((prev) => [{
           id: data.id!,
-          title,
-          body,
+          title, body,
           href: href || null,
-          isPinned,
-          isPublished,
+          isPinned, isPublished,
           createdAt: new Date().toISOString(),
-          mediaType,
-          mediaUrl,
-        };
-        setPosts((prev) => [newPost, ...prev]);
+          mediaType, mediaUrl,
+        }, ...prev]);
+        setSavedPostId(data.id!);
       }
 
       resetForm();
@@ -148,7 +112,6 @@ export function FeedPostsManager({ initial }: FeedPostsManagerProps) {
   async function handleTogglePublished(post: AdminFeedPost) {
     const updated = { ...post, isPublished: !post.isPublished };
     setPosts((prev) => prev.map((p) => p.id === post.id ? updated : p));
-
     try {
       await fetch(`/api/admin/feed/posts/${post.id}`, {
         method: 'PATCH',
@@ -163,7 +126,6 @@ export function FeedPostsManager({ initial }: FeedPostsManagerProps) {
   async function handleTogglePinned(post: AdminFeedPost) {
     const updated = { ...post, isPinned: !post.isPinned };
     setPosts((prev) => prev.map((p) => p.id === post.id ? updated : p));
-
     try {
       await fetch(`/api/admin/feed/posts/${post.id}`, {
         method: 'PATCH',
@@ -188,14 +150,41 @@ export function FeedPostsManager({ initial }: FeedPostsManagerProps) {
     }
   }
 
+  // Called when the user wants to add a video — we need a real postId first.
+  // Creates a draft silently so Mux has an ID for the passthrough.
+  async function ensurePostIdForVideo(): Promise<string | null> {
+    if (savedPostId) return savedPostId;
+
+    try {
+      const res = await fetch('/api/admin/feed/posts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: title.trim() || '(bozza)',
+          body: body.trim() || '(bozza)',
+          isPublished: false,
+        }),
+      });
+      if (!res.ok) return null;
+      const data = await res.json() as { id?: string };
+      if (data.id) {
+        setSavedPostId(data.id);
+        return data.id;
+      }
+    } catch {
+      // ignore
+    }
+    return null;
+  }
+
   return (
     <div className="space-y-4">
-      {/* Header + nuovo post */}
+      {/* Header */}
       <div className="flex items-center justify-between">
-        <span className="text-[0.78rem] text-text-muted">{posts.length} {posts.length === 1 ? 'post' : 'post'}</span>
+        <span className="text-[0.78rem] text-text-muted">{posts.length} post</span>
         {!showForm && (
           <button
-            onClick={openForm}
+            onClick={() => setShowForm(true)}
             className="flex items-center gap-1.5 text-[0.78rem] font-semibold text-accent-cyan hover:text-accent-cyan/80 transition-colors"
           >
             <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
@@ -206,7 +195,7 @@ export function FeedPostsManager({ initial }: FeedPostsManagerProps) {
         )}
       </div>
 
-      {/* Form nuovo post */}
+      {/* Form */}
       {showForm && (
         <form onSubmit={handleCreate} className="bg-surface-2 border border-border-subtle rounded-lg p-5 space-y-4">
           <h3 className="font-heading text-[0.88rem] font-bold text-text-primary">Nuovo post editoriale</h3>
@@ -224,17 +213,13 @@ export function FeedPostsManager({ initial }: FeedPostsManagerProps) {
           {/* Media */}
           <div>
             <label className="block text-[0.78rem] font-medium text-text-secondary mb-2">Media (opzionale)</label>
-            {draftId ? (
-              <FeedMediaUploader
-                postId={draftId}
-                currentType={mediaType}
-                currentUrl={mediaUrl}
-                onComplete={(type, url) => { setMediaType(type); setMediaUrl(url); }}
-                onClear={() => { setMediaType(null); setMediaUrl(null); }}
-              />
-            ) : (
-              <p className="text-[0.72rem] text-text-muted">Il media potrà essere aggiunto dopo la creazione del post.</p>
-            )}
+            <FeedMediaUploader
+              getPostId={ensurePostIdForVideo}
+              currentType={mediaType}
+              currentUrl={mediaUrl}
+              onComplete={(type, url) => { setMediaType(type); setMediaUrl(url); }}
+              onClear={() => { setMediaType(null); setMediaUrl(null); }}
+            />
           </div>
 
           <div className="flex items-center gap-6">
@@ -263,12 +248,12 @@ export function FeedPostsManager({ initial }: FeedPostsManagerProps) {
         </form>
       )}
 
-      {/* Lista post */}
-      {posts.filter((p) => p.title !== '__draft__').length === 0 ? (
+      {/* Lista */}
+      {posts.length === 0 ? (
         <p className="text-center py-8 text-[0.82rem] text-text-muted">Nessun post creato.</p>
       ) : (
         <div className="divide-y divide-border-subtle">
-          {posts.filter((p) => p.title !== '__draft__').map((post) => (
+          {posts.map((post) => (
             <div key={post.id} className="py-4 flex items-start gap-4">
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
@@ -289,36 +274,25 @@ export function FeedPostsManager({ initial }: FeedPostsManagerProps) {
                 <span className="text-[0.68rem] text-text-muted">{timeAgo(post.createdAt)}</span>
               </div>
 
-              {/* Azioni */}
               <div className="flex items-center gap-2 shrink-0">
-                <button
-                  onClick={() => handleTogglePinned(post)}
-                  title={post.isPinned ? 'Rimuovi pin' : 'Fissa in cima'}
-                  className="p-1.5 rounded text-text-muted hover:text-accent-amber transition-colors"
-                >
+                <button onClick={() => handleTogglePinned(post)} title={post.isPinned ? 'Rimuovi pin' : 'Fissa in cima'}
+                  className="p-1.5 rounded text-text-muted hover:text-accent-amber transition-colors">
                   <svg width="14" height="14" fill={post.isPinned ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24" className={post.isPinned ? 'text-accent-amber' : ''}>
                     <line x1="12" y1="17" x2="12" y2="22" />
                     <path d="M5 17h14v-1.76a2 2 0 00-1.11-1.79l-1.78-.9A2 2 0 0115 10.76V6h1a2 2 0 000-4H8a2 2 0 000 4h1v4.76a2 2 0 01-1.11 1.79l-1.78.9A2 2 0 005 15.24V17z" />
                   </svg>
                 </button>
 
-                <button
-                  onClick={() => handleTogglePublished(post)}
-                  title={post.isPublished ? 'Metti in bozza' : 'Pubblica'}
-                  className="p-1.5 rounded text-text-muted hover:text-accent-emerald transition-colors"
-                >
+                <button onClick={() => handleTogglePublished(post)} title={post.isPublished ? 'Metti in bozza' : 'Pubblica'}
+                  className="p-1.5 rounded text-text-muted hover:text-accent-emerald transition-colors">
                   <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24" className={post.isPublished ? 'text-accent-emerald' : ''}>
                     <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
                     <circle cx="12" cy="12" r="3" />
                   </svg>
                 </button>
 
-                <button
-                  onClick={() => handleDelete(post.id)}
-                  disabled={deleting === post.id}
-                  title="Elimina"
-                  className="p-1.5 rounded text-text-muted hover:text-accent-rose transition-colors disabled:opacity-40"
-                >
+                <button onClick={() => handleDelete(post.id)} disabled={deleting === post.id} title="Elimina"
+                  className="p-1.5 rounded text-text-muted hover:text-accent-rose transition-colors disabled:opacity-40">
                   <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
                     <polyline points="3 6 5 6 21 6" />
                     <path d="M19 6l-1 14H6L5 6" />
