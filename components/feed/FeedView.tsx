@@ -84,8 +84,14 @@ export function FeedView(_props: FeedViewProps = {}) {
         setItems(data.items);
         if (data.items.length > 0) {
           const first = data.items[0];
-          // Only highlight newest when explicitly requested (user clicked banner)
+          const ageMs = Date.now() - new Date(first.createdAt).getTime();
+          const isRecent = ageMs < 5 * 60 * 1000; // within last 5 minutes
+
           if (markNewest && newestCreatedAtRef.current && first.createdAt > newestCreatedAtRef.current) {
+            // User clicked the banner — highlight incoming newest
+            setNewestIdFor(first.id);
+          } else if (!markNewest && !newestCreatedAtRef.current && isRecent) {
+            // Initial load — highlight if the top item is very recent
             setNewestIdFor(first.id);
           }
           newestCreatedAtRef.current = first.createdAt;
