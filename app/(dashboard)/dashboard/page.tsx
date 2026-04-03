@@ -4,16 +4,17 @@ import { WelcomeSection } from '@/components/dashboard/WelcomeSection';
 import { StatsGrid } from '@/components/dashboard/StatsGrid';
 import { ContinueStudying } from '@/components/dashboard/ContinueStudying';
 import { WeeklyActivity } from '@/components/dashboard/WeeklyActivity';
-import { LearningPaths } from '@/components/dashboard/LearningPaths';
 import { Achievements } from '@/components/dashboard/Achievements';
 import { UpcomingEvents } from '@/components/dashboard/UpcomingEvents';
 import {
   getDashboardStats,
   getContinueStudyingCourses,
   getWeeklyActivity,
+  getUserBadges,
+  type WeeklyActivityResult,
 } from '@/lib/dashboard/queries';
 import { getUpcomingLiveSessions } from '@/lib/live/queries';
-import type { LiveSessionDisplay } from '@/types';
+import type { LiveSessionDisplay, BadgeInfo } from '@/types';
 
 export default async function DashboardPage() {
   const supabase = createServerClient();
@@ -36,23 +37,20 @@ export default async function DashboardPage() {
     certificates: 0,
   };
   let continueCourses: Awaited<ReturnType<typeof getContinueStudyingCourses>> = [];
-  let weeklyDays: Awaited<ReturnType<typeof getWeeklyActivity>> = [
-    { label: 'Lun', minutes: 0 },
-    { label: 'Mar', minutes: 0 },
-    { label: 'Mer', minutes: 0 },
-    { label: 'Gio', minutes: 0 },
-    { label: 'Ven', minutes: 0 },
-    { label: 'Sab', minutes: 0 },
-    { label: 'Dom', minutes: 0 },
-  ];
+  let weeklyActivity: WeeklyActivityResult = {
+    days: ['Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab', 'Dom'].map((label) => ({ label, minutes: 0 })),
+    prevWeekMinutes: 0,
+  };
   let upcomingSessions: LiveSessionDisplay[] = [];
+  let badges: BadgeInfo[] = [];
 
   try {
-    [stats, continueCourses, weeklyDays, upcomingSessions] = await Promise.all([
+    [stats, continueCourses, weeklyActivity, upcomingSessions, badges] = await Promise.all([
       getDashboardStats(supabase, user.id),
       getContinueStudyingCourses(supabase, user.id),
       getWeeklyActivity(supabase, user.id),
       getUpcomingLiveSessions(supabase),
+      getUserBadges(supabase, user.id),
     ]);
   } catch {
     // Keep defaults on error
@@ -61,7 +59,7 @@ export default async function DashboardPage() {
   return (
     <div className="w-full px-6 lg:px-9 py-7 space-y-7">
       <div className="animate-fadeIn">
-        <WelcomeSection firstName={firstName} />
+        <WelcomeSection firstName={firstName} lastCourse={continueCourses[0] ?? null} />
       </div>
 
       <div className="animate-fadeIn" style={{ animationDelay: '0.06s' }}>
@@ -77,12 +75,11 @@ export default async function DashboardPage() {
 
       <div className="grid grid-cols-1 xl:grid-cols-[1fr_360px] gap-5 animate-fadeIn" style={{ animationDelay: '0.18s' }}>
         <ContinueStudying courses={continueCourses} />
-        <WeeklyActivity days={weeklyDays} />
+        <WeeklyActivity days={weeklyActivity.days} prevWeekMinutes={weeklyActivity.prevWeekMinutes} />
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 animate-fadeIn" style={{ animationDelay: '0.24s' }}>
-        <LearningPaths />
-        <Achievements />
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-5 animate-fadeIn" style={{ animationDelay: '0.24s' }}>
+        <Achievements badges={badges} />
         <UpcomingEvents sessions={upcomingSessions} />
       </div>
     </div>

@@ -638,6 +638,14 @@ export interface EnrolledCourse {
   isCompleted: boolean;
 }
 
+export interface BadgeInfo {
+  id: string;
+  name: string;
+  desc: string;
+  emoji: string;
+  unlocked: boolean;
+}
+
 export interface CertificateDisplay {
   id: string;
   courseName: string;
