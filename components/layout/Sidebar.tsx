@@ -6,6 +6,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { createBrowserClient } from '@/lib/supabase/client';
 import { AuroraBorder } from '@/components/layout/AuroraBorder';
+import { OnlineCounter } from '@/components/feed/FeedSidebar';
 import type { DashboardUser } from '@/types';
 
 const AURORA_ENABLED = true;
@@ -330,6 +331,13 @@ export function Sidebar({ user, courseCount, open, collapsed, onClose, onCollaps
             </div>
           ))}
         </nav>
+
+        {/* Online counter */}
+        {!collapsed && (
+          <div className="px-4 py-2.5 border-t border-border-subtle/50">
+            <OnlineCounter />
+          </div>
+        )}
 
         {/* User card with popover */}
         <UserMenu user={user} collapsed={collapsed} onClose={onClose} />
