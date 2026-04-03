@@ -3,21 +3,8 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { cn } from '@/lib/utils';
 import { FeedItemCard } from './FeedItemCard';
-import { FeedSidebar } from './FeedSidebar';
+import { OnlineCounter } from './FeedSidebar';
 import type { FeedItem, FeedItemAdminPost } from '@/types';
-
-interface FeedSession {
-  id: string;
-  type: string;
-  title: string;
-  hostName: string;
-  scheduledAt: string;
-  durationMin: number;
-  status: string;
-  bookedCount: number;
-  maxParticipants: number | null;
-  isBooked: boolean;
-}
 
 interface FeedViewProps {
   showOnline?: boolean;
@@ -67,7 +54,6 @@ function NewItemsBanner({ count, onRefresh }: { count: number; onRefresh: () => 
 /* ── Main component ── */
 export function FeedView({ showOnline = true }: FeedViewProps) {
   const [items, setItems] = useState<FeedItem[]>([]);
-  const [sessions, setSessions] = useState<FeedSession[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(false);
@@ -75,7 +61,6 @@ export function FeedView({ showOnline = true }: FeedViewProps) {
   const [error, setError] = useState('');
   const [newCount, setNewCount] = useState(0);
 
-  // Track the most recent item's createdAt for polling comparison
   const newestCreatedAtRef = useRef<string | null>(null);
   const pollTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -86,14 +71,11 @@ export function FeedView({ showOnline = true }: FeedViewProps) {
     try {
       const res = await fetch(`/api/feed?offset=${offset}`);
       if (!res.ok) throw new Error();
-      const data = await res.json() as { items: FeedItem[]; hasMore: boolean; nextOffset: number; sessions: FeedSession[] };
+      const data = await res.json() as { items: FeedItem[]; hasMore: boolean; nextOffset: number };
 
       if (replace) {
         setItems(data.items);
-        setSessions(data.sessions);
-        if (data.items.length > 0) {
-          newestCreatedAtRef.current = data.items[0].createdAt;
-        }
+        if (data.items.length > 0) newestCreatedAtRef.current = data.items[0].createdAt;
         setNewCount(0);
       } else {
         setItems((prev) => [...prev, ...data.items]);
@@ -109,10 +91,7 @@ export function FeedView({ showOnline = true }: FeedViewProps) {
     }
   }, []);
 
-  // Initial load
-  useEffect(() => {
-    loadFeed(0, true);
-  }, [loadFeed]);
+  useEffect(() => { loadFeed(0, true); }, [loadFeed]);
 
   // Poll every 60s for new items
   useEffect(() => {
@@ -125,36 +104,17 @@ export function FeedView({ showOnline = true }: FeedViewProps) {
           if (data.items.length > 0 && newestCreatedAtRef.current) {
             const newest = data.items[0].createdAt;
             if (newest > newestCreatedAtRef.current) {
-              // Count how many are newer
-              const count = data.items.filter(
-                (item) => item.createdAt > newestCreatedAtRef.current!,
-              ).length;
-              setNewCount(count);
+              setNewCount(data.items.filter((item) => item.createdAt > newestCreatedAtRef.current!).length);
             }
           }
-        } catch {
-          // silent
-        } finally {
-          scheduleNext();
-        }
+        } catch { /* silent */ }
+        finally { scheduleNext(); }
       }, 60_000);
     }
-
     scheduleNext();
-    return () => {
-      if (pollTimerRef.current) clearTimeout(pollTimerRef.current);
-    };
+    return () => { if (pollTimerRef.current) clearTimeout(pollTimerRef.current); };
   }, []);
 
-  function handleRefresh() {
-    loadFeed(0, true);
-  }
-
-  function handleLoadMore() {
-    loadFeed(nextOffset, false);
-  }
-
-  // Separate pinned admin posts from the rest for rendering
   const pinnedPosts = items.filter(
     (item): item is FeedItemAdminPost => item.type === 'admin_post' && (item as FeedItemAdminPost).isPinned,
   );
@@ -163,99 +123,75 @@ export function FeedView({ showOnline = true }: FeedViewProps) {
   );
 
   return (
-    <div className="flex flex-col xl:flex-row gap-6 w-full">
-      {/* Main column — 70% */}
-      <div className="flex-1 min-w-0">
-        {/* New items banner */}
-        {newCount > 0 && (
-          <div className="mb-4">
-            <NewItemsBanner count={newCount} onRefresh={handleRefresh} />
-          </div>
-        )}
+    <div className="w-full">
+      {newCount > 0 && (
+        <div className="mb-4">
+          <NewItemsBanner count={newCount} onRefresh={() => loadFeed(0, true)} />
+        </div>
+      )}
 
-        {/* Pinned admin posts always on top */}
-        {!loading && pinnedPosts.length > 0 && (
-          <div className="space-y-3 mb-5">
-            {pinnedPosts.map((item) => (
-              <FeedItemCard key={item.id} item={item} />
-            ))}
-          </div>
-        )}
+      {!loading && pinnedPosts.length > 0 && (
+        <div className="space-y-3 mb-5">
+          {pinnedPosts.map((item) => <FeedItemCard key={item.id} item={item} />)}
+        </div>
+      )}
 
-        {/* Feed stream */}
-        <div className="bg-surface-1 border border-border-subtle rounded-lg">
-          <div className="px-5 py-4 border-b border-border-subtle flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24" className="text-accent-cyan shrink-0">
-                <path d="M4.9 19.1C1 15.2 1 8.8 4.9 4.9" />
-                <path d="M7.8 16.2c-2.3-2.3-2.3-6.1 0-8.4" />
-                <circle cx="12" cy="12" r="2" />
-                <path d="M16.2 7.8c2.3 2.3 2.3 6.1 0 8.4" />
-                <path d="M19.1 4.9C23 8.8 23 15.2 19.1 19.1" />
-              </svg>
-              <h2 className="text-[0.88rem] font-heading font-semibold text-text-primary">Attività recente</h2>
-            </div>
+      <div className="bg-surface-1 border border-border-subtle rounded-lg">
+        <div className="px-5 py-4 border-b border-border-subtle flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24" className="text-accent-cyan shrink-0">
+              <path d="M4.9 19.1C1 15.2 1 8.8 4.9 4.9" />
+              <path d="M7.8 16.2c-2.3-2.3-2.3-6.1 0-8.4" />
+              <circle cx="12" cy="12" r="2" />
+              <path d="M16.2 7.8c2.3 2.3 2.3 6.1 0 8.4" />
+              <path d="M19.1 4.9C23 8.8 23 15.2 19.1 19.1" />
+            </svg>
+            <h2 className="text-[0.88rem] font-heading font-semibold text-text-primary">Attività recente</h2>
+          </div>
+
+          <div className="flex items-center gap-3">
+            {showOnline && <OnlineCounter />}
             <button
-              onClick={handleRefresh}
+              onClick={() => loadFeed(0, true)}
               disabled={loading}
               className="p-1.5 rounded text-text-muted hover:text-accent-cyan transition-colors disabled:opacity-30"
               title="Aggiorna feed"
             >
-              <svg
-                width="14"
-                height="14"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth={2}
-                viewBox="0 0 24 24"
-                className={loading ? 'animate-spin' : ''}
-              >
+              <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"
+                className={loading ? 'animate-spin' : ''}>
                 <path d="M1 4v6h6M23 20v-6h-6" />
                 <path d="M20.49 9A9 9 0 005.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 013.51 15" />
               </svg>
             </button>
           </div>
+        </div>
 
-          <div className="px-5">
-            {loading ? (
-              <FeedSkeleton />
-            ) : error ? (
-              <p className="py-10 text-center text-[0.82rem] text-text-muted">{error}</p>
-            ) : feedItems.length === 0 ? (
-              <p className="py-10 text-center text-[0.82rem] text-text-muted">
-                Nessuna attività recente nel feed.
-              </p>
-            ) : (
-              <div>
-                {feedItems.map((item) => (
-                  <FeedItemCard key={item.id} item={item} />
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* Load more */}
-          {!loading && hasMore && (
-            <div className="px-5 py-4 border-t border-border-subtle">
-              <button
-                onClick={handleLoadMore}
-                disabled={loadingMore}
-                className={cn(
-                  'w-full text-[0.8rem] font-medium text-text-secondary hover:text-accent-cyan transition-colors',
-                  'py-2 rounded-sm border border-border-subtle hover:border-accent-cyan/30',
-                  'disabled:opacity-40',
-                )}
-              >
-                {loadingMore ? 'Caricamento...' : 'Carica altri'}
-              </button>
-            </div>
+        <div className="px-5">
+          {loading ? (
+            <FeedSkeleton />
+          ) : error ? (
+            <p className="py-10 text-center text-[0.82rem] text-text-muted">{error}</p>
+          ) : feedItems.length === 0 ? (
+            <p className="py-10 text-center text-[0.82rem] text-text-muted">Nessuna attività recente nel feed.</p>
+          ) : (
+            <div>{feedItems.map((item) => <FeedItemCard key={item.id} item={item} />)}</div>
           )}
         </div>
-      </div>
 
-      {/* Sidebar — 30% */}
-      <div className="xl:w-[300px] shrink-0">
-        <FeedSidebar sessions={sessions} showOnline={showOnline} />
+        {!loading && hasMore && (
+          <div className="px-5 py-4 border-t border-border-subtle">
+            <button
+              onClick={() => loadFeed(nextOffset, false)}
+              disabled={loadingMore}
+              className={cn(
+                'w-full text-[0.8rem] font-medium text-text-secondary hover:text-accent-cyan transition-colors',
+                'py-2 rounded-sm border border-border-subtle hover:border-accent-cyan/30 disabled:opacity-40',
+              )}
+            >
+              {loadingMore ? 'Caricamento...' : 'Carica altri'}
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
