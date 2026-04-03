@@ -31,6 +31,7 @@ export async function PATCH(req: Request, { params }: RouteParams) {
     if (body.isFree !== undefined) updateData.is_free = body.isFree;
     if (body.status !== undefined) updateData.status = body.status;
     if (body.thumbnailUrl !== undefined) updateData.thumbnail_url = body.thumbnailUrl;
+    if (body.thumbnailExpandedUrl !== undefined) updateData.thumbnail_expanded_url = body.thumbnailExpandedUrl;
     if (body.stripePriceId !== undefined) updateData.stripe_price_id = body.stripePriceId;
     if (body.durationMin !== undefined) updateData.duration_min = body.durationMin;
     if (body.previewPlaybackId !== undefined) updateData.preview_playback_id = body.previewPlaybackId;

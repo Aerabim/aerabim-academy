@@ -21,6 +21,7 @@ export async function POST(request: Request) {
     const formData = await request.formData();
     const file = formData.get('file') as File | null;
     const courseId = formData.get('courseId') as string | null;
+    const variant = (formData.get('variant') as string | null) ?? 'cover';
 
     if (!file) {
       return NextResponse.json({ error: 'Nessun file selezionato.' } satisfies ApiError, { status: 400 });
@@ -42,7 +43,8 @@ export async function POST(request: Request) {
 
     const ext = file.type.split('/')[1] === 'jpeg' ? 'jpg' : file.type.split('/')[1];
     const folder = courseId ?? 'new';
-    const storagePath = `thumbnails/${folder}/${Date.now()}.${ext}`;
+    const prefix = variant === 'expanded' ? 'thumbnails-expanded' : 'thumbnails';
+    const storagePath = `${prefix}/${folder}/${Date.now()}.${ext}`;
     const buffer = Buffer.from(await file.arrayBuffer());
 
     const { error: uploadError } = await admin.storage

@@ -24,6 +24,7 @@ interface CourseRow {
   status: string;
   duration_min: number | null;
   thumbnail_url: string | null;
+  thumbnail_expanded_url: string | null;
   avg_rating: number;
   review_count: number;
   is_featured: boolean;
@@ -158,6 +159,7 @@ export async function getPublishedCourses(
       instructor: { name: 'AERABIM', role: 'Team Formazione', initials: 'AE' },
       emoji: area?.emoji ?? '📚',
       thumbnailUrl: c.thumbnail_url ?? null,
+      thumbnailExpandedUrl: c.thumbnail_expanded_url ?? null,
       previewPlaybackId: c.preview_playback_id ?? null,
     };
   });
@@ -227,6 +229,7 @@ export async function getCourseBySlug(
     instructor: { name: 'AERABIM', role: 'Team Formazione', initials: 'AE' },
     emoji: area?.emoji ?? '📚',
     thumbnailUrl: c.thumbnail_url ?? null,
+    thumbnailExpandedUrl: c.thumbnail_expanded_url ?? null,
     previewPlaybackId: c.preview_playback_id ?? null,
   };
 }

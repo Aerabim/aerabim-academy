@@ -55,6 +55,7 @@ export function CourseForm({ course, formId = 'course-form' }: CourseFormProps) 
   );
   const [isFree, setIsFree] = useState(course?.is_free ?? false);
   const [thumbnailUrl, setThumbnailUrl] = useState(course?.thumbnail_url ?? '');
+  const [thumbnailExpandedUrl, setThumbnailExpandedUrl] = useState(course?.thumbnail_expanded_url ?? '');
   const [slugManual, setSlugManual] = useState(isEditing);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -81,6 +82,7 @@ export function CourseForm({ course, formId = 'course-form' }: CourseFormProps) 
         priceSingle: isFree ? 0 : Math.round(parseFloat(priceSingle || '0') * 100),
         isFree,
         thumbnailUrl: thumbnailUrl || undefined,
+        thumbnailExpandedUrl: thumbnailExpandedUrl || undefined,
       };
 
       const url = isEditing
@@ -201,6 +203,17 @@ export function CourseForm({ course, formId = 'course-form' }: CourseFormProps) 
         courseId={course?.id}
         currentUrl={thumbnailUrl}
         onUploaded={setThumbnailUrl}
+        label="Copertina (portrait)"
+        hint="Card collapsed — soggetto centrato, formato verticale."
+      />
+
+      <ThumbnailUploader
+        courseId={course?.id}
+        currentUrl={thumbnailExpandedUrl}
+        onUploaded={setThumbnailExpandedUrl}
+        variant="expanded"
+        label="Copertina espansa (landscape)"
+        hint="Card expanded — soggetto centrato, formato orizzontale 16:9."
       />
 
       {course?.id && (

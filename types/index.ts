@@ -18,6 +18,7 @@ export type Database = {
           is_free: boolean;
           status: CourseStatus;
           thumbnail_url: string | null;
+          thumbnail_expanded_url: string | null;
           duration_min: number | null;
           stripe_price_id: string | null;
           avg_rating: number;
@@ -596,6 +597,7 @@ export interface CourseWithMeta {
   instructor: InstructorInfo;
   emoji: string;
   thumbnailUrl: string | null;
+  thumbnailExpandedUrl: string | null;
   previewPlaybackId: string | null;
 }
 

@@ -1,3 +1,4 @@
+import Image from 'next/image';
 import Link from 'next/link';
 import { Badge } from '@/components/ui/Badge';
 import { AREA_CONFIG, LEVEL_LABELS } from '@/lib/area-config';
@@ -13,19 +14,37 @@ export function CatalogHero({ course }: CatalogHeroProps) {
 
   return (
     <div className="relative min-h-[380px] lg:min-h-[420px] rounded-lg overflow-hidden bg-gradient-to-br from-surface-2 via-brand-blue/20 to-surface-1">
-      {/* Decorative geometry */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <svg className="absolute -top-20 -right-20 w-[400px] h-[400px] opacity-[0.04] text-accent-cyan" viewBox="0 0 400 400" fill="none">
-          <circle cx="200" cy="200" r="180" stroke="currentColor" strokeWidth="1" />
-          <circle cx="200" cy="200" r="120" stroke="currentColor" strokeWidth="0.5" />
-          <line x1="0" y1="200" x2="400" y2="200" stroke="currentColor" strokeWidth="0.5" />
-          <line x1="200" y1="0" x2="200" y2="400" stroke="currentColor" strokeWidth="0.5" />
-        </svg>
-        <span className="absolute top-12 right-16 text-[6rem] opacity-[0.06]">{course.emoji}</span>
-      </div>
+      {/* Immagine di sfondo (thumbnailExpandedUrl) */}
+      {course.thumbnailExpandedUrl && (
+        <Image
+          src={course.thumbnailExpandedUrl}
+          alt=""
+          fill
+          className="object-cover"
+          sizes="100vw"
+          priority
+          aria-hidden
+        />
+      )}
 
-      {/* Gradient overlay */}
-      <div className="absolute inset-0 bg-gradient-to-t from-surface-0/90 via-transparent to-transparent" />
+      {/* Decorative geometry — visibile solo senza immagine */}
+      {!course.thumbnailExpandedUrl && (
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <svg className="absolute -top-20 -right-20 w-[400px] h-[400px] opacity-[0.04] text-accent-cyan" viewBox="0 0 400 400" fill="none">
+            <circle cx="200" cy="200" r="180" stroke="currentColor" strokeWidth="1" />
+            <circle cx="200" cy="200" r="120" stroke="currentColor" strokeWidth="0.5" />
+            <line x1="0" y1="200" x2="400" y2="200" stroke="currentColor" strokeWidth="0.5" />
+            <line x1="200" y1="0" x2="200" y2="400" stroke="currentColor" strokeWidth="0.5" />
+          </svg>
+          <span className="absolute top-12 right-16 text-[6rem] opacity-[0.06]">{course.emoji}</span>
+        </div>
+      )}
+
+      {/* Gradient overlay — più intenso con immagine per garantire leggibilità */}
+      <div className={course.thumbnailExpandedUrl
+        ? 'absolute inset-0 bg-gradient-to-r from-surface-0/95 via-surface-0/70 to-surface-0/20'
+        : 'absolute inset-0 bg-gradient-to-t from-surface-0/90 via-transparent to-transparent'
+      } />
 
       {/* Content */}
       <div className="relative flex flex-col justify-end h-full min-h-[380px] lg:min-h-[420px] p-8 lg:p-11 max-w-[560px]">

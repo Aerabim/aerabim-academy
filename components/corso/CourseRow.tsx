@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef } from 'react';
+import { useRef, useState, useEffect } from 'react';
 import { CourseCard } from '@/components/corso/CourseCard';
 import type { CourseWithMeta } from '@/types';
 
@@ -13,10 +13,23 @@ interface CourseRowProps {
 
 export function CourseRow({ title, count, courses, favoriteIds }: CourseRowProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
+  const [canScroll, setCanScroll] = useState(false);
+
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+
+    const check = () => setCanScroll(el.scrollWidth > el.clientWidth);
+    check();
+
+    const ro = new ResizeObserver(check);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [courses]);
 
   function scroll(direction: 'left' | 'right') {
     if (!scrollRef.current) return;
-    const offset = direction === 'left' ? -196 : 196;
+    const offset = direction === 'left' ? -189 : 189;
     scrollRef.current.scrollBy({ left: offset, behavior: 'smooth' });
   }
 
@@ -35,15 +48,17 @@ export function CourseRow({ title, count, courses, favoriteIds }: CourseRowProps
       {/* Scroll container — pb/mb trick per permettere la fascia espansa verticalmente */}
       <div className="relative">
         {/* Left arrow — z-40 sopra le card in hover (z-30) */}
+        {canScroll && (
         <button
           onClick={() => scroll('left')}
-          className="absolute left-0 top-[135px] -translate-y-1/2 z-40 w-10 h-10 rounded-full bg-surface-2/90 backdrop-blur-sm border border-border-subtle text-text-secondary hover:text-text-primary hover:bg-surface-3 transition-all opacity-0 group-hover/row:opacity-100 flex items-center justify-center"
+          className="absolute left-0 top-[130px] -translate-y-1/2 z-40 w-10 h-10 rounded-full bg-surface-2/90 backdrop-blur-sm border border-border-subtle text-text-secondary hover:text-text-primary hover:bg-surface-3 transition-all opacity-0 group-hover/row:opacity-100 flex items-center justify-center"
           aria-label="Scorri a sinistra"
         >
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
             <path d="M10 3L5 8L10 13" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
         </button>
+        )}
 
         {/* Cards scroller */}
         <div
@@ -57,15 +72,17 @@ export function CourseRow({ title, count, courses, favoriteIds }: CourseRowProps
         </div>
 
         {/* Right arrow — z-40 */}
+        {canScroll && (
         <button
           onClick={() => scroll('right')}
-          className="absolute right-0 top-[135px] -translate-y-1/2 z-40 w-10 h-10 rounded-full bg-surface-2/90 backdrop-blur-sm border border-border-subtle text-text-secondary hover:text-text-primary hover:bg-surface-3 transition-all opacity-0 group-hover/row:opacity-100 flex items-center justify-center"
+          className="absolute right-0 top-[130px] -translate-y-1/2 z-40 w-10 h-10 rounded-full bg-surface-2/90 backdrop-blur-sm border border-border-subtle text-text-secondary hover:text-text-primary hover:bg-surface-3 transition-all opacity-0 group-hover/row:opacity-100 flex items-center justify-center"
           aria-label="Scorri a destra"
         >
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
             <path d="M6 3L11 8L6 13" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
         </button>
+        )}
       </div>
     </section>
   );

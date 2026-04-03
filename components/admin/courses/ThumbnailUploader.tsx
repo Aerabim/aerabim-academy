@@ -7,9 +7,12 @@ interface ThumbnailUploaderProps {
   courseId?: string;
   currentUrl: string;
   onUploaded: (url: string) => void;
+  variant?: 'cover' | 'expanded';
+  label?: string;
+  hint?: string;
 }
 
-export function ThumbnailUploader({ courseId, currentUrl, onUploaded }: ThumbnailUploaderProps) {
+export function ThumbnailUploader({ courseId, currentUrl, onUploaded, variant = 'cover', label, hint }: ThumbnailUploaderProps) {
   const fileRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -29,6 +32,7 @@ export function ThumbnailUploader({ courseId, currentUrl, onUploaded }: Thumbnai
       const formData = new FormData();
       formData.append('file', file);
       if (courseId) formData.append('courseId', courseId);
+      formData.append('variant', variant);
 
       const xhr = new XMLHttpRequest();
       xhr.open('POST', '/api/admin/courses/upload-thumbnail');
@@ -78,9 +82,12 @@ export function ThumbnailUploader({ courseId, currentUrl, onUploaded }: Thumbnai
 
   return (
     <div className="space-y-3">
-      <label className="block text-[0.78rem] font-medium text-text-secondary">
-        Immagine di copertina
-      </label>
+      <div>
+        <label className="block text-[0.78rem] font-medium text-text-secondary">
+          {label ?? 'Immagine di copertina'}
+        </label>
+        {hint && <p className="text-[0.7rem] text-text-muted mt-0.5">{hint}</p>}
+      </div>
 
       {error && (
         <div className="text-[0.72rem] text-accent-rose">{error}</div>
