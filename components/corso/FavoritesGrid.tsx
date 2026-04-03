@@ -71,81 +71,59 @@ function FavoriteCard({
   }
 
   return (
-    <Link
-      href={`/catalogo-corsi/${course.slug}`}
-      className="group rounded-md overflow-hidden transition-transform duration-300 hover:scale-[1.03] hover:z-10"
-    >
-      {/* Cover */}
-      <div
-        className={cn(
-          'relative h-[160px] bg-gradient-to-br flex items-center justify-center',
-          area.cardGradient,
-        )}
-      >
+    <div className="group relative rounded-md origin-top transition-all duration-300 hover:scale-[1.04] hover:z-10">
+      {/* Cover 16:9 */}
+      <div className="relative w-full aspect-video overflow-hidden rounded-md">
         {course.thumbnailUrl ? (
           <Image
             src={course.thumbnailUrl}
             alt={course.title}
             fill
-            className="object-cover"
+            className="object-cover transition-transform duration-500 group-hover:scale-105"
             sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
           />
         ) : (
-          <span className="text-5xl opacity-80">{course.emoji}</span>
+          <div className={cn('absolute inset-0 bg-gradient-to-br flex items-center justify-center', area.cardGradient)}>
+            <span className="text-5xl opacity-70">{course.emoji}</span>
+          </div>
         )}
 
-        {/* Remove button */}
+        {/* Gradient permanente */}
+        <div className="absolute inset-0 bg-gradient-to-t from-surface-0/85 via-surface-0/20 to-transparent pointer-events-none" />
+
+        {/* Remove button — top-left */}
         <button
           onClick={handleUnfavorite}
           title="Rimuovi dai preferiti"
-          className="absolute top-3 left-3 p-1.5 rounded-full bg-surface-0/70 backdrop-blur-sm hover:bg-surface-0/90 transition-all z-10"
+          className="absolute top-2.5 left-2.5 p-1.5 rounded-full bg-surface-0/70 backdrop-blur-sm hover:bg-surface-0/90 transition-all z-30"
         >
-          <svg
-            width="16"
-            height="16"
-            fill="currentColor"
-            stroke="currentColor"
-            strokeWidth={1.8}
-            viewBox="0 0 24 24"
-            className="text-accent-cyan"
-          >
+          <svg width="14" height="14" fill="currentColor" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24" className="text-accent-cyan">
             <path d="M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2z" />
           </svg>
         </button>
 
-        {/* Level badge */}
-        <span className="absolute top-3 right-3 font-heading text-[0.65rem] font-bold bg-surface-0/70 backdrop-blur-sm text-text-primary px-2 py-0.5 rounded">
+        {/* Level badge — top-right */}
+        <span className="absolute top-2.5 right-2.5 z-20 font-heading text-[0.62rem] font-bold bg-surface-0/70 backdrop-blur-sm text-text-primary px-2 py-0.5 rounded">
           {LEVEL_LABELS[course.level]}
         </span>
 
-        {/* Price */}
-        <span
-          className={cn(
-            'absolute bottom-3 right-3 font-heading text-[0.7rem] font-bold px-2 py-0.5 rounded',
-            course.isFree
-              ? 'bg-accent-emerald/20 text-accent-emerald'
-              : 'bg-surface-0/70 backdrop-blur-sm text-text-primary',
-          )}
-        >
-          {formatPrice(course.priceSingle)}
-        </span>
-      </div>
-
-      {/* Body */}
-      <div className="bg-surface-1 border border-t-0 border-border-subtle p-3.5 pb-4">
-        <Badge variant={area.badgeVariant} className="mb-2">
-          {area.label}
-        </Badge>
-        <h3 className="font-heading text-[0.84rem] font-semibold text-text-primary leading-snug line-clamp-2 min-h-[2.5rem]">
-          {course.title}
-        </h3>
-        <div className="flex items-center justify-between mt-3 text-[0.72rem] text-text-muted">
-          <span>{formatDuration(course.durationMin)}</span>
-          <span className="flex items-center gap-1">
-            <span className="text-accent-amber">&#9733;</span> {course.rating}
-          </span>
+        {/* Overlay testo — bottom */}
+        <div className="absolute bottom-0 left-0 right-0 z-20 px-3 pb-3 pt-6 pointer-events-none">
+          <Badge variant={area.badgeVariant} className="mb-1 text-[0.58rem]">{area.label}</Badge>
+          <h3 className="font-heading text-[0.8rem] font-bold text-text-primary leading-snug line-clamp-2">
+            {course.title}
+          </h3>
+          <div className="flex items-center justify-between mt-1 text-[0.68rem] text-text-muted">
+            <span>{formatDuration(course.durationMin)}</span>
+            <span className={cn('font-heading font-bold', course.isFree ? 'text-accent-emerald' : 'text-accent-cyan')}>
+              {formatPrice(course.priceSingle)}
+            </span>
+          </div>
         </div>
       </div>
-    </Link>
+
+      {/* Link — tutta la card cliccabile */}
+      <Link href={`/catalogo-corsi/${course.slug}`} className="absolute inset-0 z-10" aria-label={course.title} />
+    </div>
   );
 }

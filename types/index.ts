@@ -23,6 +23,8 @@ export type Database = {
           avg_rating: number;
           review_count: number;
           is_featured: boolean;
+          preview_playback_id: string | null;
+          preview_asset_id: string | null;
           created_at: string;
         };
         Insert: Omit<Database['public']['Tables']['courses']['Row'], 'id' | 'created_at' | 'avg_rating' | 'review_count'> & {
@@ -588,11 +590,13 @@ export interface CourseWithMeta {
   isFeatured: boolean;
   moduleCount: number;
   lessonCount: number;
+  modules?: { id: string; title: string; orderNum: number }[];
   updatedAt: string;
   languages: string[];
   instructor: InstructorInfo;
   emoji: string;
   thumbnailUrl: string | null;
+  previewPlaybackId: string | null;
 }
 
 export interface ModuleWithLessons {

@@ -6,6 +6,7 @@ import { FormField } from '@/components/admin/ui/FormField';
 import { FormSelect } from '@/components/admin/ui/FormSelect';
 import { FormTextarea } from '@/components/admin/ui/FormTextarea';
 import { ThumbnailUploader } from './ThumbnailUploader';
+import { PreviewVideoUploader } from './PreviewVideoUploader';
 import type { Course } from '@/types';
 
 interface CourseFormProps {
@@ -202,7 +203,19 @@ export function CourseForm({ course, formId = 'course-form' }: CourseFormProps) 
         onUploaded={setThumbnailUrl}
       />
 
-
+      {course?.id && (
+        <PreviewVideoUploader
+          courseId={course.id}
+          currentPlaybackId={course.preview_playback_id ?? null}
+          onUploaded={(pbId, assetId) => {
+            fetch(`/api/admin/courses/${course.id}`, {
+              method: 'PATCH',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ previewPlaybackId: pbId, previewAssetId: assetId }),
+            }).catch(() => undefined);
+          }}
+        />
+      )}
 
     </form>
   );

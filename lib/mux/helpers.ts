@@ -115,6 +115,35 @@ export async function createMuxUploadUrl(
   };
 }
 
+/**
+ * Creates a Mux Direct Upload URL for a course preview clip.
+ * Uses PUBLIC playback policy (no JWT needed) so the browser can play it directly.
+ * The courseId is stored in `passthrough` with type='preview' so the webhook
+ * can write preview_playback_id and preview_asset_id to the course row.
+ */
+export async function createMuxPreviewUploadUrl(
+  courseId: string,
+): Promise<MuxUploadResult> {
+  const mux = getMuxClient();
+  if (!mux) {
+    throw new Error('Mux non configurato: MUX_TOKEN_ID o MUX_TOKEN_SECRET mancante');
+  }
+
+  const upload = await mux.video.uploads.create({
+    new_asset_settings: {
+      playback_policies: ['public'],
+      video_quality: 'basic',
+      passthrough: JSON.stringify({ type: 'preview', courseId }),
+    },
+    cors_origin: process.env.NEXT_PUBLIC_APP_URL ?? '*',
+  });
+
+  return {
+    uploadUrl: upload.url,
+    uploadId: upload.id,
+  };
+}
+
 // ── Live Stream Helpers ─────────────────────────────
 
 export interface MuxLiveStreamResult {

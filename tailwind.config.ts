@@ -61,10 +61,25 @@ const config: Config = {
           '0%': { transform: 'scale(1)', opacity: '0.5' },
           '100%': { transform: 'scale(1.35)', opacity: '0' },
         },
+        slideInRight: {
+          from: { opacity: '0', transform: 'translateX(-8px)' },
+          to:   { opacity: '1', transform: 'translateX(0)' },
+        },
+        slideInLeft: {
+          from: { opacity: '0', transform: 'translateX(8px)' },
+          to:   { opacity: '1', transform: 'translateX(0)' },
+        },
+        cardExpand: {
+          from: { opacity: '0', transform: 'translateY(-4px)' },
+          to:   { opacity: '1', transform: 'translateY(0)' },
+        },
       },
       animation: {
-        fadeIn: 'fadeIn 0.45s cubic-bezier(0.4,0,0.2,1) forwards',
-        pulseRing: 'pulseRing 2s cubic-bezier(0.4,0,0.6,1) infinite',
+        fadeIn:      'fadeIn 0.45s cubic-bezier(0.4,0,0.2,1) forwards',
+        pulseRing:   'pulseRing 2s cubic-bezier(0.4,0,0.6,1) infinite',
+        slideInRight:'slideInRight 0.18s cubic-bezier(0.4,0,0.2,1) forwards',
+        slideInLeft: 'slideInLeft 0.18s cubic-bezier(0.4,0,0.2,1) forwards',
+        cardExpand:  'cardExpand 0.2s cubic-bezier(0.4,0,0.2,1) forwards',
       },
     },
   },

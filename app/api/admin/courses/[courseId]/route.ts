@@ -33,6 +33,8 @@ export async function PATCH(req: Request, { params }: RouteParams) {
     if (body.thumbnailUrl !== undefined) updateData.thumbnail_url = body.thumbnailUrl;
     if (body.stripePriceId !== undefined) updateData.stripe_price_id = body.stripePriceId;
     if (body.durationMin !== undefined) updateData.duration_min = body.durationMin;
+    if (body.previewPlaybackId !== undefined) updateData.preview_playback_id = body.previewPlaybackId;
+    if (body.previewAssetId !== undefined) updateData.preview_asset_id = body.previewAssetId;
 
     if (Object.keys(updateData).length === 0) {
       return NextResponse.json(
@@ -195,6 +197,21 @@ export async function DELETE(_req: Request, { params }: RouteParams) {
         body: 'Il corso a cui eri iscritto è stato rimosso dalla piattaforma. Per informazioni contatta l\'assistenza.',
         href: '/assistenza',
       });
+    }
+
+    // Delete preview Mux asset if present (best-effort)
+    const { data: courseData } = await admin
+      .from('courses')
+      .select('preview_asset_id')
+      .eq('id', courseId)
+      .maybeSingle();
+
+    const previewAssetId = (courseData as { preview_asset_id: string | null } | null)?.preview_asset_id;
+    if (previewAssetId) {
+      const mux = getMuxClient();
+      if (mux) {
+        await mux.video.assets.delete(previewAssetId).catch(() => undefined);
+      }
     }
 
     // Fetch module and lesson IDs for cascaded cleanup

@@ -132,7 +132,31 @@ async function handleAssetReady(
     return;
   }
 
-  // Case 2: Recording asset from a live stream (replay)
+  // Case 2: Preview clip for a course
+  if ('type' in parsed && parsed.type === 'preview' && 'courseId' in parsed && typeof parsed.courseId === 'string') {
+    if (!playbackId) {
+      console.error('[mux/webhook] Preview asset ready but no playback ID');
+      return;
+    }
+
+    const { error } = await admin
+      .from('courses')
+      .update({
+        preview_asset_id: assetId,
+        preview_playback_id: playbackId,
+      })
+      .eq('id', parsed.courseId);
+
+    if (error) {
+      console.error('[mux/webhook] Errore aggiornamento preview corso:', error);
+      throw error;
+    }
+
+    console.log(`[mux/webhook] Course ${parsed.courseId} preview ready — asset ${assetId}`);
+    return;
+  }
+
+  // Case 3: Recording asset from a live stream (replay)
   if ('sessionId' in parsed && typeof parsed.sessionId === 'string') {
     if (!playbackId) {
       console.error('[mux/webhook] Recording asset ready but no playback ID');

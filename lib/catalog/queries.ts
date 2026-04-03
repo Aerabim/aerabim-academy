@@ -27,6 +27,8 @@ interface CourseRow {
   avg_rating: number;
   review_count: number;
   is_featured: boolean;
+  preview_playback_id: string | null;
+  preview_asset_id: string | null;
   created_at: string;
 }
 
@@ -35,6 +37,12 @@ interface ModuleRow {
   course_id: string;
   title: string;
   order_num: number;
+}
+
+interface ModuleSummary {
+  id: string;
+  title: string;
+  orderNum: number;
 }
 
 interface LessonRow {
@@ -76,9 +84,9 @@ export async function getPublishedCourses(
   // Fetch module/lesson counts
   const { data: rawModules } = await supabase
     .from('modules')
-    .select('id, course_id')
+    .select('id, course_id, title, order_num')
     .in('course_id', courseIds);
-  const modules = (rawModules ?? []) as unknown as { id: string; course_id: string }[];
+  const modules = (rawModules ?? []) as unknown as { id: string; course_id: string; title: string; order_num: number }[];
 
   const moduleIds = modules.map((m) => m.id);
 
@@ -95,11 +103,15 @@ export async function getPublishedCourses(
 
   // Build lookup maps
   const moduleCountMap = new Map<string, number>();
+  const modulesForCourseMap = new Map<string, ModuleSummary[]>();
   const lessonCountMap = new Map<string, number>();
   const enrollCountMap = new Map<string, number>();
 
   for (const mod of modules) {
     moduleCountMap.set(mod.course_id, (moduleCountMap.get(mod.course_id) ?? 0) + 1);
+    const existing = modulesForCourseMap.get(mod.course_id) ?? [];
+    existing.push({ id: mod.id, title: mod.title, orderNum: mod.order_num });
+    modulesForCourseMap.set(mod.course_id, existing);
   }
 
   const moduleToCourse = new Map<string, string>();
@@ -134,6 +146,9 @@ export async function getPublishedCourses(
       enrolledCount: enrollCountMap.get(c.id) ?? 0,
       isFeatured: c.is_featured ?? false,
       moduleCount: moduleCountMap.get(c.id) ?? 0,
+      modules: (modulesForCourseMap.get(c.id) ?? [])
+        .sort((a, b) => a.orderNum - b.orderNum)
+        .slice(0, 5),
       lessonCount: lessonCountMap.get(c.id) ?? 0,
       updatedAt: new Date(c.created_at).toLocaleDateString('it-IT', {
         month: 'long',
@@ -143,6 +158,7 @@ export async function getPublishedCourses(
       instructor: { name: 'AERABIM', role: 'Team Formazione', initials: 'AE' },
       emoji: area?.emoji ?? '📚',
       thumbnailUrl: c.thumbnail_url ?? null,
+      previewPlaybackId: c.preview_playback_id ?? null,
     };
   });
 }
@@ -200,6 +216,7 @@ export async function getCourseBySlug(
     rating: c.avg_rating ?? 0,
     reviewCount: c.review_count ?? 0,
     enrolledCount: enrolledCount ?? 0,
+    isFeatured: c.is_featured ?? false,
     moduleCount: modules.length,
     lessonCount: rawLessons.length,
     updatedAt: new Date(c.created_at).toLocaleDateString('it-IT', {
@@ -210,6 +227,7 @@ export async function getCourseBySlug(
     instructor: { name: 'AERABIM', role: 'Team Formazione', initials: 'AE' },
     emoji: area?.emoji ?? '📚',
     thumbnailUrl: c.thumbnail_url ?? null,
+    previewPlaybackId: c.preview_playback_id ?? null,
   };
 }
 

@@ -49,7 +49,7 @@ export function CatalogBrowser({ courses }: CatalogBrowserProps) {
   const totalResults = grouped.reduce((sum, g) => sum + g.courses.length, 0);
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-14">
       <CategoryFilter active={active} onChange={setActive} />
 
       {search.trim() && (
