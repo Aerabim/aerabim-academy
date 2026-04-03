@@ -52,17 +52,24 @@ export function FeedPostsManager({ initial }: FeedPostsManagerProps) {
         return;
       }
 
-      const newPost: AdminFeedPost = {
-        id: data.id!,
-        title,
-        body,
-        href: href || null,
-        isPinned,
-        isPublished,
-        createdAt: new Date().toISOString(),
-      };
+      // Re-fetch the list to ensure the UI reflects the actual DB state
+      const listRes = await fetch('/api/admin/feed/posts');
+      if (listRes.ok) {
+        const listData = await listRes.json() as { posts: AdminFeedPost[] };
+        setPosts(listData.posts ?? []);
+      } else {
+        // Fallback: add optimistically
+        setPosts((prev) => [{
+          id: data.id!,
+          title,
+          body,
+          href: href || null,
+          isPinned,
+          isPublished,
+          createdAt: new Date().toISOString(),
+        }, ...prev]);
+      }
 
-      setPosts((prev) => [newPost, ...prev]);
       resetForm();
     } catch {
       setError('Errore di rete.');
