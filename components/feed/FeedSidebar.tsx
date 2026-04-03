@@ -188,29 +188,6 @@ export function FeedSidebar({ sessions, showOnline }: FeedSidebarProps) {
         </div>
       </div>
 
-      {/* Quick links */}
-      <div className="bg-surface-1 border border-border-subtle rounded-lg px-5 py-4">
-        <h3 className="text-[0.78rem] font-heading font-semibold text-text-muted uppercase tracking-wider mb-3">
-          Esplora
-        </h3>
-        <nav className="space-y-1">
-          {[
-            { href: '/catalogo-corsi', label: 'Catalogo corsi', icon: '📚' },
-            { href: '/community',      label: 'Community',      icon: '💬' },
-            { href: '/risorse',        label: 'Risorse',        icon: '📄' },
-            { href: '/certificati',    label: 'I miei certificati', icon: '🏅' },
-          ].map((link) => (
-            <Link
-              key={link.href}
-              href={link.href}
-              className="flex items-center gap-2.5 px-2 py-1.5 rounded-sm text-[0.8rem] text-text-secondary hover:text-text-primary hover:bg-surface-2/50 transition-colors"
-            >
-              <span>{link.icon}</span>
-              <span>{link.label}</span>
-            </Link>
-          ))}
-        </nav>
-      </div>
     </aside>
   );
 }
