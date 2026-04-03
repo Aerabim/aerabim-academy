@@ -1,17 +1,13 @@
 import { FeedView } from '@/components/feed/FeedView';
 import { BimAlertBanner } from '@/components/dashboard/BimAlertBanner';
+import { FeedLiveHeader } from '@/components/feed/FeedLiveHeader';
 
 export const dynamic = 'force-dynamic';
 
 export default function FeedPage() {
   return (
-    <div className="p-6 lg:p-10 w-full space-y-8">
-      <div>
-        <h1 className="text-[1.3rem] font-heading font-bold text-text-primary">Feed</h1>
-        <p className="text-[0.82rem] text-text-secondary mt-1">
-          Le ultime novità dalla piattaforma: progressi, iscrizioni, certificati e discussioni.
-        </p>
-      </div>
+    <div className="px-6 lg:px-10 pt-3 pb-6 lg:pb-10 w-full space-y-8">
+      <FeedLiveHeader />
       <BimAlertBanner />
       <FeedView />
     </div>

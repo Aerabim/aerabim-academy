@@ -1,10 +1,10 @@
 import { redirect } from 'next/navigation';
-import Link from 'next/link';
 import { createServerClient } from '@/lib/supabase/server';
 import { hasActiveCommunityAccess, getCategories, getDiscussions } from '@/lib/community/queries';
 import { CategoryGrid } from '@/components/community/CategoryGrid';
 import { DiscussionFeed } from '@/components/community/DiscussionFeed';
 import { CommunityGate } from '@/components/community/CommunityGate';
+import { CommunityLiveHeader } from '@/components/community/CommunityLiveHeader';
 
 export default async function CommunityPage() {
   const supabase = createServerClient();
@@ -18,15 +18,8 @@ export default async function CommunityPage() {
 
   if (!isPro) {
     return (
-      <div className="w-full px-6 lg:px-9 py-7">
-        <div className="mb-6">
-          <h1 className="font-heading text-2xl font-bold text-text-primary">
-            La <span className="gradient-text-cyan">Community</span>
-          </h1>
-          <p className="mt-1.5 text-text-secondary text-[0.84rem]">
-            Connettiti con altri professionisti AEC.
-          </p>
-        </div>
+      <div className="w-full px-6 lg:px-9 pt-3 pb-7 space-y-6">
+        <CommunityLiveHeader />
         <CommunityGate />
       </div>
     );
@@ -38,30 +31,11 @@ export default async function CommunityPage() {
   ]);
 
   return (
-    <div className="w-full px-6 lg:px-9 py-7">
-      {/* Header */}
-      <div className="mb-6 flex items-start justify-between">
-        <div>
-          <h1 className="font-heading text-2xl font-bold text-text-primary">
-            La <span className="gradient-text-cyan">Community</span>
-          </h1>
-          <p className="mt-1.5 text-text-secondary text-[0.84rem]">
-            Confrontati con altri professionisti BIM/AEC, condividi esperienze e impara insieme.
-          </p>
-        </div>
-        <Link
-          href="/community/nuova-discussione"
-          className="shrink-0 flex items-center gap-2 bg-surface-2 border border-border-subtle hover:border-accent-cyan text-text-secondary hover:text-accent-cyan px-4 py-2.5 rounded-sm text-[0.78rem] font-semibold transition-all"
-        >
-          <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-            <path d="M12 5v14M5 12h14" />
-          </svg>
-          Nuova discussione
-        </Link>
-      </div>
+    <div className="w-full px-6 lg:px-9 pt-3 pb-7 space-y-6">
+      <CommunityLiveHeader showNewButton />
 
       {/* Category grid */}
-      <section className="mb-8">
+      <section>
         <h2 className="font-heading text-[0.92rem] font-bold text-text-primary mb-3">
           Categorie
         </h2>

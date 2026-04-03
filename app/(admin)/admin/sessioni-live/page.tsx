@@ -54,7 +54,7 @@ export default async function AdminLiveSessionsPage() {
     <div className="p-6 lg:p-10 w-full">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-[1.3rem] font-heading font-bold text-text-primary">Sessioni Live</h1>
+          <h1 className="text-[1.3rem] font-heading font-bold text-text-primary">Aule Virtuali</h1>
           <p className="text-[0.82rem] text-text-secondary mt-1">Gestisci webinar e sessioni di mentoring.</p>
         </div>
         <Link
