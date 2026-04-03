@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { FormField } from '@/components/admin/ui/FormField';
 import { FormTextarea } from '@/components/admin/ui/FormTextarea';
 import { timeAgo } from '@/lib/utils';
@@ -11,7 +12,13 @@ interface FeedPostsManagerProps {
 }
 
 export function FeedPostsManager({ initial }: FeedPostsManagerProps) {
+  const router = useRouter();
   const [posts, setPosts] = useState<AdminFeedPost[]>(initial);
+
+  // Sync local state whenever the server re-renders with fresh data (after router.refresh())
+  useEffect(() => {
+    setPosts(initial);
+  }, [initial]);
   const [showForm, setShowForm] = useState(false);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState<string | null>(null);
@@ -52,25 +59,20 @@ export function FeedPostsManager({ initial }: FeedPostsManagerProps) {
         return;
       }
 
-      // Re-fetch the list to ensure the UI reflects the actual DB state
-      const listRes = await fetch('/api/admin/feed/posts');
-      if (listRes.ok) {
-        const listData = await listRes.json() as { posts: AdminFeedPost[] };
-        setPosts(listData.posts ?? []);
-      } else {
-        // Fallback: add optimistically
-        setPosts((prev) => [{
-          id: data.id!,
-          title,
-          body,
-          href: href || null,
-          isPinned,
-          isPublished,
-          createdAt: new Date().toISOString(),
-        }, ...prev]);
-      }
+      // Optimistic update for immediate feedback
+      setPosts((prev) => [{
+        id: data.id!,
+        title,
+        body,
+        href: href || null,
+        isPinned,
+        isPublished,
+        createdAt: new Date().toISOString(),
+      }, ...prev]);
 
       resetForm();
+      // Refresh server component so initial prop updates and useEffect syncs
+      router.refresh();
     } catch {
       setError('Errore di rete.');
     } finally {
@@ -114,6 +116,7 @@ export function FeedPostsManager({ initial }: FeedPostsManagerProps) {
       const res = await fetch(`/api/admin/feed/posts/${postId}`, { method: 'DELETE' });
       if (res.ok) {
         setPosts((prev) => prev.filter((p) => p.id !== postId));
+        router.refresh();
       }
     } finally {
       setDeleting(null);
