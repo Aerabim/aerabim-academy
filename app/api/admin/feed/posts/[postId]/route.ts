@@ -21,6 +21,7 @@ export async function PATCH(req: Request, { params }: RouteParams) {
       isPublished?: boolean;
       mediaType?: 'image' | 'video' | null;
       mediaUrl?: string | null;
+      publishAt?: string | null;
     };
 
     const updateData: Record<string, unknown> = { updated_at: new Date().toISOString() };
@@ -31,6 +32,7 @@ export async function PATCH(req: Request, { params }: RouteParams) {
     if (body.isPublished !== undefined) updateData.is_published = body.isPublished;
     if (body.mediaType !== undefined) updateData.media_type = body.mediaType;
     if (body.mediaUrl !== undefined) updateData.media_url = body.mediaUrl;
+    if (body.publishAt !== undefined) updateData.publish_at = body.publishAt;
 
     const { error } = await admin
       .from('feed_posts')

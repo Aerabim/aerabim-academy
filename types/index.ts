@@ -1487,6 +1487,7 @@ export interface AdminFeedPost {
   createdAt: string;
   mediaType: 'image' | 'video' | null;
   mediaUrl: string | null;
+  publishAt: string | null;
 }
 
 /** Recent feed event for admin moderation view */
