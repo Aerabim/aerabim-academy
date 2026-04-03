@@ -1,10 +1,10 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import Link from 'next/link';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { cn } from '@/lib/utils';
-import { timeAgo } from '@/lib/utils';
-import { Badge } from '@/components/ui/Badge';
+import { FeedItemCard } from './FeedItemCard';
+import { FeedSidebar } from './FeedSidebar';
+import type { FeedItem, FeedItemAdminPost } from '@/types';
 
 interface FeedSession {
   id: string;
@@ -19,217 +19,244 @@ interface FeedSession {
   isBooked: boolean;
 }
 
-interface FeedDiscussion {
-  id: string;
-  title: string;
-  categoryName: string;
-  categoryEmoji: string | null;
-  replyCount: number;
-  authorName: string;
-  createdAt: string;
+interface FeedViewProps {
+  showOnline?: boolean;
 }
 
-interface FeedArticle {
-  id: string;
-  slug: string;
-  title: string;
-  excerpt: string | null;
-  area: string | null;
-  authorName: string;
-  publishedAt: string;
-  readMin: number;
+/* ── Skeleton loader ── */
+function FeedSkeleton() {
+  return (
+    <div className="space-y-4 animate-pulse">
+      {[1, 2, 3, 4].map((i) => (
+        <div key={i} className="flex items-start gap-3 py-3.5 border-b border-border-subtle">
+          <div className="w-9 h-9 rounded-full bg-surface-3 shrink-0" />
+          <div className="flex-1 space-y-2">
+            <div className="flex items-center gap-2">
+              <div className="h-3 w-24 bg-surface-3 rounded" />
+              <div className="h-3 w-14 bg-surface-3 rounded" />
+            </div>
+            <div className="h-3 w-full bg-surface-3 rounded" />
+            <div className="h-3 w-2/3 bg-surface-3 rounded" />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
 }
 
-interface FeedData {
-  sessions: FeedSession[];
-  discussions: FeedDiscussion[];
-  articles: FeedArticle[];
+/* ── "N nuovi aggiornamenti" banner ── */
+function NewItemsBanner({ count, onRefresh }: { count: number; onRefresh: () => void }) {
+  return (
+    <button
+      onClick={onRefresh}
+      className={cn(
+        'w-full flex items-center justify-center gap-2 py-2.5 rounded-lg',
+        'bg-accent-cyan/10 border border-accent-cyan/25 hover:bg-accent-cyan/15 transition-colors',
+        'text-[0.8rem] font-semibold text-accent-cyan',
+      )}
+    >
+      <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
+        <path d="M1 4v6h6M23 20v-6h-6" />
+        <path d="M20.49 9A9 9 0 005.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 013.51 15" />
+      </svg>
+      {count} {count === 1 ? 'nuovo aggiornamento' : 'nuovi aggiornamenti'} — Clicca per aggiornare
+    </button>
+  );
 }
 
-function formatSessionDate(iso: string): string {
-  const d = new Date(iso);
-  return d.toLocaleDateString('it-IT', { weekday: 'short', day: 'numeric', month: 'short' })
-    + ' · ' + d.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
-}
-
-export function FeedView() {
-  const [data, setData] = useState<FeedData | null>(null);
+/* ── Main component ── */
+export function FeedView({ showOnline = true }: FeedViewProps) {
+  const [items, setItems] = useState<FeedItem[]>([]);
+  const [sessions, setSessions] = useState<FeedSession[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(false);
+  const [nextOffset, setNextOffset] = useState(0);
+  const [error, setError] = useState('');
+  const [newCount, setNewCount] = useState(0);
 
-  useEffect(() => {
-    async function load() {
-      try {
-        const res = await fetch('/api/feed');
-        if (res.ok) {
-          setData(await res.json());
+  // Track the most recent item's createdAt for polling comparison
+  const newestCreatedAtRef = useRef<string | null>(null);
+  const pollTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const loadFeed = useCallback(async (offset = 0, replace = true) => {
+    if (offset === 0) setLoading(true);
+    else setLoadingMore(true);
+
+    try {
+      const res = await fetch(`/api/feed?offset=${offset}`);
+      if (!res.ok) throw new Error();
+      const data = await res.json() as { items: FeedItem[]; hasMore: boolean; nextOffset: number; sessions: FeedSession[] };
+
+      if (replace) {
+        setItems(data.items);
+        setSessions(data.sessions);
+        if (data.items.length > 0) {
+          newestCreatedAtRef.current = data.items[0].createdAt;
         }
-      } catch (err) {
-        console.error('Feed fetch error:', err);
-      } finally {
-        setLoading(false);
+        setNewCount(0);
+      } else {
+        setItems((prev) => [...prev, ...data.items]);
       }
+
+      setHasMore(data.hasMore);
+      setNextOffset(data.nextOffset);
+    } catch {
+      setError('Impossibile caricare il feed.');
+    } finally {
+      setLoading(false);
+      setLoadingMore(false);
     }
-    load();
   }, []);
 
-  if (loading) {
-    return (
-      <div className="text-center py-16 text-[0.82rem] text-text-muted">Caricamento...</div>
-    );
+  // Initial load
+  useEffect(() => {
+    loadFeed(0, true);
+  }, [loadFeed]);
+
+  // Poll every 60s for new items
+  useEffect(() => {
+    function scheduleNext() {
+      pollTimerRef.current = setTimeout(async () => {
+        try {
+          const res = await fetch('/api/feed?offset=0');
+          if (!res.ok) return;
+          const data = await res.json() as { items: FeedItem[] };
+          if (data.items.length > 0 && newestCreatedAtRef.current) {
+            const newest = data.items[0].createdAt;
+            if (newest > newestCreatedAtRef.current) {
+              // Count how many are newer
+              const count = data.items.filter(
+                (item) => item.createdAt > newestCreatedAtRef.current!,
+              ).length;
+              setNewCount(count);
+            }
+          }
+        } catch {
+          // silent
+        } finally {
+          scheduleNext();
+        }
+      }, 60_000);
+    }
+
+    scheduleNext();
+    return () => {
+      if (pollTimerRef.current) clearTimeout(pollTimerRef.current);
+    };
+  }, []);
+
+  function handleRefresh() {
+    loadFeed(0, true);
   }
 
-  if (!data) {
-    return (
-      <div className="text-center py-16 text-[0.82rem] text-text-muted">Impossibile caricare il feed.</div>
-    );
+  function handleLoadMore() {
+    loadFeed(nextOffset, false);
   }
+
+  // Separate pinned admin posts from the rest for rendering
+  const pinnedPosts = items.filter(
+    (item): item is FeedItemAdminPost => item.type === 'admin_post' && (item as FeedItemAdminPost).isPinned,
+  );
+  const feedItems = items.filter(
+    (item) => !(item.type === 'admin_post' && (item as FeedItemAdminPost).isPinned),
+  );
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-      {/* Sessioni Live imminenti */}
-      <section className="bg-surface-1 border border-border-subtle rounded-lg overflow-hidden">
-        <div className="px-5 py-4 border-b border-border-subtle flex items-center gap-2">
-          <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24" className="text-accent-amber shrink-0">
-            <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
-            <line x1="16" y1="2" x2="16" y2="6" />
-            <line x1="8" y1="2" x2="8" y2="6" />
-            <line x1="3" y1="10" x2="21" y2="10" />
-          </svg>
-          <h2 className="text-[0.88rem] font-heading font-semibold text-text-primary">Prossime sessioni</h2>
-        </div>
-        <div className="divide-y divide-border-subtle">
-          {data.sessions.length === 0 ? (
-            <div className="px-5 py-8 text-center text-[0.82rem] text-text-muted">
-              Nessuna sessione in programma.
-            </div>
-          ) : (
-            data.sessions.map((s) => (
-              <Link
-                key={s.id}
-                href="/sessioni-live"
-                className="block px-5 py-3.5 hover:bg-surface-2/30 transition-colors"
-              >
-                <div className="flex items-start gap-2">
-                  <div className="flex-1 min-w-0">
-                    <div className="text-[0.82rem] font-medium text-text-primary truncate">{s.title}</div>
-                    <div className="text-[0.72rem] text-text-muted mt-0.5">{s.hostName}</div>
-                  </div>
-                  <Badge variant={s.type === 'webinar' ? 'cyan' : 'amber'}>
-                    {s.type === 'webinar' ? 'Webinar' : 'Mentoring'}
-                  </Badge>
-                </div>
-                <div className="flex items-center gap-3 mt-2">
-                  <span className="text-[0.72rem] text-accent-cyan font-medium">
-                    {formatSessionDate(s.scheduledAt)}
-                  </span>
-                  <span className="text-[0.68rem] text-text-muted">
-                    {s.durationMin} min
-                  </span>
-                  {s.isBooked && (
-                    <span className="text-[0.68rem] text-accent-emerald font-medium">Prenotato</span>
-                  )}
-                </div>
-              </Link>
-            ))
-          )}
-        </div>
-        <div className="px-5 py-3 border-t border-border-subtle">
-          <Link href="/sessioni-live" className="text-[0.78rem] text-accent-cyan hover:underline font-medium">
-            Vedi tutte le sessioni
-          </Link>
-        </div>
-      </section>
+    <div className="flex flex-col xl:flex-row gap-6 w-full">
+      {/* Main column — 70% */}
+      <div className="flex-1 min-w-0">
+        {/* New items banner */}
+        {newCount > 0 && (
+          <div className="mb-4">
+            <NewItemsBanner count={newCount} onRefresh={handleRefresh} />
+          </div>
+        )}
 
-      {/* Discussioni recenti */}
-      <section className="bg-surface-1 border border-border-subtle rounded-lg overflow-hidden">
-        <div className="px-5 py-4 border-b border-border-subtle flex items-center gap-2">
-          <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24" className="text-accent-cyan shrink-0">
-            <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" />
-          </svg>
-          <h2 className="text-[0.88rem] font-heading font-semibold text-text-primary">Discussioni recenti</h2>
-        </div>
-        <div className="divide-y divide-border-subtle">
-          {data.discussions.length === 0 ? (
-            <div className="px-5 py-8 text-center text-[0.82rem] text-text-muted">
-              Nessuna discussione recente.
-            </div>
-          ) : (
-            data.discussions.map((d) => (
-              <Link
-                key={d.id}
-                href={`/community/${d.id}`}
-                className="block px-5 py-3.5 hover:bg-surface-2/30 transition-colors"
-              >
-                <div className="text-[0.82rem] font-medium text-text-primary line-clamp-2">{d.title}</div>
-                <div className="flex items-center gap-2 mt-1.5">
-                  <span className="text-[0.68rem] text-text-muted">
-                    {d.categoryEmoji ? `${d.categoryEmoji} ` : ''}{d.categoryName}
-                  </span>
-                  <span className="text-[0.68rem] text-text-muted">·</span>
-                  <span className="text-[0.68rem] text-text-muted">{d.authorName}</span>
-                </div>
-                <div className="flex items-center gap-3 mt-1">
-                  <span className="text-[0.68rem] text-text-muted">{timeAgo(d.createdAt)}</span>
-                  {d.replyCount > 0 && (
-                    <span className="text-[0.68rem] text-accent-cyan font-medium">
-                      {d.replyCount} {d.replyCount === 1 ? 'risposta' : 'risposte'}
-                    </span>
-                  )}
-                </div>
-              </Link>
-            ))
-          )}
-        </div>
-        <div className="px-5 py-3 border-t border-border-subtle">
-          <Link href="/community" className="text-[0.78rem] text-accent-cyan hover:underline font-medium">
-            Vai alla community
-          </Link>
-        </div>
-      </section>
+        {/* Pinned admin posts always on top */}
+        {!loading && pinnedPosts.length > 0 && (
+          <div className="space-y-3 mb-5">
+            {pinnedPosts.map((item) => (
+              <FeedItemCard key={item.id} item={item} />
+            ))}
+          </div>
+        )}
 
-      {/* Ultime risorse */}
-      <section className="bg-surface-1 border border-border-subtle rounded-lg overflow-hidden">
-        <div className="px-5 py-4 border-b border-border-subtle flex items-center gap-2">
-          <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24" className="text-accent-emerald shrink-0">
-            <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" />
-            <path d="M14 2v6h6" />
-            <path d="M16 13H8M16 17H8M10 9H8" />
-          </svg>
-          <h2 className="text-[0.88rem] font-heading font-semibold text-text-primary">Ultime risorse</h2>
-        </div>
-        <div className="divide-y divide-border-subtle">
-          {data.articles.length === 0 ? (
-            <div className="px-5 py-8 text-center text-[0.82rem] text-text-muted">
-              Nessun articolo pubblicato.
+        {/* Feed stream */}
+        <div className="bg-surface-1 border border-border-subtle rounded-lg">
+          <div className="px-5 py-4 border-b border-border-subtle flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24" className="text-accent-cyan shrink-0">
+                <path d="M4.9 19.1C1 15.2 1 8.8 4.9 4.9" />
+                <path d="M7.8 16.2c-2.3-2.3-2.3-6.1 0-8.4" />
+                <circle cx="12" cy="12" r="2" />
+                <path d="M16.2 7.8c2.3 2.3 2.3 6.1 0 8.4" />
+                <path d="M19.1 4.9C23 8.8 23 15.2 19.1 19.1" />
+              </svg>
+              <h2 className="text-[0.88rem] font-heading font-semibold text-text-primary">Attività recente</h2>
             </div>
-          ) : (
-            data.articles.map((a) => (
-              <Link
-                key={a.id}
-                href={`/risorse/${a.slug}`}
-                className="block px-5 py-3.5 hover:bg-surface-2/30 transition-colors"
+            <button
+              onClick={handleRefresh}
+              disabled={loading}
+              className="p-1.5 rounded text-text-muted hover:text-accent-cyan transition-colors disabled:opacity-30"
+              title="Aggiorna feed"
+            >
+              <svg
+                width="14"
+                height="14"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth={2}
+                viewBox="0 0 24 24"
+                className={loading ? 'animate-spin' : ''}
               >
-                <div className="text-[0.82rem] font-medium text-text-primary line-clamp-2">{a.title}</div>
-                {a.excerpt && (
-                  <div className="text-[0.72rem] text-text-muted mt-1 line-clamp-2">{a.excerpt}</div>
+                <path d="M1 4v6h6M23 20v-6h-6" />
+                <path d="M20.49 9A9 9 0 005.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 013.51 15" />
+              </svg>
+            </button>
+          </div>
+
+          <div className="px-5">
+            {loading ? (
+              <FeedSkeleton />
+            ) : error ? (
+              <p className="py-10 text-center text-[0.82rem] text-text-muted">{error}</p>
+            ) : feedItems.length === 0 ? (
+              <p className="py-10 text-center text-[0.82rem] text-text-muted">
+                Nessuna attività recente nel feed.
+              </p>
+            ) : (
+              <div>
+                {feedItems.map((item) => (
+                  <FeedItemCard key={item.id} item={item} />
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Load more */}
+          {!loading && hasMore && (
+            <div className="px-5 py-4 border-t border-border-subtle">
+              <button
+                onClick={handleLoadMore}
+                disabled={loadingMore}
+                className={cn(
+                  'w-full text-[0.8rem] font-medium text-text-secondary hover:text-accent-cyan transition-colors',
+                  'py-2 rounded-sm border border-border-subtle hover:border-accent-cyan/30',
+                  'disabled:opacity-40',
                 )}
-                <div className="flex items-center gap-2 mt-1.5">
-                  <span className="text-[0.68rem] text-text-muted">{a.authorName}</span>
-                  <span className="text-[0.68rem] text-text-muted">·</span>
-                  <span className="text-[0.68rem] text-text-muted">{a.readMin} min lettura</span>
-                  <span className="text-[0.68rem] text-text-muted">·</span>
-                  <span className="text-[0.68rem] text-text-muted">{timeAgo(a.publishedAt)}</span>
-                </div>
-              </Link>
-            ))
+              >
+                {loadingMore ? 'Caricamento...' : 'Carica altri'}
+              </button>
+            </div>
           )}
         </div>
-        <div className="px-5 py-3 border-t border-border-subtle">
-          <Link href="/risorse" className="text-[0.78rem] text-accent-cyan hover:underline font-medium">
-            Vedi tutte le risorse
-          </Link>
-        </div>
-      </section>
+      </div>
+
+      {/* Sidebar — 30% */}
+      <div className="xl:w-[300px] shrink-0">
+        <FeedSidebar sessions={sessions} showOnline={showOnline} />
+      </div>
     </div>
   );
 }
