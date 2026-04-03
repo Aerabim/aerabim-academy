@@ -5,7 +5,10 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { createBrowserClient } from '@/lib/supabase/client';
+import { AuroraBorder } from '@/components/layout/AuroraBorder';
 import type { DashboardUser } from '@/types';
+
+const AURORA_ENABLED = true;
 
 /* ── Navigation config ── */
 
@@ -178,6 +181,13 @@ function buildSections(courseCount: number): SidebarNavSection[] {
   ];
 }
 
+const SECTION_COLORS: Record<string, string> = {
+  'Il Mio Spazio':   'text-accent-emerald',
+  'Live':            'text-accent-rose',
+  'Formazione':      'text-accent-amber',
+  'Certificazioni':  'text-accent-violet',
+};
+
 const PLAN_LABELS: Record<string, string> = {
   free: 'Free',
   pro: 'Pro',
@@ -220,7 +230,8 @@ export function Sidebar({ user, courseCount, open, collapsed, onClose, onCollaps
 
       <aside
         className={cn(
-          'fixed top-0 left-0 z-40 h-screen bg-surface-1 border-r border-border-subtle',
+          'fixed top-0 left-0 z-40 h-screen bg-surface-1',
+          !AURORA_ENABLED && 'border-r border-border-subtle',
           'flex flex-col transition-all duration-200 shrink-0',
           'lg:translate-x-0 lg:sticky lg:z-30',
           collapsed ? 'lg:w-[68px]' : 'lg:w-[200px]',
@@ -228,6 +239,9 @@ export function Sidebar({ user, courseCount, open, collapsed, onClose, onCollaps
           open ? 'translate-x-0' : '-translate-x-full',
         )}
       >
+        {/* Aurora border */}
+        {AURORA_ENABLED && <AuroraBorder />}
+
         {/* Brand + collapse toggle */}
         <div className={cn(
           'border-b border-border-subtle transition-all duration-200 flex items-center h-[62px]',
@@ -272,7 +286,10 @@ export function Sidebar({ user, courseCount, open, collapsed, onClose, onCollaps
           {sections.map((section) => (
             <div key={section.title}>
               {!collapsed && (
-                <div className="font-heading text-[0.62rem] uppercase tracking-[0.16em] text-text-muted px-3 pt-[18px] pb-2 font-bold">
+                <div className={cn(
+                  'font-heading text-[0.62rem] uppercase tracking-[0.16em] px-3 pt-[18px] pb-2 font-bold',
+                  SECTION_COLORS[section.title] ?? 'text-text-muted',
+                )}>
                   {section.title}
                 </div>
               )}
@@ -286,7 +303,7 @@ export function Sidebar({ user, courseCount, open, collapsed, onClose, onCollaps
                     onClick={onClose}
                     title={collapsed ? item.label : undefined}
                     className={cn(
-                      'relative flex items-center rounded-sm text-[0.82rem] font-medium transition-all select-none',
+                      'group/item relative flex items-center rounded-sm text-[0.82rem] font-medium transition-all select-none',
                       collapsed
                         ? 'justify-center px-0 py-2.5'
                         : 'gap-[11px] px-3.5 py-2.5',
@@ -298,7 +315,7 @@ export function Sidebar({ user, courseCount, open, collapsed, onClose, onCollaps
                     {isActive && (
                       <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-[18px] bg-accent-cyan rounded-r" />
                     )}
-                    <span className="w-5 h-5 flex items-center justify-center shrink-0">
+                    <span className="w-5 h-5 flex items-center justify-center shrink-0 transition-transform duration-200 group-hover/item:scale-110 group-hover/item:-rotate-6">
                       {item.icon}
                     </span>
                     {!collapsed && <span>{item.label}</span>}

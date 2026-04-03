@@ -171,15 +171,62 @@ export type Database = {
           id: string;
           role: 'student' | 'admin' | 'docente' | 'tutor' | 'moderatore';
           display_name: string | null;
+          feed_privacy: FeedPrivacy;
           created_at: string;
         };
         Insert: {
           id: string;
           role?: 'student' | 'admin' | 'docente' | 'tutor' | 'moderatore';
           display_name?: string | null;
+          feed_privacy?: FeedPrivacy;
           created_at?: string;
         };
         Update: Partial<Database['public']['Tables']['profiles']['Insert']>;
+      };
+      feed_posts: {
+        Row: {
+          id: string;
+          author_id: string;
+          title: string;
+          body: string;
+          href: string | null;
+          is_pinned: boolean;
+          is_published: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: Omit<Database['public']['Tables']['feed_posts']['Row'], 'id' | 'created_at' | 'updated_at'> & {
+          id?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database['public']['Tables']['feed_posts']['Insert']>;
+      };
+      feed_config: {
+        Row: {
+          id: number;
+          progress_enabled: boolean;
+          certificates_enabled: boolean;
+          enrollments_enabled: boolean;
+          discussions_enabled: boolean;
+          updated_at: string;
+        };
+        Insert: Partial<Database['public']['Tables']['feed_config']['Row']>;
+        Update: Partial<Database['public']['Tables']['feed_config']['Row']>;
+      };
+      feed_hidden_items: {
+        Row: {
+          id: string;
+          item_type: string;
+          item_id: string;
+          hidden_by: string;
+          hidden_at: string;
+        };
+        Insert: Omit<Database['public']['Tables']['feed_hidden_items']['Row'], 'id' | 'hidden_at'> & {
+          id?: string;
+          hidden_at?: string;
+        };
+        Update: Partial<Database['public']['Tables']['feed_hidden_items']['Insert']>;
       };
       live_sessions: {
         Row: {
@@ -1345,4 +1392,105 @@ export interface CreateUserPayload {
 /** Payload for updating a user's plan from admin */
 export interface UpdatePlanPayload {
   plan: UserPlan;
+}
+
+// ── Feed System Types ───────────────────────────────────────────────────────
+
+/** Privacy preferences for what the user shares in the feed */
+export interface FeedPrivacy {
+  show_progress: boolean;
+  show_certificates: boolean;
+  show_enrollments: boolean;
+  show_online: boolean;
+}
+
+/** Global feed source configuration (admin-controlled) */
+export interface FeedConfig {
+  progressEnabled: boolean;
+  certificatesEnabled: boolean;
+  enrollmentsEnabled: boolean;
+  discussionsEnabled: boolean;
+}
+
+/** A single item in the unified feed */
+export type FeedItemType = 'progress' | 'certificate' | 'enrollment' | 'discussion' | 'admin_post';
+
+interface FeedItemBase {
+  id: string;
+  type: FeedItemType;
+  createdAt: string;
+  authorName: string;
+  authorInitials: string;
+}
+
+export interface FeedItemProgress extends FeedItemBase {
+  type: 'progress';
+  lessonTitle: string;
+  courseTitle: string;
+  courseSlug: string;
+}
+
+export interface FeedItemCertificate extends FeedItemBase {
+  type: 'certificate';
+  courseTitle: string;
+  courseSlug: string;
+  verifyCode: string;
+}
+
+export interface FeedItemEnrollment extends FeedItemBase {
+  type: 'enrollment';
+  courseTitle: string;
+  courseSlug: string;
+}
+
+export interface FeedItemDiscussion extends FeedItemBase {
+  type: 'discussion';
+  discussionTitle: string;
+  discussionId: string;
+  categorySlug: string;
+  replyCount: number;
+}
+
+export interface FeedItemAdminPost extends FeedItemBase {
+  type: 'admin_post';
+  postId: string;
+  title: string;
+  body: string;
+  href: string | null;
+  isPinned: boolean;
+}
+
+export type FeedItem =
+  | FeedItemProgress
+  | FeedItemCertificate
+  | FeedItemEnrollment
+  | FeedItemDiscussion
+  | FeedItemAdminPost;
+
+/** Response from GET /api/feed */
+export interface FeedResponse {
+  items: FeedItem[];
+  hasMore: boolean;
+  nextOffset: number;
+}
+
+/** Admin feed post for list/edit views */
+export interface AdminFeedPost {
+  id: string;
+  title: string;
+  body: string;
+  href: string | null;
+  isPinned: boolean;
+  isPublished: boolean;
+  createdAt: string;
+}
+
+/** Recent feed event for admin moderation view */
+export interface AdminFeedEvent {
+  id: string;
+  type: FeedItemType;
+  itemId: string;
+  label: string;
+  createdAt: string;
+  isHidden: boolean;
 }
