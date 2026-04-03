@@ -3,11 +3,10 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { cn } from '@/lib/utils';
 import { FeedItemCard } from './FeedItemCard';
-import { OnlineCounter } from './FeedSidebar';
 import type { FeedItem, FeedItemAdminPost } from '@/types';
 
 interface FeedViewProps {
-  showOnline?: boolean;
+  // reserved for future use
 }
 
 /* ── Skeleton loader ── */
@@ -52,7 +51,7 @@ function NewItemsBanner({ count, onRefresh }: { count: number; onRefresh: () => 
 }
 
 /* ── Main component ── */
-export function FeedView({ showOnline = true }: FeedViewProps) {
+export function FeedView(_props: FeedViewProps = {}) {
   const [items, setItems] = useState<FeedItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -150,7 +149,6 @@ export function FeedView({ showOnline = true }: FeedViewProps) {
           </div>
 
           <div className="flex items-center gap-3">
-            {showOnline && <OnlineCounter />}
             <button
               onClick={() => loadFeed(0, true)}
               disabled={loading}
