@@ -102,42 +102,68 @@ function actionText(item: FeedItem): React.ReactNode {
   }
 }
 
+/* ── Reel-style video (autoplay, muted, loop) ── */
+function ReelVideo({ playbackId }: { playbackId: string }) {
+  return (
+    <div className="relative w-full overflow-hidden rounded-lg bg-black" style={{ aspectRatio: '9/16', maxHeight: '480px' }}>
+      <video
+        src={`https://stream.mux.com/${playbackId}/medium.mp4`}
+        className="absolute inset-0 w-full h-full object-cover"
+        autoPlay
+        muted
+        loop
+        playsInline
+      />
+    </div>
+  );
+}
+
 /* ── Admin post card ── */
 function AdminPostCard({ item }: { item: FeedItemAdminPost }) {
   return (
     <div className={cn(
-      'relative rounded-lg border px-5 py-4',
+      'relative rounded-lg border overflow-hidden',
       'bg-surface-1 border-accent-cyan/25',
       item.isPinned && 'border-accent-cyan/40',
     )}>
       {/* Cyan left accent */}
-      <div className="absolute left-0 top-3 bottom-3 w-[3px] bg-accent-cyan rounded-r" />
+      <div className="absolute left-0 top-3 bottom-3 w-[3px] bg-accent-cyan rounded-r z-10" />
 
-      <div className="flex items-start gap-3">
-        <Avatar initials="A" type="admin_post" />
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-[0.78rem] font-bold text-accent-cyan">AERABIM</span>
-            <TypeBadge type="admin_post" />
-            {item.isPinned && (
-              <span className="text-[0.6rem] text-accent-amber font-bold uppercase tracking-wider">📌 Fissato</span>
-            )}
-            <RelativeTime date={item.createdAt} className="text-[0.7rem] text-text-muted ml-auto" />
-          </div>
-          <p className="text-[0.88rem] font-semibold text-text-primary mt-1">{item.title}</p>
-          <p className="text-[0.78rem] text-text-secondary mt-1 leading-relaxed">{item.body}</p>
-          {item.href && (
-            <Link
-              href={item.href}
-              className="inline-flex items-center gap-1 mt-2 text-[0.76rem] text-accent-cyan hover:underline font-medium"
-            >
-              Scopri di più
-              <svg width="12" height="12" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-                <path d="M5 12h14M12 5l7 7-7 7" />
-              </svg>
-            </Link>
+      {/* Media — full bleed, above text */}
+      {item.mediaType === 'image' && item.mediaUrl && (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={item.mediaUrl}
+          alt={item.title}
+          className="w-full object-cover max-h-[360px]"
+        />
+      )}
+      {item.mediaType === 'video' && item.mediaUrl && (
+        <ReelVideo playbackId={item.mediaUrl} />
+      )}
+
+      <div className="px-5 py-4">
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="text-[0.78rem] font-bold text-accent-cyan">AERABIM</span>
+          <TypeBadge type="admin_post" />
+          {item.isPinned && (
+            <span className="text-[0.6rem] text-accent-amber font-bold uppercase tracking-wider">📌 Fissato</span>
           )}
+          <RelativeTime date={item.createdAt} className="text-[0.7rem] text-text-muted ml-auto" />
         </div>
+        <p className="text-[0.88rem] font-semibold text-text-primary mt-1">{item.title}</p>
+        <p className="text-[0.78rem] text-text-secondary mt-1 leading-relaxed">{item.body}</p>
+        {item.href && (
+          <Link
+            href={item.href}
+            className="inline-flex items-center gap-1 mt-2 text-[0.76rem] text-accent-cyan hover:underline font-medium"
+          >
+            Scopri di più
+            <svg width="12" height="12" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+              <path d="M5 12h14M12 5l7 7-7 7" />
+            </svg>
+          </Link>
+        )}
       </div>
     </div>
   );

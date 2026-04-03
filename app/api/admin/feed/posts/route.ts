@@ -11,7 +11,7 @@ export async function GET() {
 
     const { data, error } = await admin
       .from('feed_posts')
-      .select('id, title, body, href, is_pinned, is_published, created_at')
+      .select('id, title, body, href, is_pinned, is_published, created_at, media_type, media_url')
       .order('created_at', { ascending: false });
 
     if (error) {
@@ -21,6 +21,7 @@ export async function GET() {
     const posts = ((data ?? []) as {
       id: string; title: string; body: string; href: string | null;
       is_pinned: boolean; is_published: boolean; created_at: string;
+      media_type: string | null; media_url: string | null;
     }[]).map((p) => ({
       id: p.id,
       title: p.title,
@@ -29,6 +30,8 @@ export async function GET() {
       isPinned: p.is_pinned,
       isPublished: p.is_published,
       createdAt: p.created_at,
+      mediaType: p.media_type as 'image' | 'video' | null,
+      mediaUrl: p.media_url,
     }));
 
     void userId; // used for auth only
@@ -52,6 +55,8 @@ export async function POST(req: Request) {
       href?: string;
       isPinned?: boolean;
       isPublished?: boolean;
+      mediaType?: 'image' | 'video' | null;
+      mediaUrl?: string | null;
     };
 
     if (!body.title?.trim() || !body.body?.trim()) {
@@ -70,6 +75,8 @@ export async function POST(req: Request) {
         href: body.href?.trim() || null,
         is_pinned: body.isPinned ?? false,
         is_published: body.isPublished ?? false,
+        media_type: body.mediaType ?? null,
+        media_url: body.mediaUrl ?? null,
       })
       .select('id')
       .single();

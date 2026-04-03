@@ -120,7 +120,7 @@ export async function GET(request: Request) {
         // Post admin pubblicati
         supabase
           .from('feed_posts')
-          .select('id, author_id, title, body, href, is_pinned, is_published, created_at')
+          .select('id, author_id, title, body, href, is_pinned, is_published, created_at, media_type, media_url')
           .eq('is_published', true)
           .order('created_at', { ascending: false }),
 
@@ -140,7 +140,7 @@ export async function GET(request: Request) {
     type CertRow = { id: string; user_id: string; course_id: string; verify_code: string; issued_at: string };
     type EnrollRow = { id: string; user_id: string; course_id: string; created_at: string };
     type DiscussionRow = { id: string; title: string; category_id: string; reply_count: number; created_at: string; author_id: string };
-    type AdminPostRow = { id: string; author_id: string; title: string; body: string; href: string | null; is_pinned: boolean; is_published: boolean; created_at: string };
+    type AdminPostRow = { id: string; author_id: string; title: string; body: string; href: string | null; is_pinned: boolean; is_published: boolean; created_at: string; media_type: string | null; media_url: string | null };
 
     const progresses = (progressRes.data ?? []) as ProgressRow[];
     const certs = (certsRes.data ?? []) as CertRow[];
@@ -253,6 +253,8 @@ export async function GET(request: Request) {
         createdAt: p.created_at,
         authorName,
         authorInitials: initials(authorName),
+        mediaType: p.media_type as 'image' | 'video' | null,
+        mediaUrl: p.media_url,
       } satisfies FeedItemAdminPost);
     }
 

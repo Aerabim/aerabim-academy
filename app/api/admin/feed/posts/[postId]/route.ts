@@ -19,6 +19,8 @@ export async function PATCH(req: Request, { params }: RouteParams) {
       href?: string | null;
       isPinned?: boolean;
       isPublished?: boolean;
+      mediaType?: 'image' | 'video' | null;
+      mediaUrl?: string | null;
     };
 
     const updateData: Record<string, unknown> = { updated_at: new Date().toISOString() };
@@ -27,6 +29,8 @@ export async function PATCH(req: Request, { params }: RouteParams) {
     if (body.href !== undefined) updateData.href = body.href?.trim() || null;
     if (body.isPinned !== undefined) updateData.is_pinned = body.isPinned;
     if (body.isPublished !== undefined) updateData.is_published = body.isPublished;
+    if (body.mediaType !== undefined) updateData.media_type = body.mediaType;
+    if (body.mediaUrl !== undefined) updateData.media_url = body.mediaUrl;
 
     const { error } = await admin
       .from('feed_posts')

@@ -24,7 +24,7 @@ export default async function AdminFeedPage() {
     const [configRes, postsRes] = await Promise.all([
       admin.from('feed_config').select('*').eq('id', 1).maybeSingle(),
       admin.from('feed_posts')
-        .select('id, title, body, href, is_pinned, is_published, created_at')
+        .select('id, title, body, href, is_pinned, is_published, created_at, media_type, media_url')
         .order('created_at', { ascending: false }),
     ]);
 
@@ -46,6 +46,7 @@ export default async function AdminFeedPage() {
     posts = ((postsRes.data ?? []) as {
       id: string; title: string; body: string; href: string | null;
       is_pinned: boolean; is_published: boolean; created_at: string;
+      media_type: string | null; media_url: string | null;
     }[]).map((p) => ({
       id: p.id,
       title: p.title,
@@ -54,6 +55,8 @@ export default async function AdminFeedPage() {
       isPinned: p.is_pinned,
       isPublished: p.is_published,
       createdAt: p.created_at,
+      mediaType: p.media_type as 'image' | 'video' | null,
+      mediaUrl: p.media_url,
     }));
 
     // Build moderation events from recent activity (last 7 days)

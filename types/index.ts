@@ -1458,6 +1458,8 @@ export interface FeedItemAdminPost extends FeedItemBase {
   body: string;
   href: string | null;
   isPinned: boolean;
+  mediaType: 'image' | 'video' | null;
+  mediaUrl: string | null;
 }
 
 export type FeedItem =
@@ -1483,6 +1485,8 @@ export interface AdminFeedPost {
   isPinned: boolean;
   isPublished: boolean;
   createdAt: string;
+  mediaType: 'image' | 'video' | null;
+  mediaUrl: string | null;
 }
 
 /** Recent feed event for admin moderation view */

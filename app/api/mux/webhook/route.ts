@@ -156,7 +156,31 @@ async function handleAssetReady(
     return;
   }
 
-  // Case 3: Recording asset from a live stream (replay)
+  // Case 3: Feed post video
+  if ('type' in parsed && parsed.type === 'feed_video' && 'postId' in parsed && typeof parsed.postId === 'string') {
+    if (!playbackId) {
+      console.error('[mux/webhook] Feed video asset ready but no playback ID');
+      return;
+    }
+
+    const { error } = await admin
+      .from('feed_posts')
+      .update({
+        media_url: playbackId,
+        media_type: 'video',
+      })
+      .eq('id', parsed.postId);
+
+    if (error) {
+      console.error('[mux/webhook] Errore aggiornamento feed post video:', error);
+      throw error;
+    }
+
+    console.log(`[mux/webhook] Feed post ${parsed.postId} video ready — asset ${assetId}`);
+    return;
+  }
+
+  // Case 4: Recording asset from a live stream (replay)
   if ('sessionId' in parsed && typeof parsed.sessionId === 'string') {
     if (!playbackId) {
       console.error('[mux/webhook] Recording asset ready but no playback ID');
