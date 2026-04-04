@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { Outfit, Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
+import { PromoBanner } from "@/components/promotions/PromoBanner";
+import { PromoPopup } from "@/components/promotions/PromoPopup";
 
 const outfit = Outfit({
   subsets: ["latin"],
@@ -28,6 +30,8 @@ export default function RootLayout({
   return (
     <html lang="it">
       <body className={`${outfit.variable} ${jakarta.variable} font-sans antialiased`}>
+        <PromoBanner />
+        <PromoPopup />
         {children}
       </body>
     </html>

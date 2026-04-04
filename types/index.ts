@@ -1499,3 +1499,50 @@ export interface AdminFeedEvent {
   createdAt: string;
   isHidden: boolean;
 }
+
+// ─── Promotions ───────────────────────────────────────────────────────────────
+
+export type PromoType = 'banner' | 'popup';
+export type PromoTheme = 'amber' | 'cyan' | 'red' | 'green';
+export type PromoFrequency = 'once' | 'per_session' | 'always';
+export type PromoAudience = 'all' | 'logged_out' | 'logged_in' | 'no_subscription';
+
+export interface Promotion {
+  id: string;
+  name: string;
+  type: PromoType;
+  is_active: boolean;
+  title: string;
+  body: string | null;
+  cta_label: string | null;
+  cta_url: string | null;
+  badge_label: string | null;
+  theme: PromoTheme;
+  starts_at: string | null;
+  ends_at: string | null;
+  popup_delay_sec: number;
+  popup_frequency: PromoFrequency;
+  target_audience: PromoAudience;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CreatePromotionPayload {
+  name: string;
+  type: PromoType;
+  title: string;
+  body?: string;
+  cta_label?: string;
+  cta_url?: string;
+  badge_label?: string;
+  theme: PromoTheme;
+  starts_at?: string;
+  ends_at?: string;
+  popup_delay_sec?: number;
+  popup_frequency?: PromoFrequency;
+  target_audience?: PromoAudience;
+}
+
+export interface UpdatePromotionPayload extends Partial<CreatePromotionPayload> {
+  is_active?: boolean;
+}
