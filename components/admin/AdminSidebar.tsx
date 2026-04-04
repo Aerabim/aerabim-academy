@@ -49,6 +49,18 @@ const ADMIN_SECTIONS: AdminNavSection[] = [
         ),
       },
       {
+        href: '/admin/learning-paths',
+        label: 'Percorsi',
+        icon: (
+          <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24">
+            <circle cx="5"  cy="12" r="2" />
+            <circle cx="12" cy="5"  r="2" />
+            <circle cx="19" cy="12" r="2" />
+            <path strokeLinecap="round" d="M7 12h3.5M14 7l1.5 3.5M16.5 12H17" />
+          </svg>
+        ),
+      },
+      {
         href: '/admin/sessioni-live',
         label: 'Aule Virtuali',
         icon: (

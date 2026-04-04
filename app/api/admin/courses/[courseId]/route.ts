@@ -181,6 +181,27 @@ export async function DELETE(_req: Request, { params }: RouteParams) {
 
     const { courseId } = params;
 
+    // Block deletion if the course is referenced by any learning path step.
+    // The DB RESTRICT constraint would catch this anyway, but we return a
+    // human-readable message listing the affected paths.
+    const { data: pathUsages } = await admin
+      .from('learning_path_steps')
+      .select('path_id, learning_paths(title)')
+      .eq('course_id', courseId)
+      .eq('step_type', 'course');
+
+    const usages = (pathUsages ?? []) as unknown as { path_id: string; learning_paths: { title: string } | null }[];
+    if (usages.length > 0) {
+      const pathNames = usages
+        .map((u) => u.learning_paths?.title)
+        .filter((t): t is string => Boolean(t))
+        .join('", "');
+      return NextResponse.json(
+        { error: `Impossibile eliminare: il corso è incluso nei percorsi "${pathNames}". Rimuovilo dai percorsi prima di eliminarlo.` } satisfies ApiError,
+        { status: 409 },
+      );
+    }
+
     // Fetch course title and enrolled user IDs before deletion
     const [courseRes, enrollmentRes] = await Promise.all([
       admin.from('courses').select('title').eq('id', courseId).maybeSingle(),

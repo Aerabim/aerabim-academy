@@ -1,11 +1,14 @@
 import { redirect } from 'next/navigation';
 import { createServerClient } from '@/lib/supabase/server';
+import { getSupabaseAdmin } from '@/lib/supabase/admin';
 import { WelcomeSection } from '@/components/dashboard/WelcomeSection';
 import { StatsGrid } from '@/components/dashboard/StatsGrid';
 import { ContinueStudying } from '@/components/dashboard/ContinueStudying';
 import { WeeklyActivity } from '@/components/dashboard/WeeklyActivity';
 import { Achievements } from '@/components/dashboard/Achievements';
 import { UpcomingEvents } from '@/components/dashboard/UpcomingEvents';
+import { LearningPaths } from '@/components/dashboard/LearningPaths';
+import type { DashboardLearningPath } from '@/components/dashboard/LearningPaths';
 import {
   getDashboardStats,
   getContinueStudyingCourses,
@@ -43,8 +46,11 @@ export default async function DashboardPage() {
   };
   let upcomingSessions: LiveSessionDisplay[] = [];
   let badges: BadgeInfo[] = [];
+  let learningPaths: DashboardLearningPath[] = [];
 
   try {
+    const admin = getSupabaseAdmin();
+
     [stats, continueCourses, weeklyActivity, upcomingSessions, badges] = await Promise.all([
       getDashboardStats(supabase, user.id),
       getContinueStudyingCourses(supabase, user.id),
@@ -52,6 +58,55 @@ export default async function DashboardPage() {
       getUpcomingLiveSessions(supabase),
       getUserBadges(supabase, user.id),
     ]);
+
+    // Fetch top 3 published paths for the widget
+    if (admin) {
+      const { data: pathsData } = await admin
+        .from('learning_paths')
+        .select('id, slug, title, target_role, level, estimated_hours')
+        .eq('is_published', true)
+        .order('order_num', { ascending: true })
+        .limit(3);
+
+      const rawPaths = (pathsData ?? []) as {
+        id: string; slug: string; title: string; target_role: string | null;
+        level: string | null; estimated_hours: number | null;
+      }[];
+
+      if (rawPaths.length > 0) {
+        const pathIds = rawPaths.map((p) => p.id);
+
+        const [stepsRes, lppRes] = await Promise.all([
+          admin.from('learning_path_steps').select('path_id').in('path_id', pathIds),
+          admin.from('learning_path_progress')
+            .select('path_id, is_completed')
+            .eq('user_id', user.id)
+            .in('path_id', pathIds),
+        ]);
+
+        const stepCounts = new Map<string, number>();
+        for (const s of (stepsRes.data ?? []) as { path_id: string }[]) {
+          stepCounts.set(s.path_id, (stepCounts.get(s.path_id) ?? 0) + 1);
+        }
+
+        const completedPaths = new Set(
+          ((lppRes.data ?? []) as { path_id: string; is_completed: boolean }[])
+            .filter((r) => r.is_completed)
+            .map((r) => r.path_id),
+        );
+
+        learningPaths = rawPaths.map((p) => ({
+          id: p.id,
+          slug: p.slug,
+          title: p.title,
+          targetRole: p.target_role,
+          level: p.level as DashboardLearningPath['level'],
+          stepCount: stepCounts.get(p.id) ?? 0,
+          estimatedHours: p.estimated_hours,
+          isCompleted: completedPaths.has(p.id),
+        }));
+      }
+    }
   } catch {
     // Keep defaults on error
   }
@@ -81,6 +136,10 @@ export default async function DashboardPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-5 animate-fadeIn" style={{ animationDelay: '0.24s' }}>
         <Achievements badges={badges} />
         <UpcomingEvents sessions={upcomingSessions} />
+      </div>
+
+      <div className="animate-fadeIn" style={{ animationDelay: '0.30s' }}>
+        <LearningPaths paths={learningPaths} />
       </div>
     </div>
   );
