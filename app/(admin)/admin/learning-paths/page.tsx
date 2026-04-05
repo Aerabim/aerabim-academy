@@ -12,12 +12,12 @@ export default async function AdminLearningPathsPage() {
     try {
       const { data } = await admin
         .from('learning_paths')
-        .select('id, slug, title, target_role, level, is_published, estimated_hours, created_at')
+        .select('id, slug, title, is_published, estimated_hours, created_at')
         .order('order_num', { ascending: true });
 
       const rawPaths = (data ?? []) as {
-        id: string; slug: string; title: string; target_role: string | null;
-        level: string | null; is_published: boolean; estimated_hours: number | null; created_at: string;
+        id: string; slug: string; title: string;
+        is_published: boolean; estimated_hours: number | null; created_at: string;
       }[];
 
       const pathIds = rawPaths.map((p) => p.id);
@@ -44,8 +44,6 @@ export default async function AdminLearningPathsPage() {
         id: p.id,
         slug: p.slug,
         title: p.title,
-        targetRole: p.target_role,
-        level: p.level as AdminLearningPathListItem['level'],
         isPublished: p.is_published,
         estimatedHours: p.estimated_hours,
         stepCount: stepCount.get(p.id) ?? 0,

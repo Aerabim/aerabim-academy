@@ -63,14 +63,13 @@ export default async function DashboardPage() {
     if (admin) {
       const { data: pathsData } = await admin
         .from('learning_paths')
-        .select('id, slug, title, target_role, level, estimated_hours')
+        .select('id, slug, title, estimated_hours')
         .eq('is_published', true)
         .order('order_num', { ascending: true })
         .limit(3);
 
       const rawPaths = (pathsData ?? []) as {
-        id: string; slug: string; title: string; target_role: string | null;
-        level: string | null; estimated_hours: number | null;
+        id: string; slug: string; title: string; estimated_hours: number | null;
       }[];
 
       if (rawPaths.length > 0) {
@@ -99,8 +98,6 @@ export default async function DashboardPage() {
           id: p.id,
           slug: p.slug,
           title: p.title,
-          targetRole: p.target_role,
-          level: p.level as DashboardLearningPath['level'],
           stepCount: stepCounts.get(p.id) ?? 0,
           estimatedHours: p.estimated_hours,
           isCompleted: completedPaths.has(p.id),

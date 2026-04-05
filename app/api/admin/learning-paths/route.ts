@@ -12,7 +12,7 @@ export async function GET() {
 
     const { data, error } = await admin
       .from('learning_paths')
-      .select('id, slug, title, target_role, level, is_published, estimated_hours, created_at')
+      .select('id, slug, title, is_published, estimated_hours, created_at')
       .order('order_num', { ascending: true });
 
     if (error) {
@@ -24,8 +24,8 @@ export async function GET() {
     }
 
     const paths = (data ?? []) as {
-      id: string; slug: string; title: string; target_role: string | null;
-      level: string | null; is_published: boolean; estimated_hours: number | null; created_at: string;
+      id: string; slug: string; title: string;
+      is_published: boolean; estimated_hours: number | null; created_at: string;
     }[];
 
     const pathIds = paths.map((p) => p.id);
@@ -53,8 +53,6 @@ export async function GET() {
       id: p.id,
       slug: p.slug,
       title: p.title,
-      targetRole: p.target_role,
-      level: p.level,
       isPublished: p.is_published,
       estimatedHours: p.estimated_hours,
       stepCount: stepCountByPath.get(p.id) ?? 0,
@@ -134,8 +132,6 @@ export async function POST(req: Request) {
         subtitle: body.subtitle ?? null,
         description: body.description ?? null,
         thumbnail_url: body.thumbnailUrl ?? null,
-        level: body.level ?? null,
-        target_role: body.targetRole ?? null,
         estimated_hours: body.estimatedHours ?? null,
         is_published: false,
         order_num: nextOrder,

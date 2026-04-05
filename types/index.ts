@@ -1698,8 +1698,6 @@ export interface AdminLearningPathListItem {
   id: string;
   slug: string;
   title: string;
-  targetRole: string | null;
-  level: LevelCode | null;
   isPublished: boolean;
   stepCount: number;
   courseCount: number;
@@ -1715,8 +1713,6 @@ export interface CreateLearningPathPayload {
   subtitle?: string;
   description?: string;
   thumbnailUrl?: string;
-  level?: LevelCode;
-  targetRole?: string;
   estimatedHours?: number;
   orderNum?: number;
 }

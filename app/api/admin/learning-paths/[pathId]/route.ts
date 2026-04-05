@@ -22,8 +22,6 @@ export async function PATCH(req: Request, { params }: RouteParams) {
     if (body.subtitle !== undefined)      updateData.subtitle       = body.subtitle;
     if (body.description !== undefined)   updateData.description    = body.description;
     if (body.thumbnailUrl !== undefined)  updateData.thumbnail_url  = body.thumbnailUrl;
-    if (body.level !== undefined)         updateData.level          = body.level;
-    if (body.targetRole !== undefined)    updateData.target_role    = body.targetRole;
     if (body.estimatedHours !== undefined) updateData.estimated_hours = body.estimatedHours;
     if (body.orderNum !== undefined)      updateData.order_num      = body.orderNum;
     if (body.isPublished !== undefined)   updateData.is_published   = body.isPublished;

@@ -1,14 +1,10 @@
 import Link from 'next/link';
 import { Card } from '@/components/ui/Card';
-import { LEVEL_LABELS } from '@/lib/area-config';
-import type { LevelCode } from '@/types';
 
 export interface DashboardLearningPath {
   id: string;
   slug: string;
   title: string;
-  targetRole: string | null;
-  level: LevelCode | null;
   stepCount: number;
   estimatedHours: number | null;
   isCompleted: boolean;
@@ -55,7 +51,6 @@ export function LearningPaths({ paths }: LearningPathsProps) {
                 <div className="text-[0.7rem] text-text-muted mt-0.5">
                   {path.stepCount} {path.stepCount === 1 ? 'passo' : 'passi'}
                   {path.estimatedHours ? ` · ~${path.estimatedHours}h` : ''}
-                  {path.level ? ` · ${LEVEL_LABELS[path.level]}` : ''}
                 </div>
               </div>
             </Link>

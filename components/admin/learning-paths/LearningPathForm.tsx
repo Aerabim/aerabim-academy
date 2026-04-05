@@ -3,20 +3,8 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
-import { LEVEL_LABELS } from '@/lib/area-config';
-import type { LearningPath, LevelCode } from '@/types';
-
-const TARGET_ROLES = [
-  'BIM Specialist',
-  'BIM Coordinator',
-  'BIM Manager',
-  'RUP / DEC',
-  'Progettista BIM',
-  'Calcolatore BIM',
-  'Responsabile PA',
-];
-
-const LEVELS: LevelCode[] = ['L1', 'L2', 'L3'];
+import { ThumbnailUploader } from '@/components/admin/courses/ThumbnailUploader';
+import type { LearningPath } from '@/types';
 
 interface LearningPathFormProps {
   /** Provide for edit mode; omit for create mode */
@@ -42,10 +30,6 @@ export function LearningPathForm({ path }: LearningPathFormProps) {
   const [slug, setSlug] = useState(path?.slug ?? '');
   const [subtitle, setSubtitle] = useState(path?.subtitle ?? '');
   const [description, setDescription] = useState(path?.description ?? '');
-  const [targetRole, setTargetRole] = useState(path?.target_role ?? '');
-  const [level, setLevel] = useState<LevelCode | ''>(
-    (path?.level as LevelCode | null) ?? '',
-  );
   const [estimatedHours, setEstimatedHours] = useState(
     path?.estimated_hours?.toString() ?? '',
   );
@@ -75,8 +59,6 @@ export function LearningPathForm({ path }: LearningPathFormProps) {
         slug: slug.trim(),
         subtitle: subtitle.trim() || undefined,
         description: description.trim() || undefined,
-        targetRole: targetRole.trim() || undefined,
-        level: (level as LevelCode) || undefined,
         estimatedHours: estimatedHours ? parseInt(estimatedHours, 10) : undefined,
         ...(isEdit && { isPublished }),
       };
@@ -116,6 +98,23 @@ export function LearningPathForm({ path }: LearningPathFormProps) {
         <div className="px-4 py-2.5 rounded-md bg-accent-rose/10 border border-accent-rose/20 text-[0.82rem] text-accent-rose">
           {error}
         </div>
+      )}
+
+      {/* Thumbnail — edit mode only (path must exist before uploading) */}
+      {isEdit && (
+        <ThumbnailUploader
+          courseId={path.id}
+          currentUrl={path.thumbnail_url ?? ''}
+          label="Immagine di copertina del percorso"
+          hint="Usata come sfondo del banner. Formato consigliato: 1280×360px (landscape)."
+          onUploaded={async (url) => {
+            await fetch(`/api/admin/learning-paths/${path.id}`, {
+              method: 'PATCH',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ thumbnailUrl: url }),
+            });
+          }}
+        />
       )}
 
       {/* Title + Slug */}
@@ -167,45 +166,17 @@ export function LearningPathForm({ path }: LearningPathFormProps) {
         />
       </div>
 
-      {/* Target Role + Level + Hours */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="space-y-1.5">
-          <label className="text-[0.78rem] font-medium text-text-secondary">Ruolo target</label>
-          <select
-            value={targetRole}
-            onChange={(e) => setTargetRole(e.target.value)}
-            className="w-full px-3 py-2 text-[0.83rem] bg-surface-2 border border-border-subtle rounded-md text-text-primary focus:outline-none focus:border-accent-cyan/50"
-          >
-            <option value="">— Nessuno —</option>
-            {TARGET_ROLES.map((r) => (
-              <option key={r} value={r}>{r}</option>
-            ))}
-          </select>
-        </div>
-        <div className="space-y-1.5">
-          <label className="text-[0.78rem] font-medium text-text-secondary">Livello</label>
-          <select
-            value={level}
-            onChange={(e) => setLevel(e.target.value as LevelCode | '')}
-            className="w-full px-3 py-2 text-[0.83rem] bg-surface-2 border border-border-subtle rounded-md text-text-primary focus:outline-none focus:border-accent-cyan/50"
-          >
-            <option value="">— Nessuno —</option>
-            {LEVELS.map((l) => (
-              <option key={l} value={l}>{LEVEL_LABELS[l]}</option>
-            ))}
-          </select>
-        </div>
-        <div className="space-y-1.5">
-          <label className="text-[0.78rem] font-medium text-text-secondary">Ore stimate</label>
-          <input
-            type="number"
-            min={1}
-            value={estimatedHours}
-            onChange={(e) => setEstimatedHours(e.target.value)}
-            placeholder="es. 20"
-            className="w-full px-3 py-2 text-[0.83rem] bg-surface-2 border border-border-subtle rounded-md text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent-cyan/50"
-          />
-        </div>
+      {/* Estimated Hours */}
+      <div className="space-y-1.5">
+        <label className="text-[0.78rem] font-medium text-text-secondary">Ore stimate</label>
+        <input
+          type="number"
+          min={1}
+          value={estimatedHours}
+          onChange={(e) => setEstimatedHours(e.target.value)}
+          placeholder="es. 20"
+          className="w-full px-3 py-2 text-[0.83rem] bg-surface-2 border border-border-subtle rounded-md text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent-cyan/50 max-w-[160px]"
+        />
       </div>
 
       {/* Published toggle — edit mode only */}
