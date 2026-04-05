@@ -2,6 +2,7 @@ import { createServerClient } from '@/lib/supabase/server';
 import { RisorseTabs } from '@/components/risorse/RisorseTabs';
 import { getPublishedArticles, getPublishedPressMentions } from '@/lib/risorse/queries';
 import { RisorseHeader } from '@/components/risorse/RisorseHeader';
+import { RequestResourceCtaBanner } from '@/components/risorse/RequestResourceCtaBanner';
 
 export default async function RisorsePage() {
   const supabase = createServerClient();
@@ -15,6 +16,7 @@ export default async function RisorsePage() {
     <div className="w-full px-6 lg:px-9 pt-3 pb-7 space-y-6">
       <RisorseHeader />
       <RisorseTabs articles={articles} pressMentions={pressMentions} />
+      <RequestResourceCtaBanner />
     </div>
   );
 }

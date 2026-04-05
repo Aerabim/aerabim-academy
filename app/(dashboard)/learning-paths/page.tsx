@@ -2,6 +2,7 @@ import { createServerClient } from '@/lib/supabase/server';
 import { getSupabaseAdmin } from '@/lib/supabase/admin';
 import { LearningPathsHero } from '@/components/learning-paths/LearningPathsHero';
 import { LearningPathBanners } from '@/components/learning-paths/LearningPathBanners';
+import { EnterpriseCtaBanner } from '@/components/learning-paths/EnterpriseCtaBanner';
 import type { BannerPath, CourseChip } from '@/components/learning-paths/LearningPathBanner';
 import type { AreaCode } from '@/types';
 
@@ -111,6 +112,9 @@ export default async function LearningPathsPage() {
       </div>
       <div className="px-6 lg:px-9">
         <LearningPathBanners paths={bannerPaths} />
+      </div>
+      <div className="px-6 lg:px-9">
+        <EnterpriseCtaBanner />
       </div>
     </div>
   );

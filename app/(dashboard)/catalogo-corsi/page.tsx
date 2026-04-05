@@ -1,6 +1,7 @@
 import { createServerClient } from '@/lib/supabase/server';
 import { CatalogHero } from '@/components/corso/CatalogHero';
 import { CatalogBrowser } from '@/components/corso/CatalogBrowser';
+import { RequestCourseCtaBanner } from '@/components/corso/RequestCourseCtaBanner';
 import { getPublishedCourses, getFeaturedCourse } from '@/lib/catalog/queries';
 import { checkIsAdmin } from '@/lib/learn/queries';
 import type { CourseWithMeta } from '@/types';
@@ -42,6 +43,7 @@ export default async function CatalogoCorsiPage() {
     <div className="w-full px-6 lg:px-9 py-7 space-y-8">
       {featured && <CatalogHero course={featured} />}
       <CatalogBrowser courses={courses} />
+      <RequestCourseCtaBanner />
     </div>
   );
 }
