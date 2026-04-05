@@ -23,7 +23,7 @@ export function CourseCard({ course, isFavorited = false }: CourseCardProps) {
 
   return (
     <div
-      className="group relative w-[175px] h-[260px] hover:w-[380px] hover:h-[340px] shrink-0 rounded-md overflow-hidden transition-[width,height] duration-300 ease-out hover:z-30 z-10"
+      className="group relative w-[175px] h-[260px] hover:w-[380px] hover:h-[340px] shrink-0 rounded-md overflow-hidden transition-[width,height] duration-300 ease-out hover:delay-700 hover:z-30 z-10"
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
@@ -52,7 +52,7 @@ export function CourseCard({ course, isFavorited = false }: CourseCardProps) {
             src={course.thumbnailExpandedUrl}
             alt=""
             fill
-            className="object-cover transition-opacity duration-500 opacity-0 group-hover:opacity-100"
+            className="object-cover transition-opacity duration-500 opacity-0 group-hover:opacity-100 group-hover:delay-700"
             sizes="400px"
             aria-hidden
           />
@@ -67,10 +67,10 @@ export function CourseCard({ course, isFavorited = false }: CourseCardProps) {
         )}
 
         {/* Gradient hover — visibile solo in expanded */}
-        <div className="absolute inset-0 bg-gradient-to-t from-surface-0 via-surface-0/70 to-surface-0/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
+        <div className="absolute inset-0 bg-gradient-to-t from-surface-0 via-surface-0/70 to-surface-0/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300 group-hover:delay-700 pointer-events-none" />
 
         {/* ── Overlay EXPANDED — tutto visibile solo all'hover ── */}
-        <div className="absolute inset-0 z-20 flex flex-col justify-end px-3 pb-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300 delay-100">
+        <div className="absolute inset-0 z-20 flex flex-col justify-end px-3 pb-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300 group-hover:delay-700">
 
           {/* Top row: prezzo (sx) · area badge · level · favorite (dx) */}
           <div className="absolute top-2.5 left-2.5 right-2.5 flex items-center justify-between">

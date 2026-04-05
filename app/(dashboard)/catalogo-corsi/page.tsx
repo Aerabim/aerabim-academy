@@ -1,4 +1,5 @@
 import { createServerClient } from '@/lib/supabase/server';
+import { CatalogoCorsiHero } from '@/components/corso/CatalogoCorsiHero';
 import { CatalogHero } from '@/components/corso/CatalogHero';
 import { CatalogBrowser } from '@/components/corso/CatalogBrowser';
 import { RequestCourseCtaBanner } from '@/components/corso/RequestCourseCtaBanner';
@@ -41,6 +42,7 @@ export default async function CatalogoCorsiPage() {
 
   return (
     <div className="w-full px-6 lg:px-9 py-7 space-y-8">
+      <CatalogoCorsiHero />
       {featured && <CatalogHero course={featured} />}
       <CatalogBrowser courses={courses} />
       <RequestCourseCtaBanner />

@@ -131,7 +131,7 @@ export function SimulazioneCard({ item, index, locked = false, pathSlug }: Simul
     <div
       ref={cardRef}
       className={cn(
-        'relative w-full aspect-square overflow-hidden rounded-xl',
+        'relative w-full aspect-[2/1] overflow-hidden rounded-xl',
         'border border-border-subtle transition-[opacity,transform,border-color,box-shadow] duration-500 ease-out',
         visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-5',
         isBlocked ? 'cursor-default' : 'cursor-pointer',
