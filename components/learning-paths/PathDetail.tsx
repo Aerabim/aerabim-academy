@@ -1,15 +1,14 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { ProgressBar } from '@/components/ui/ProgressBar';
-import { AREA_CONFIG, LEVEL_LABELS } from '@/lib/area-config';
+import { AREA_CONFIG } from '@/lib/area-config';
 import { cn } from '@/lib/utils';
 import type {
   LearningPath,
   LearningPathStepDisplay,
   LearningPathProgressData,
-  LevelCode,
   AreaCode,
 } from '@/types';
 
@@ -67,67 +66,176 @@ export function PathDetail({ path, steps, enrolledCourseIds }: PathDetailProps) 
   const completedIds = new Set(progress?.completedStepIds ?? []);
   const pct = progress?.percentage ?? 0;
 
+  /* ── Animated counter: 0 → pct on data arrival ── */
+  const [displayPct, setDisplayPct] = useState(0);
+  const rafRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    if (pct === 0) return;
+    if (rafRef.current) cancelAnimationFrame(rafRef.current);
+
+    const duration = 900; // ms
+    const start = performance.now();
+    const from = 0;
+
+    function tick(now: number) {
+      const elapsed = now - start;
+      const t = Math.min(elapsed / duration, 1);
+      // ease-out cubic
+      const eased = 1 - Math.pow(1 - t, 3);
+      setDisplayPct(Math.round(from + (pct - from) * eased));
+      if (t < 1) rafRef.current = requestAnimationFrame(tick);
+    }
+
+    rafRef.current = requestAnimationFrame(tick);
+    return () => { if (rafRef.current) cancelAnimationFrame(rafRef.current); };
+  }, [pct]);
+
+  /* ── Entrance animation ── */
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    const id = requestAnimationFrame(() => setMounted(true));
+    return () => cancelAnimationFrame(id);
+  }, []);
+
+  const reveal = cn(
+    'transition-[opacity,transform] duration-500 ease-out',
+    mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4',
+  );
+  const delay = (ms: number) => ({ style: { transitionDelay: `${ms}ms` } });
+
+  /* ── Mouse tracking for header ── */
+  const headerRef = useRef<HTMLDivElement>(null);
+  const [mouse, setMouse] = useState({ x: 50, y: 50 });
+  const [headerHovered, setHeaderHovered] = useState(false);
+
+  function handleHeaderMouseMove(e: React.MouseEvent<HTMLDivElement>) {
+    const rect = e.currentTarget.getBoundingClientRect();
+    setMouse({
+      x: ((e.clientX - rect.left) / rect.width) * 100,
+      y: ((e.clientY - rect.top) / rect.height) * 100,
+    });
+  }
+
   return (
     <div className="space-y-8">
       {/* Header card */}
       <div
-        className="relative overflow-hidden rounded-xl border border-[#4ECDC4]/15 p-8 lg:p-10"
-        style={{ background: 'linear-gradient(135deg, #040B11 0%, #0f1f2e 55%, #0a1520 100%)' }}
+        ref={headerRef}
+        className="relative overflow-hidden rounded-xl border border-[#4ECDC4]/15 min-h-[220px] lg:min-h-[240px] transition-[box-shadow] duration-300"
+        style={{
+          boxShadow: headerHovered
+            ? '0 0 0 1px #4ECDC440, 0 12px 48px -12px #4ECDC428'
+            : '0 0 0 1px transparent',
+        }}
+        onMouseMove={handleHeaderMouseMove}
+        onMouseEnter={() => setHeaderHovered(true)}
+        onMouseLeave={() => setHeaderHovered(false)}
       >
-        {/* Glow */}
-        <div className="pointer-events-none absolute -top-16 -left-16 h-52 w-52 rounded-full blur-3xl opacity-20"
-          style={{ background: '#4ECDC4' }} />
-
-        {/* Badges */}
-        <div className="flex flex-wrap items-center gap-2 mb-4">
-          {path.target_role && (
-            <span className="px-2.5 py-1 rounded-full bg-accent-cyan/10 border border-accent-cyan/20 text-[0.7rem] font-bold text-accent-cyan uppercase tracking-wider">
-              {path.target_role}
-            </span>
-          )}
-          {path.level && (
-            <span className="px-2.5 py-1 rounded-full bg-white/5 border border-white/10 text-[0.7rem] text-text-muted font-medium">
-              {LEVEL_LABELS[path.level as LevelCode]}
-            </span>
-          )}
-          {path.estimated_hours && (
-            <span className="px-2.5 py-1 rounded-full bg-white/5 border border-white/10 text-[0.7rem] text-text-muted font-medium">
-              ~{path.estimated_hours}h
-            </span>
-          )}
-        </div>
-
-        <h1 className="font-heading text-2xl lg:text-[2rem] font-extrabold text-text-primary leading-tight mb-2">
-          {path.title}
-        </h1>
-        {path.subtitle && (
-          <p className="text-text-secondary text-[0.88rem] leading-relaxed mb-6 max-w-xl">
-            {path.subtitle}
-          </p>
+        {/* Background */}
+        {path.thumbnail_url ? (
+          <>
+            <img
+              src={path.thumbnail_url}
+              alt=""
+              className="absolute inset-0 w-full h-full object-cover transition-transform duration-300 ease-out scale-[1.06]"
+              style={{
+                transform: `scale(1.06) translate(${(mouse.x - 50) * -0.06}%, ${(mouse.y - 50) * -0.06}%)`,
+              }}
+            />
+            <div className="absolute inset-0 bg-gradient-to-r from-[#040B11]/95 via-[#040B11]/80 to-[#040B11]/50" />
+          </>
+        ) : (
+          <div
+            className="absolute inset-0"
+            style={{ background: 'linear-gradient(135deg, #040B11 0%, #0f1f2e 55%, #0a1520 100%)' }}
+          />
         )}
 
-        {/* Progress */}
-        <div className="space-y-2 max-w-sm">
-          <div className="flex items-center justify-between text-[0.75rem]">
-            <span className="text-text-muted">
-              {progress
-                ? `${progress.completedRequiredSteps} / ${progress.totalRequiredSteps} passi obbligatori`
-                : `${sortedSteps.length} passi totali`}
-            </span>
-            <span className={cn(
-              'font-semibold',
-              pct === 100 ? 'text-accent-emerald' : 'text-accent-cyan',
-            )}>
-              {pct}%
-            </span>
-          </div>
-          <ProgressBar percentage={pct} color={pct === 100 ? 'emerald' : 'cyan'} className="h-1.5" />
-          {pct === 100 && (
-            <p className="text-[0.75rem] text-accent-emerald font-semibold">
-              Percorso completato
+        {/* Mouse-tracking radial glow */}
+        <div
+          className={cn(
+            'absolute inset-0 pointer-events-none transition-opacity duration-300',
+            headerHovered ? 'opacity-100' : 'opacity-0',
+          )}
+          style={{
+            background: `radial-gradient(600px circle at ${mouse.x}% ${mouse.y}%, #4ECDC41a, transparent 65%)`,
+          }}
+        />
+
+        {/* Static cyan glow — top-left */}
+        <div className="pointer-events-none absolute -top-16 -left-16 h-52 w-52 rounded-full blur-3xl opacity-15"
+          style={{ background: '#4ECDC4' }} />
+
+        {/* Left accent bar */}
+        <div
+          className="absolute left-0 top-0 h-full transition-all duration-300"
+          style={{
+            width: headerHovered ? '5px' : '4px',
+            background: 'linear-gradient(to bottom, #4ECDC4, #4ECDC480)',
+            boxShadow: headerHovered ? '2px 0 12px 0 #4ECDC450' : 'none',
+          }}
+        />
+
+        {/* Grid pattern overlay */}
+        <div
+          className="absolute inset-0 opacity-[0.02] pointer-events-none"
+          style={{
+            backgroundImage: `
+              linear-gradient(#4ECDC4 1px, transparent 1px),
+              linear-gradient(90deg, #4ECDC4 1px, transparent 1px)
+            `,
+            backgroundSize: '40px 40px',
+          }}
+        />
+
+        {/* Content */}
+        <div className={cn(
+          'relative p-8 lg:p-10 transition-transform duration-300',
+          headerHovered && 'translate-x-0.5',
+        )}>
+          {/* Badges */}
+          {path.estimated_hours && (
+            <div {...delay(0)} className={cn(reveal, 'flex flex-wrap items-center gap-2 mb-4')}>
+              <span className="px-2.5 py-1 rounded-full bg-white/5 border border-white/10 text-[0.7rem] text-text-muted font-medium">
+                ~{path.estimated_hours}h
+              </span>
+            </div>
+          )}
+
+          <h1 {...delay(80)} className={cn(reveal, 'font-heading text-2xl lg:text-[2rem] font-extrabold text-text-primary leading-tight mb-2')}>
+            {path.title}
+          </h1>
+
+          {path.subtitle && (
+            <p {...delay(160)} className={cn(reveal, 'text-text-secondary text-[0.88rem] leading-relaxed mb-6 max-w-xl')}>
+              {path.subtitle}
             </p>
           )}
-        </div>
+
+          {/* Progress */}
+          <div {...delay(path.subtitle ? 240 : 160)} className={cn(reveal, 'space-y-2 max-w-sm')}>
+            <div className="flex items-center justify-between text-[0.75rem]">
+              <span className="text-text-muted">
+                {progress
+                  ? `${progress.completedRequiredSteps} / ${progress.totalRequiredSteps} passi obbligatori`
+                  : `${sortedSteps.length} passi totali`}
+              </span>
+              <span className={cn(
+                'font-semibold tabular-nums transition-colors duration-300',
+                pct === 100 ? 'text-accent-emerald' : 'text-accent-cyan',
+              )}>
+                {displayPct}%
+              </span>
+            </div>
+            <ProgressBar percentage={displayPct} color={pct === 100 ? 'emerald' : 'cyan'} className="h-1.5" />
+            {pct === 100 && (
+              <p className="text-[0.75rem] text-accent-emerald font-semibold">
+                Percorso completato
+              </p>
+            )}
+          </div>
+        </div>{/* /content */}
       </div>
 
       {/* Description */}
