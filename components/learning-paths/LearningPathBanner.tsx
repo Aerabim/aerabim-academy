@@ -4,6 +4,7 @@ import { useRef, useState, useEffect } from 'react';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import { AREA_CONFIG } from '@/lib/area-config';
+import { BookmarkButton } from '@/components/ui/BookmarkButton';
 import type { AreaCode } from '@/types';
 
 const ACCENT = '#4ECDC4';
@@ -73,6 +74,7 @@ export interface BannerPath {
   isCompleted: boolean;
   hasStarted: boolean;
   coursePreview: CourseChip[];
+  initialFavorited?: boolean;
 }
 
 interface LearningPathBannerProps {
@@ -190,6 +192,15 @@ export function LearningPathBanner({ path, index }: LearningPathBannerProps) {
           boxShadow: hovered ? `2px 0 12px 0 ${accent}50` : 'none',
         }}
       />
+
+      {/* Bookmark button */}
+      <div className="absolute top-3 right-3 z-30">
+        <BookmarkButton
+          itemType="path"
+          itemId={path.id}
+          initialFavorited={path.initialFavorited ?? false}
+        />
+      </div>
 
       {/* ── Content ── */}
       <div className="absolute inset-0 flex items-center pl-8 pr-4 md:pr-6">

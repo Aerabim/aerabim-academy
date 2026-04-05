@@ -61,6 +61,16 @@ const ADMIN_SECTIONS: AdminNavSection[] = [
         ),
       },
       {
+        href: '/admin/simulazioni',
+        label: 'Simulazioni',
+        icon: (
+          <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24">
+            <circle cx="12" cy="12" r="9" />
+            <path strokeLinecap="round" d="M12 7v5l3 3" />
+          </svg>
+        ),
+      },
+      {
         href: '/admin/sessioni-live',
         label: 'Aule Virtuali',
         icon: (

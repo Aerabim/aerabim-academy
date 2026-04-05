@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation';
 
-export default function IMieiCorsiPage() {
+export default function LeMieRisorsePage() {
   redirect('/la-mia-libreria');
 }

@@ -5,6 +5,7 @@ import { LearningPathBanners } from '@/components/learning-paths/LearningPathBan
 import { EnterpriseCtaBanner } from '@/components/learning-paths/EnterpriseCtaBanner';
 import type { BannerPath, CourseChip } from '@/components/learning-paths/LearningPathBanner';
 import type { AreaCode } from '@/types';
+import type { SupabaseClient } from '@supabase/supabase-js';
 
 export default async function LearningPathsPage() {
   const supabase = createServerClient();
@@ -65,18 +66,26 @@ export default async function LearningPathsPage() {
           }
         }
 
-        // User progress (completed / started)
+        // User progress (completed / started) + favorite path IDs
         const completedPathIds = new Set<string>();
         const startedPathIds = new Set<string>();
+        const favoritePathIds = new Set<string>();
 
         if (user) {
-          const { data: lppData } = await admin
-            .from('learning_path_progress')
-            .select('path_id, is_completed, completed_step_ids')
-            .eq('user_id', user.id)
-            .in('path_id', pathIds);
+          const [lppData, favData] = await Promise.all([
+            admin
+              .from('learning_path_progress')
+              .select('path_id, is_completed, completed_step_ids')
+              .eq('user_id', user.id)
+              .in('path_id', pathIds),
+            (supabase as unknown as SupabaseClient)
+              .from('favorites')
+              .select('path_id')
+              .eq('user_id', user.id)
+              .not('path_id', 'is', null),
+          ]);
 
-          for (const row of (lppData ?? []) as {
+          for (const row of (lppData.data ?? []) as {
             path_id: string; is_completed: boolean; completed_step_ids: string[];
           }[]) {
             if (row.is_completed) {
@@ -84,6 +93,10 @@ export default async function LearningPathsPage() {
             } else if (row.completed_step_ids?.length > 0) {
               startedPathIds.add(row.path_id);
             }
+          }
+
+          for (const row of (favData.data ?? []) as { path_id: string }[]) {
+            favoritePathIds.add(row.path_id);
           }
         }
 
@@ -98,6 +111,7 @@ export default async function LearningPathsPage() {
           isCompleted: completedPathIds.has(p.id),
           hasStarted: startedPathIds.has(p.id),
           coursePreview: courseChips.get(p.id) ?? [],
+          initialFavorited: favoritePathIds.has(p.id),
         }));
       }
     } catch (err) {

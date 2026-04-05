@@ -17,6 +17,8 @@ interface PathDetailProps {
   steps: LearningPathStepDisplay[];
   /** courseId → true if user is enrolled */
   enrolledCourseIds: Set<string>;
+  /** True if user has purchased this learning path */
+  isPathEnrolled: boolean;
 }
 
 const STEP_TYPE_ICON = {
@@ -25,9 +27,33 @@ const STEP_TYPE_ICON = {
   material: '📄',
 } as const;
 
-export function PathDetail({ path, steps, enrolledCourseIds }: PathDetailProps) {
+export function PathDetail({ path, steps, enrolledCourseIds, isPathEnrolled }: PathDetailProps) {
   const [progress, setProgress] = useState<LearningPathProgressData | null>(null);
   const [completingId, setCompletingId] = useState<string | null>(null);
+  const [checkingOut, setCheckingOut] = useState(false);
+  const [checkoutError, setCheckoutError] = useState('');
+
+  async function handleBuyPath() {
+    setCheckingOut(true);
+    setCheckoutError('');
+    try {
+      const res = await fetch('/api/checkout/learning-path', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pathId: path.id, pathSlug: path.slug }),
+      });
+      const json = await res.json() as { url?: string; error?: string };
+      if (!res.ok || !json.url) {
+        setCheckoutError(json.error ?? 'Errore durante il checkout.');
+        return;
+      }
+      window.location.href = json.url;
+    } catch {
+      setCheckoutError('Errore di rete. Riprova.');
+    } finally {
+      setCheckingOut(false);
+    }
+  }
 
   const sortedSteps = [...steps].sort((a, b) => a.orderNum - b.orderNum);
 
@@ -211,6 +237,51 @@ export function PathDetail({ path, steps, enrolledCourseIds }: PathDetailProps) 
             <p {...delay(160)} className={cn(reveal, 'text-text-secondary text-[0.88rem] leading-relaxed mb-6 max-w-xl')}>
               {path.subtitle}
             </p>
+          )}
+
+          {/* CTA acquisto percorso */}
+          {!isPathEnrolled && (path as unknown as { price_single: number }).price_single > 0 && (
+            <div {...delay(path.subtitle ? 220 : 140)} className={cn(reveal, 'mb-5')}>
+              {checkoutError && (
+                <p className="text-[0.75rem] text-accent-rose mb-2">{checkoutError}</p>
+              )}
+              <button
+                type="button"
+                onClick={handleBuyPath}
+                disabled={checkingOut}
+                className={cn(
+                  'inline-flex items-center gap-2.5 px-5 py-2.5 rounded-lg text-[0.88rem] font-bold transition-all duration-200',
+                  'bg-accent-amber text-brand-dark hover:brightness-110 active:scale-95',
+                  checkingOut && 'opacity-70 cursor-not-allowed',
+                )}
+                style={{ boxShadow: '0 0 20px -4px #F0A50060' }}
+              >
+                {checkingOut ? (
+                  <>
+                    <svg className="animate-spin" width="14" height="14" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth={3} />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+                    </svg>
+                    Reindirizzamento…
+                  </>
+                ) : (
+                  <>
+                    Acquista percorso
+                    {(path as unknown as { price_single: number }).price_single > 0 && (
+                      <span>
+                        — €{((path as unknown as { price_single: number }).price_single / 100).toFixed(2).replace('.', ',')}
+                      </span>
+                    )}
+                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M2 7h10M8 3l4 4-4 4" />
+                    </svg>
+                  </>
+                )}
+              </button>
+              <p className="text-[0.68rem] text-text-muted mt-2">
+                Accesso permanente · Include le simulazioni d&apos;esame Scritto + Pratico
+              </p>
+            </div>
           )}
 
           {/* Progress */}

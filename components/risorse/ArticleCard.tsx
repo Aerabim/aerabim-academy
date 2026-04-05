@@ -1,13 +1,15 @@
 import Link from 'next/link';
 import { Badge } from '@/components/ui/Badge';
+import { BookmarkButton } from '@/components/ui/BookmarkButton';
 import { AREA_CONFIG } from '@/lib/area-config';
 import type { ArticleDisplay, AreaCode } from '@/types';
 
 interface ArticleCardProps {
   article: ArticleDisplay;
+  initialFavorited?: boolean;
 }
 
-export function ArticleCard({ article }: ArticleCardProps) {
+export function ArticleCard({ article, initialFavorited = false }: ArticleCardProps) {
   const area = article.area ? AREA_CONFIG[article.area as AreaCode] : null;
 
   const dateLabel = article.publishedAt
@@ -19,10 +21,7 @@ export function ArticleCard({ article }: ArticleCardProps) {
     : '';
 
   return (
-    <Link
-      href={`/risorse/${article.slug}`}
-      className="group block bg-surface-1 border border-border-subtle rounded-lg overflow-hidden hover:border-border-hover transition-colors"
-    >
+    <div className="group relative bg-surface-1 border border-border-subtle rounded-lg overflow-hidden hover:border-border-hover transition-colors">
       {/* Cover image */}
       {article.coverUrl ? (
         <div className="aspect-[16/9] bg-surface-2 overflow-hidden">
@@ -41,6 +40,15 @@ export function ArticleCard({ article }: ArticleCardProps) {
           </svg>
         </div>
       )}
+
+      {/* Bookmark button — top-right corner */}
+      <div className="absolute top-2.5 right-2.5 z-20">
+        <BookmarkButton
+          itemType="article"
+          itemId={article.id}
+          initialFavorited={initialFavorited}
+        />
+      </div>
 
       {/* Content */}
       <div className="p-4">
@@ -70,6 +78,9 @@ export function ArticleCard({ article }: ArticleCardProps) {
           <span>{dateLabel}</span>
         </div>
       </div>
-    </Link>
+
+      {/* Full card link — behind bookmark button */}
+      <Link href={`/risorse/${article.slug}`} className="absolute inset-0 z-10" aria-label={article.title} />
+    </div>
   );
 }

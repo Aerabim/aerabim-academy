@@ -161,6 +161,54 @@ async function handleCheckoutCompleted(
     }
   }
 
+  if (metadata.type === 'learning_path') {
+    if (!metadata.pathId) {
+      console.error('Webhook: pathId mancante nella metadata per acquisto learning_path');
+      throw new Error('Missing pathId in metadata for learning_path purchase');
+    }
+
+    const paymentIntent = typeof session.payment_intent === 'string'
+      ? session.payment_intent
+      : null;
+
+    const { error: enrollError } = await admin
+      .from('learning_path_enrollments')
+      .upsert(
+        {
+          user_id: metadata.userId,
+          path_id: metadata.pathId,
+          stripe_payment_intent_id: paymentIntent,
+        },
+        { onConflict: 'user_id,path_id' },
+      );
+
+    if (enrollError) {
+      console.error('Webhook: errore creazione learning_path_enrollment:', enrollError);
+      throw enrollError;
+    }
+
+    // Notifica non-blocking
+    try {
+      const { data: pathInfo } = await admin
+        .from('learning_paths')
+        .select('title')
+        .eq('id', metadata.pathId)
+        .single();
+      const pathTitle = (pathInfo as { title: string } | null)?.title ?? 'percorso';
+      createNotification(admin, {
+        userId: metadata.userId,
+        type: 'purchase_confirmed',
+        title: `Percorso acquistato: ${pathTitle}`,
+        body: 'Ora puoi accedere alle simulazioni d\'esame del percorso.',
+        href: `/learning-paths/${metadata.pathSlug ?? ''}`,
+      });
+    } catch {
+      // Notification failure must never block webhook
+    }
+
+    return;
+  }
+
   if (metadata.type === 'pro_subscription') {
     const subscriptionId = typeof session.subscription === 'string'
       ? session.subscription

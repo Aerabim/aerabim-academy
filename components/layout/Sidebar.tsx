@@ -43,12 +43,12 @@ function buildSections(courseCount: number): SidebarNavSection[] {
         ),
       },
       {
-        href: '/i-miei-corsi',
-        label: 'I Miei Corsi',
+        href: '/la-mia-libreria',
+        label: 'Libreria',
         icon: (
           <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24">
-            <path d="M22 10v6M2 10l10-5 10 5-10 5z" />
-            <path d="M6 12v5c3 3 9 3 12 0v-5" />
+            <path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z" />
+            <path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z" />
           </svg>
         ),
       },
@@ -79,32 +79,12 @@ function buildSections(courseCount: number): SidebarNavSection[] {
     items: [
       {
         href: '/catalogo-corsi',
-        label: 'Catalogo Corsi',
+        label: 'Corsi',
         badge: courseCount > 0 ? String(courseCount) : undefined,
         icon: (
           <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24">
             <path d="M4 19.5A2.5 2.5 0 016.5 17H20" />
             <path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z" />
-          </svg>
-        ),
-      },
-      {
-        href: '/learning-paths',
-        label: 'Learning Paths',
-        icon: (
-          <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24">
-            <circle cx="12" cy="12" r="10" />
-            <path d="M12 6v6l4 2" />
-          </svg>
-        ),
-      },
-      {
-        href: '/simulazioni',
-        label: 'Simulazioni Esame',
-        icon: (
-          <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24">
-            <path d="M9 11l3 3L22 4" />
-            <path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11" />
           </svg>
         ),
       },
@@ -116,6 +96,26 @@ function buildSections(courseCount: number): SidebarNavSection[] {
             <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" />
             <path d="M14 2v6h6" />
             <path d="M16 13H8M16 17H8M10 9H8" />
+          </svg>
+        ),
+      },
+      {
+        href: '/learning-paths',
+        label: 'Percorsi',
+        icon: (
+          <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24">
+            <circle cx="12" cy="12" r="10" />
+            <path d="M12 6v6l4 2" />
+          </svg>
+        ),
+      },
+      {
+        href: '/simulazioni',
+        label: 'Esami',
+        icon: (
+          <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24">
+            <path d="M9 11l3 3L22 4" />
+            <path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11" />
           </svg>
         ),
       },

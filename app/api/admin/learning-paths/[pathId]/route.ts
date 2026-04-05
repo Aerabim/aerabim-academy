@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { revalidatePath } from 'next/cache';
 import { verifyAdmin } from '@/lib/admin/auth';
+import { getStripeServer } from '@/lib/stripe/client';
 import type { ApiError, UpdateLearningPathPayload } from '@/types';
 
 interface RouteParams {
@@ -48,6 +49,53 @@ export async function PATCH(req: Request, { params }: RouteParams) {
         );
       }
       updateData.slug = body.slug;
+    }
+
+    // Gestione prezzo + Stripe Price
+    if (body.priceInCents !== undefined && body.priceInCents >= 0) {
+      updateData.price_single = body.priceInCents;
+
+      if (body.priceInCents > 0) {
+        const stripe = getStripeServer();
+        if (stripe) {
+          try {
+            // Fetch path title for Stripe product
+            const { data: pathRow } = await admin
+              .from('learning_paths')
+              .select('title, stripe_price_id')
+              .eq('id', pathId)
+              .single();
+            const pathData = pathRow as { title: string; stripe_price_id: string | null } | null;
+
+            // Archive old price if exists
+            if (pathData?.stripe_price_id) {
+              try {
+                await stripe.prices.update(pathData.stripe_price_id, { active: false });
+              } catch {
+                // Non-critical: old price archiving can fail silently
+              }
+            }
+
+            // Create new Stripe Product + Price
+            const product = await stripe.products.create({
+              name: pathData?.title ?? `Percorso ${pathId}`,
+              metadata: { pathId, type: 'learning_path' },
+            });
+            const price = await stripe.prices.create({
+              product: product.id,
+              unit_amount: body.priceInCents,
+              currency: 'eur',
+            });
+            updateData.stripe_price_id = price.id;
+          } catch (stripeErr) {
+            console.error('Stripe Price creation error:', stripeErr);
+            // Non-blocking: save price_single even if Stripe fails
+          }
+        }
+      } else {
+        // price = 0 → percorso gratuito, rimuovi stripe_price_id
+        updateData.stripe_price_id = null;
+      }
     }
 
     if (Object.keys(updateData).length === 0) {

@@ -13,6 +13,7 @@ type AreaFilter = AreaCode | 'all';
 interface RisorseTabsProps {
   articles: ArticleDisplay[];
   pressMentions: PressMentionDisplay[];
+  favoriteArticleIds?: Set<string>;
 }
 
 const AREA_FILTERS: { value: AreaFilter; label: string }[] = [
@@ -24,7 +25,7 @@ const AREA_FILTERS: { value: AreaFilter; label: string }[] = [
   { value: 'AI', label: 'AI' },
 ];
 
-export function RisorseTabs({ articles, pressMentions }: RisorseTabsProps) {
+export function RisorseTabs({ articles, pressMentions, favoriteArticleIds = new Set() }: RisorseTabsProps) {
   const [activeTab, setActiveTab] = useState<Tab>('articoli');
   const [areaFilter, setAreaFilter] = useState<AreaFilter>('all');
 
@@ -97,7 +98,11 @@ export function RisorseTabs({ articles, pressMentions }: RisorseTabsProps) {
           {filteredArticles.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
               {filteredArticles.map((article) => (
-                <ArticleCard key={article.id} article={article} />
+                <ArticleCard
+                  key={article.id}
+                  article={article}
+                  initialFavorited={favoriteArticleIds.has(article.id)}
+                />
               ))}
             </div>
           ) : (

@@ -218,6 +218,38 @@ CREATE TABLE subscriptions (
 );
 ```
 
+### resources
+```sql
+CREATE TABLE resources (
+  id               UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  title            TEXT NOT NULL,
+  slug             TEXT NOT NULL UNIQUE,
+  description      TEXT,
+  type             TEXT NOT NULL CHECK (type IN ('pdf', 'zip', 'link')),
+  file_url         TEXT,
+  thumbnail_url    TEXT,
+  price_cents      INTEGER NOT NULL DEFAULT 0,
+  stripe_price_id  TEXT,
+  is_pro_included  BOOLEAN NOT NULL DEFAULT FALSE,
+  is_published     BOOLEAN NOT NULL DEFAULT FALSE,
+  order_num        INTEGER NOT NULL DEFAULT 0,
+  created_at       TIMESTAMPTZ DEFAULT now()
+);
+```
+
+### resource_purchases
+```sql
+CREATE TABLE resource_purchases (
+  id                       UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id                  UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  resource_id              UUID NOT NULL REFERENCES resources(id) ON DELETE CASCADE,
+  stripe_payment_intent_id TEXT,
+  amount_cents             INTEGER NOT NULL DEFAULT 0,
+  purchased_at             TIMESTAMPTZ DEFAULT now(),
+  UNIQUE(user_id, resource_id)
+);
+```
+
 ### quiz_questions
 ```sql
 CREATE TABLE quiz_questions (

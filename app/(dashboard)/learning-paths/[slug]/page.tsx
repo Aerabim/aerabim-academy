@@ -102,23 +102,25 @@ export default async function LearningPathDetailPage({ params }: PageProps) {
 
   // Fetch user enrollments for the courses in this path
   const enrolledCourseIds = new Set<string>();
+  let isPathEnrolled = false;
+
   if (user) {
     const courseIds = steps
       .filter((s) => s.stepType === 'course')
       .map((s) => (s.stepType === 'course' ? s.courseId : ''))
       .filter(Boolean);
 
-    if (courseIds.length > 0) {
-      const { data: enrollData } = await admin
-        .from('enrollments')
-        .select('course_id')
-        .eq('user_id', user.id)
-        .in('course_id', courseIds);
+    const [enrollResult, pathEnrollResult] = await Promise.all([
+      courseIds.length > 0
+        ? admin.from('enrollments').select('course_id').eq('user_id', user.id).in('course_id', courseIds)
+        : Promise.resolve({ data: [] }),
+      admin.from('learning_path_enrollments').select('id').eq('user_id', user.id).eq('path_id', path.id).maybeSingle(),
+    ]);
 
-      for (const e of (enrollData ?? []) as { course_id: string }[]) {
-        enrolledCourseIds.add(e.course_id);
-      }
+    for (const e of (enrollResult.data ?? []) as { course_id: string }[]) {
+      enrolledCourseIds.add(e.course_id);
     }
+    isPathEnrolled = !!pathEnrollResult.data;
   }
 
   return (
@@ -127,6 +129,7 @@ export default async function LearningPathDetailPage({ params }: PageProps) {
         path={path}
         steps={steps}
         enrolledCourseIds={enrolledCourseIds}
+        isPathEnrolled={isPathEnrolled}
       />
     </div>
   );

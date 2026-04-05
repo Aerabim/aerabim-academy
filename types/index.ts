@@ -546,6 +546,20 @@ export type Database = {
           updated_at?: string;
         };
       };
+      learning_path_enrollments: {
+        Row: {
+          id: string;
+          user_id: string;
+          path_id: string;
+          stripe_payment_intent_id: string | null;
+          created_at: string;
+        };
+        Insert: Omit<Database['public']['Tables']['learning_path_enrollments']['Row'], 'id' | 'created_at'> & {
+          id?: string;
+          created_at?: string;
+        };
+        Update: Partial<Database['public']['Tables']['learning_path_enrollments']['Insert']>;
+      };
       learning_paths: {
         Row: {
           id: string;
@@ -559,6 +573,8 @@ export type Database = {
           is_published: boolean;
           estimated_hours: number | null;
           order_num: number;
+          price_single: number;
+          stripe_price_id: string | null;
           created_at: string;
         };
         Insert: Omit<Database['public']['Tables']['learning_paths']['Row'], 'id' | 'created_at'> & {
@@ -605,6 +621,43 @@ export type Database = {
           updated_at?: string;
         };
         Update: Partial<Database['public']['Tables']['learning_path_progress']['Insert']>;
+      };
+      resources: {
+        Row: {
+          id: string;
+          title: string;
+          slug: string;
+          description: string | null;
+          type: 'pdf' | 'zip' | 'link';
+          file_url: string | null;
+          thumbnail_url: string | null;
+          price_cents: number;
+          stripe_price_id: string | null;
+          is_pro_included: boolean;
+          is_published: boolean;
+          order_num: number;
+          created_at: string;
+        };
+        Insert: Omit<Database['public']['Tables']['resources']['Row'], 'id' | 'created_at'> & {
+          id?: string;
+          created_at?: string;
+        };
+        Update: Partial<Database['public']['Tables']['resources']['Insert']>;
+      };
+      resource_purchases: {
+        Row: {
+          id: string;
+          user_id: string;
+          resource_id: string;
+          stripe_payment_intent_id: string | null;
+          amount_cents: number;
+          purchased_at: string;
+        };
+        Insert: Omit<Database['public']['Tables']['resource_purchases']['Row'], 'id' | 'purchased_at'> & {
+          id?: string;
+          purchased_at?: string;
+        };
+        Update: Partial<Database['public']['Tables']['resource_purchases']['Insert']>;
       };
     };
     Views: Record<string, never>;
@@ -1614,6 +1667,22 @@ export type LearningPath = Database['public']['Tables']['learning_paths']['Row']
 export type LearningPathStepRow = Database['public']['Tables']['learning_path_steps']['Row'];
 export type LearningPathProgress = Database['public']['Tables']['learning_path_progress']['Row'];
 
+// ── Resources ────────────────────────────────────────────────
+
+export type Resource = Database['public']['Tables']['resources']['Row'];
+export type ResourceInsert = Database['public']['Tables']['resources']['Insert'];
+export type ResourceUpdate = Database['public']['Tables']['resources']['Update'];
+
+export type ResourcePurchase = Database['public']['Tables']['resource_purchases']['Row'];
+export type ResourcePurchaseInsert = Database['public']['Tables']['resource_purchases']['Insert'];
+
+export type ResourceType = 'pdf' | 'zip' | 'link';
+
+/** Resource with purchase status for the current user */
+export interface ResourceWithAccess extends Resource {
+  isPurchased: boolean;
+}
+
 /** Step type discriminator */
 export type LearningPathStepType = 'course' | 'video' | 'material';
 
@@ -1719,6 +1788,7 @@ export interface CreateLearningPathPayload {
 
 export type UpdateLearningPathPayload = Partial<CreateLearningPathPayload> & {
   isPublished?: boolean;
+  priceInCents?: number;
 };
 
 interface AddStepPayloadBase {
@@ -1766,4 +1836,38 @@ export interface ReorderLearningPathStepsPayload {
 export interface MarkStepCompleteResponse {
   success: boolean;
   isPathCompleted: boolean;
+}
+
+// ── Simulations ─────────────────────────────────────────────────────────────
+
+export interface LearningPathEnrollment {
+  id: string;
+  userId: string;
+  pathId: string;
+  createdAt: string;
+}
+
+export interface CheckoutLearningPathRequest {
+  pathId: string;
+  pathSlug: string;
+}
+
+export interface SimulationRow {
+  id: string;
+  slug: string;
+  figura: string;
+  tipo: 'scritto' | 'pratico';
+  descrizione: string | null;
+  domande: number | null;
+  durataMin: number;
+  thumbnailUrl: string | null;
+  comingSoon: boolean;
+  orderNum: number;
+  pathId: string | null;
+}
+
+export interface UpdateSimulationPayload {
+  descrizione?: string;
+  thumbnailUrl?: string;
+  comingSoon?: boolean;
 }

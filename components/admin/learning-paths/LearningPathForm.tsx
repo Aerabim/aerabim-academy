@@ -34,6 +34,9 @@ export function LearningPathForm({ path }: LearningPathFormProps) {
     path?.estimated_hours?.toString() ?? '',
   );
   const [isPublished, setIsPublished] = useState(path?.is_published ?? false);
+  const [priceEur, setPriceEur] = useState(
+    path?.price_single ? (path.price_single / 100).toFixed(2) : '',
+  );
   const [slugTouched, setSlugTouched] = useState(isEdit);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -54,6 +57,7 @@ export function LearningPathForm({ path }: LearningPathFormProps) {
 
     setSaving(true);
     try {
+      const parsedPrice = parseFloat(priceEur);
       const payload = {
         title: title.trim(),
         slug: slug.trim(),
@@ -61,6 +65,9 @@ export function LearningPathForm({ path }: LearningPathFormProps) {
         description: description.trim() || undefined,
         estimatedHours: estimatedHours ? parseInt(estimatedHours, 10) : undefined,
         ...(isEdit && { isPublished }),
+        ...(isEdit && !isNaN(parsedPrice) && parsedPrice >= 0 && {
+          priceInCents: Math.round(parsedPrice * 100),
+        }),
       };
 
       const url = isEdit
@@ -166,17 +173,41 @@ export function LearningPathForm({ path }: LearningPathFormProps) {
         />
       </div>
 
-      {/* Estimated Hours */}
-      <div className="space-y-1.5">
-        <label className="text-[0.78rem] font-medium text-text-secondary">Ore stimate</label>
-        <input
-          type="number"
-          min={1}
-          value={estimatedHours}
-          onChange={(e) => setEstimatedHours(e.target.value)}
-          placeholder="es. 20"
-          className="w-full px-3 py-2 text-[0.83rem] bg-surface-2 border border-border-subtle rounded-md text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent-cyan/50 max-w-[160px]"
-        />
+      {/* Estimated Hours + Prezzo */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <div className="space-y-1.5">
+          <label className="text-[0.78rem] font-medium text-text-secondary">Ore stimate</label>
+          <input
+            type="number"
+            min={1}
+            value={estimatedHours}
+            onChange={(e) => setEstimatedHours(e.target.value)}
+            placeholder="es. 20"
+            className="w-full px-3 py-2 text-[0.83rem] bg-surface-2 border border-border-subtle rounded-md text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent-cyan/50"
+          />
+        </div>
+        {isEdit && (
+          <div className="space-y-1.5">
+            <label className="text-[0.78rem] font-medium text-text-secondary">
+              Prezzo (€)
+            </label>
+            <input
+              type="number"
+              min={0}
+              step="0.01"
+              value={priceEur}
+              onChange={(e) => setPriceEur(e.target.value)}
+              placeholder="es. 149.00"
+              className="w-full px-3 py-2 text-[0.83rem] bg-surface-2 border border-border-subtle rounded-md text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent-amber/50"
+            />
+            <p className="text-[0.68rem] text-text-muted">
+              Salva per creare automaticamente il Stripe Price.
+              {path?.stripe_price_id && (
+                <span className="text-accent-emerald ml-1">✓ Stripe configurato</span>
+              )}
+            </p>
+          </div>
+        )}
       </div>
 
       {/* Published toggle — edit mode only */}
