@@ -151,6 +151,7 @@ export async function getPublishedCourses(
         .sort((a, b) => a.orderNum - b.orderNum)
         .slice(0, 5),
       lessonCount: lessonCountMap.get(c.id) ?? 0,
+      createdAt: c.created_at,
       updatedAt: new Date(c.created_at).toLocaleDateString('it-IT', {
         month: 'long',
         year: 'numeric',
@@ -221,6 +222,7 @@ export async function getCourseBySlug(
     isFeatured: c.is_featured ?? false,
     moduleCount: modules.length,
     lessonCount: rawLessons.length,
+    createdAt: c.created_at,
     updatedAt: new Date(c.created_at).toLocaleDateString('it-IT', {
       month: 'long',
       year: 'numeric',

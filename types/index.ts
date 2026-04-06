@@ -752,6 +752,7 @@ export interface CourseWithMeta {
   moduleCount: number;
   lessonCount: number;
   modules?: { id: string; title: string; orderNum: number }[];
+  createdAt: string;
   updatedAt: string;
   languages: string[];
   instructor: InstructorInfo;
