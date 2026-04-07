@@ -18,9 +18,10 @@ const COURSE_STATUS_CLASS: Record<CourseStatus, string> = {
   draft:     'text-text-muted bg-surface-3 border-border-subtle',
   hidden:    'text-accent-amber bg-accent-amber/10 border-accent-amber/20',
   archived:  'text-accent-rose bg-accent-rose/10 border-accent-rose/20',
+  private:   'text-accent-violet bg-accent-violet/10 border-accent-violet/20',
 };
 const COURSE_STATUS_LABEL: Record<CourseStatus, string> = {
-  published: 'Pubblicato', draft: 'Bozza', hidden: 'Nascosto', archived: 'Archiviato',
+  published: 'Pubblicato', draft: 'Bozza', hidden: 'Nascosto', archived: 'Archiviato', private: 'Privato',
 };
 
 interface StepCardProps {

@@ -14,6 +14,8 @@ interface FormFieldProps {
   hint?: string;
   error?: string;
   className?: string;
+  min?: number;
+  step?: number;
 }
 
 export function FormField({
@@ -28,6 +30,8 @@ export function FormField({
   hint,
   error,
   className,
+  min,
+  step,
 }: FormFieldProps) {
   return (
     <div className={cn('space-y-1.5', className)}>
@@ -46,6 +50,8 @@ export function FormField({
         placeholder={placeholder}
         required={required}
         disabled={disabled}
+        min={min}
+        step={step}
         className={cn(
           'w-full px-3 py-2 bg-surface-2 border rounded-md text-[0.82rem] text-text-primary',
           'placeholder:text-text-muted transition-colors',

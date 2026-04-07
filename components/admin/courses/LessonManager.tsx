@@ -3,12 +3,14 @@
 import { useState, useCallback } from 'react';
 import {
   DndContext,
+  DragOverlay,
   closestCenter,
   KeyboardSensor,
   PointerSensor,
   useSensor,
   useSensors,
   type DragEndEvent,
+  type DragStartEvent,
 } from '@dnd-kit/core';
 import {
   SortableContext,
@@ -151,6 +153,7 @@ export function LessonManager({ courseId, moduleId, lessons: initialLessons, onL
   const [editingLesson, setEditingLesson] = useState<AdminLessonDetail | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<AdminLessonDetail | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [activeId, setActiveId] = useState<string | null>(null);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
@@ -170,7 +173,12 @@ export function LessonManager({ courseId, moduleId, lessons: initialLessons, onL
     }
   }, [courseId]);
 
+  function handleDragStart(event: DragStartEvent) {
+    setActiveId(event.active.id as string);
+  }
+
   function handleDragEnd(event: DragEndEvent) {
+    setActiveId(null);
     const { active, over } = event;
     if (!over || active.id === over.id) return;
 
@@ -236,6 +244,7 @@ export function LessonManager({ courseId, moduleId, lessons: initialLessons, onL
       <DndContext
         sensors={sensors}
         collisionDetection={closestCenter}
+        onDragStart={handleDragStart}
         onDragEnd={handleDragEnd}
       >
         <SortableContext items={lessons.map((l) => l.id)} strategy={verticalListSortingStrategy}>
@@ -248,6 +257,27 @@ export function LessonManager({ courseId, moduleId, lessons: initialLessons, onL
             />
           ))}
         </SortableContext>
+        <DragOverlay dropAnimation={null}>
+          {activeId ? (() => {
+            const lesson = lessons.find((l) => l.id === activeId);
+            if (!lesson) return null;
+            const typeConf = LESSON_TYPE_CONFIG[lesson.type as keyof typeof LESSON_TYPE_CONFIG];
+            return (
+              <div className="flex items-center gap-3 px-3 py-2 bg-surface-2 border border-accent-cyan/40 rounded-md shadow-xl opacity-95 cursor-grabbing">
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor" className="text-text-muted shrink-0">
+                  <circle cx="4.5" cy="3" r="1.2" /><circle cx="9.5" cy="3" r="1.2" />
+                  <circle cx="4.5" cy="7" r="1.2" /><circle cx="9.5" cy="7" r="1.2" />
+                  <circle cx="4.5" cy="11" r="1.2" /><circle cx="9.5" cy="11" r="1.2" />
+                </svg>
+                <span className="text-[0.7rem] text-text-muted font-mono w-5 text-right shrink-0">{lesson.orderNum}</span>
+                {typeConf && (
+                  <Badge variant={typeConf.badgeVariant} className="text-[0.58rem] shrink-0">{typeConf.label}</Badge>
+                )}
+                <span className="text-[0.82rem] text-text-primary flex-1 truncate">{lesson.title}</span>
+              </div>
+            );
+          })() : null}
+        </DragOverlay>
       </DndContext>
 
       {/* Add/edit lesson form */}

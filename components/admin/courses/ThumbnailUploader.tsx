@@ -97,7 +97,8 @@ export function ThumbnailUploader({ courseId, currentUrl, onUploaded, variant = 
       <div
         onClick={() => !uploading && fileRef.current?.click()}
         className={cn(
-          'relative w-full h-40 rounded-lg border-2 border-dashed overflow-hidden cursor-pointer transition-colors',
+          'relative w-full rounded-lg border-2 border-dashed overflow-hidden cursor-pointer transition-colors',
+          variant === 'expanded' ? 'aspect-video' : 'aspect-[3/4]',
           preview
             ? 'border-border-subtle hover:border-accent-cyan/40'
             : 'border-border-hover hover:border-accent-cyan/40 bg-surface-2/50',

@@ -1,6 +1,134 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { AdminOverviewStats, AdminRecentEnrollment, AdminCourseDetail, AdminModuleWithLessons } from '@/types';
 
+// ─── Activity feed ────────────────────────────────────────────────────────────
+
+export type ActivityAccessType = 'single' | 'pro_subscription' | 'free' | 'team';
+
+export interface AdminCourseActivityItem {
+  id: string;
+  type: 'created' | 'enrollment';
+  userName: string;
+  userEmail: string;
+  accessType?: ActivityAccessType;
+  date: string;
+}
+
+/**
+ * Returns a chronological activity log for one course:
+ * - course creation event
+ * - up to 30 most recent enrollments enriched with user data
+ */
+export async function getAdminCourseActivity(
+  admin: SupabaseClient,
+  courseId: string,
+  courseCreatedAt: string,
+): Promise<AdminCourseActivityItem[]> {
+  try {
+    const { data: enrollmentsRaw } = await admin
+      .from('enrollments')
+      .select('id, user_id, access_type, created_at')
+      .eq('course_id', courseId)
+      .order('created_at', { ascending: false })
+      .limit(30);
+
+    const enrollments = (enrollmentsRaw ?? []) as {
+      id: string; user_id: string; access_type: string; created_at: string;
+    }[];
+
+    const userIds = Array.from(new Set(enrollments.map((e) => e.user_id)));
+
+    const [profilesRes, authRes] = await Promise.all([
+      userIds.length > 0
+        ? admin.from('profiles').select('id, display_name').in('id', userIds)
+        : Promise.resolve({ data: [] as { id: string; display_name: string | null }[] }),
+      admin.auth.admin.listUsers({ perPage: 1000 }),
+    ]);
+
+    const nameMap = new Map(
+      ((profilesRes.data ?? []) as { id: string; display_name: string | null }[])
+        .map((u) => [u.id, u.display_name ?? '']),
+    );
+    const emailMap = new Map<string, string>();
+    for (const u of authRes.data?.users ?? []) {
+      emailMap.set(u.id, u.email ?? '');
+    }
+
+    const enrollmentItems: AdminCourseActivityItem[] = enrollments.map((e) => ({
+      id: e.id,
+      type: 'enrollment',
+      userName: nameMap.get(e.user_id) || emailMap.get(e.user_id) || 'Utente',
+      userEmail: emailMap.get(e.user_id) ?? '',
+      accessType: e.access_type as ActivityAccessType,
+      date: e.created_at,
+    }));
+
+    const creationItem: AdminCourseActivityItem = {
+      id: 'creation',
+      type: 'created',
+      userName: 'Sistema',
+      userEmail: '',
+      date: courseCreatedAt,
+    };
+
+    return [...enrollmentItems, creationItem];
+  } catch (err) {
+    console.error('getAdminCourseActivity error:', err);
+    return [];
+  }
+}
+
+export interface AdminCourseStats {
+  enrolledCount: number;
+  completionCount: number;
+}
+
+/**
+ * Fetches enrollment count and full-course completion count for a single course.
+ * completionCount = distinct users who have completed every lesson in the course.
+ */
+export async function getAdminCourseStats(
+  admin: SupabaseClient,
+  courseId: string,
+  lessonIds: string[],
+): Promise<AdminCourseStats> {
+  try {
+    const [enrollResult, progressResult] = await Promise.all([
+      admin
+        .from('enrollments')
+        .select('id', { count: 'exact', head: true })
+        .eq('course_id', courseId),
+      lessonIds.length > 0
+        ? admin
+            .from('progress')
+            .select('user_id, lesson_id')
+            .in('lesson_id', lessonIds)
+            .eq('completed', true)
+        : Promise.resolve({ data: [] as { user_id: string; lesson_id: string }[] }),
+    ]);
+
+    const enrolledCount = enrollResult.count ?? 0;
+
+    let completionCount = 0;
+    if (lessonIds.length > 0) {
+      const rows = (progressResult.data ?? []) as { user_id: string; lesson_id: string }[];
+      const byUser = new Map<string, Set<string>>();
+      for (const row of rows) {
+        if (!byUser.has(row.user_id)) byUser.set(row.user_id, new Set());
+        byUser.get(row.user_id)!.add(row.lesson_id);
+      }
+      for (const completed of byUser.values()) {
+        if (lessonIds.every((id) => completed.has(id))) completionCount++;
+      }
+    }
+
+    return { enrolledCount, completionCount };
+  } catch (err) {
+    console.error('getAdminCourseStats error:', err);
+    return { enrolledCount: 0, completionCount: 0 };
+  }
+}
+
 /**
  * Fetches aggregate stats for the admin overview dashboard.
  * Uses the admin (service_role) client to read across all users.

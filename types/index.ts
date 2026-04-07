@@ -1,7 +1,7 @@
 // Tipi TypeScript globali per AerACADEMY
 // Questo file verrà popolato con i tipi generati da Supabase CLI (npx supabase gen types)
 
-export type CourseStatus = 'draft' | 'hidden' | 'published' | 'archived';
+export type CourseStatus = 'draft' | 'hidden' | 'published' | 'archived' | 'private';
 
 export type Database = {
   public: {
@@ -742,6 +742,7 @@ export interface CourseWithMeta {
   description: string;
   area: AreaCode;
   level: LevelCode;
+  status: CourseStatus;
   priceSingle: number;
   isFree: boolean;
   durationMin: number;
@@ -1307,6 +1308,8 @@ export interface AdminCourseListItem {
   isFeatured: boolean;
   moduleCount: number;
   lessonCount: number;
+  thumbnailUrl: string | null;
+  stripePriceId: string | null;
   createdAt: string;
 }
 

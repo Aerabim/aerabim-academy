@@ -22,6 +22,7 @@ const TYPE_OPTIONS = [
 
 export function LessonForm({ courseId, moduleId, lesson, onSaved, onCancel }: LessonFormProps) {
   const isEditing = !!lesson;
+  const uid = lesson?.id ?? moduleId;
 
   const [title, setTitle] = useState(lesson?.title ?? '');
   const [type, setType] = useState<string>(lesson?.type ?? 'video');
@@ -95,7 +96,7 @@ export function LessonForm({ courseId, moduleId, lesson, onSaved, onCancel }: Le
         <div className="grid grid-cols-2 gap-3">
           <FormField
             label="Titolo lezione"
-            id="lessonTitle"
+            id={`lessonTitle-${uid}`}
             value={title}
             onChange={setTitle}
             placeholder="es. Introduzione a Revit"
@@ -103,7 +104,7 @@ export function LessonForm({ courseId, moduleId, lesson, onSaved, onCancel }: Le
           />
           <FormSelect
             label="Tipo"
-            id="lessonType"
+            id={`lessonType-${uid}`}
             value={type}
             onChange={setType}
             options={TYPE_OPTIONS}

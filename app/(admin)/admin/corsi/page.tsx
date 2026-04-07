@@ -12,12 +12,13 @@ export default async function AdminCoursesPage() {
     try {
       const { data } = await admin
         .from('courses')
-        .select('id, slug, title, area, level, price_single, is_free, status, is_featured, created_at')
-        .order('created_at', { ascending: false });
+        .select('id, slug, title, area, level, price_single, is_free, status, is_featured, thumbnail_url, stripe_price_id, order_num, created_at')
+        .order('order_num', { ascending: true });
 
       const rawCourses = (data ?? []) as {
         id: string; slug: string; title: string; area: string; level: string;
-        price_single: number; is_free: boolean; status: string; is_featured: boolean; created_at: string;
+        price_single: number; is_free: boolean; status: string; is_featured: boolean;
+        thumbnail_url: string | null; stripe_price_id: string | null; created_at: string;
       }[];
 
       const courseIds = rawCourses.map((c) => c.id);
@@ -50,6 +51,8 @@ export default async function AdminCoursesPage() {
         moduleCount: modulesByCourse.get(c.id) ?? 0,
         lessonCount: 0,
         enrolledCount: enrollsByCourse.get(c.id) ?? 0,
+        thumbnailUrl: c.thumbnail_url,
+        stripePriceId: c.stripe_price_id,
         createdAt: c.created_at,
       }));
     } catch (err) {

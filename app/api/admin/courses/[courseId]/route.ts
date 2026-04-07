@@ -29,6 +29,7 @@ export async function PATCH(req: Request, { params }: RouteParams) {
     if (body.level !== undefined) updateData.level = body.level;
     if (body.priceSingle !== undefined) updateData.price_single = body.priceSingle;
     if (body.isFree !== undefined) updateData.is_free = body.isFree;
+    if (body.isFeatured !== undefined) updateData.is_featured = body.isFeatured;
     if (body.status !== undefined) updateData.status = body.status;
     if (body.thumbnailUrl !== undefined) updateData.thumbnail_url = body.thumbnailUrl;
     if (body.thumbnailExpandedUrl !== undefined) updateData.thumbnail_expanded_url = body.thumbnailExpandedUrl;

@@ -65,6 +65,9 @@ export default async function CourseDetailPage({ params, searchParams }: PagePro
     }
   }
 
+  // Private courses are only accessible to enrolled users and admins
+  if (course.status === 'private' && !isAdmin && !isEnrolled) notFound();
+
   // Fetch modules + lessons, reviews, materials, and favorite status in parallel
   const [modules, reviews, reviewStats, userReview, favoriteRow, materialsRaw] = await Promise.all([
     getCourseModulesWithLessons(supabase, course.id),

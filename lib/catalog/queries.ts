@@ -139,6 +139,7 @@ export async function getPublishedCourses(
       description: c.description ?? '',
       area: c.area as AreaCode,
       level: c.level as LevelCode,
+      status: c.status as import('@/types').CourseStatus,
       priceSingle: c.price_single,
       isFree: c.is_free,
       durationMin: c.duration_min ?? 0,
@@ -179,7 +180,7 @@ export async function getCourseBySlug(
     .eq('slug', slug);
 
   if (!options?.isAdmin) {
-    query = query.in('status', ['published', 'hidden']);
+    query = query.in('status', ['published', 'hidden', 'private']);
   }
 
   const { data, error } = await query.maybeSingle();
@@ -213,6 +214,7 @@ export async function getCourseBySlug(
     description: c.description ?? '',
     area: c.area as AreaCode,
     level: c.level as LevelCode,
+    status: c.status as import('@/types').CourseStatus,
     priceSingle: c.price_single,
     isFree: c.is_free,
     durationMin: c.duration_min ?? 0,
