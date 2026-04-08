@@ -27,10 +27,12 @@ export type Database = {
           preview_playback_id: string | null;
           preview_asset_id: string | null;
           created_at: string;
+          updated_at: string;
         };
-        Insert: Omit<Database['public']['Tables']['courses']['Row'], 'id' | 'created_at' | 'avg_rating' | 'review_count'> & {
+        Insert: Omit<Database['public']['Tables']['courses']['Row'], 'id' | 'created_at' | 'updated_at' | 'avg_rating' | 'review_count'> & {
           id?: string;
           created_at?: string;
+          updated_at?: string;
           avg_rating?: number;
           review_count?: number;
         };

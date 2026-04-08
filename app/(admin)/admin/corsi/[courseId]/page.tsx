@@ -14,6 +14,7 @@ import type { CourseNavTab } from '@/components/admin/courses/CourseNavTabs';
 import { CourseTabPanel } from '@/components/admin/courses/CourseTabPanel';
 import { CourseActivityFeed } from '@/components/admin/courses/CourseActivityFeed';
 import { Badge } from '@/components/ui/Badge';
+import { timeAgo } from '@/lib/utils';
 import type { CourseMaterial } from '@/types';
 
 interface PageProps {
@@ -100,7 +101,7 @@ export default async function EditCoursePage({ params }: PageProps) {
             <h1 className="text-[1.3rem] font-heading font-bold text-text-primary">
               {course.title}
             </h1>
-            <div className="flex items-center gap-2 mt-1">
+            <div className="flex items-center gap-2 mt-1 flex-wrap">
               <span className="text-[0.78rem] text-text-muted">/{course.slug}</span>
               <Badge variant={course.status === 'published' ? 'emerald' : course.status === 'hidden' ? 'amber' : course.status === 'archived' ? 'rose' : course.status === 'private' ? 'violet' : 'amber'}>
                 {course.status === 'published' ? 'Pubblicato' : course.status === 'hidden' ? 'Nascosto' : course.status === 'archived' ? 'Archiviato' : course.status === 'private' ? 'Privato' : 'Bozza'}
@@ -108,6 +109,12 @@ export default async function EditCoursePage({ params }: PageProps) {
               {course.is_featured && (
                 <Badge variant="cyan">In evidenza</Badge>
               )}
+              <span className="flex items-center gap-1 text-[0.72rem] text-text-muted">
+                <svg width="11" height="11" fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24" className="shrink-0">
+                  <circle cx="12" cy="12" r="10" /><path d="M12 6v6l4 2" />
+                </svg>
+                Modificato {timeAgo(course.updated_at)}
+              </span>
             </div>
           </div>
           {course.status === 'published' && (
@@ -158,6 +165,26 @@ export default async function EditCoursePage({ params }: PageProps) {
             <span className="text-[0.8rem] font-semibold text-text-primary tabular-nums">{completionCount}</span>
             <span className="text-[0.72rem] text-text-muted">{completionCount === 1 ? 'completamento' : 'completamenti'}</span>
           </div>
+          {course.review_count > 0 && (
+            <>
+              <div className="flex items-center gap-1.5 px-2.5 py-1.5 bg-surface-2 border border-border-subtle rounded-md">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" className="text-accent-amber shrink-0">
+                  <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+                </svg>
+                <span className="text-[0.8rem] font-semibold text-text-primary tabular-nums">
+                  {course.avg_rating.toFixed(1)}
+                </span>
+                <span className="text-[0.72rem] text-text-muted">rating</span>
+              </div>
+              <div className="flex items-center gap-1.5 px-2.5 py-1.5 bg-surface-2 border border-border-subtle rounded-md">
+                <svg width="13" height="13" fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24" className="text-text-muted shrink-0">
+                  <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+                </svg>
+                <span className="text-[0.8rem] font-semibold text-text-primary tabular-nums">{course.review_count}</span>
+                <span className="text-[0.72rem] text-text-muted">{course.review_count === 1 ? 'recensione' : 'recensioni'}</span>
+              </div>
+            </>
+          )}
         </div>
       </div>
 
