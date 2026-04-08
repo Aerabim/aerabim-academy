@@ -1,7 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type {
   AdminOverviewStats,
-  AdminRecentEnrollment,
   AdminActivityEvent,
   AdminDraftCourse,
   AdminTopCourse,
@@ -159,7 +158,6 @@ export async function getAdminOverviewStats(
     activityFeed: [],
     draftCourses: [],
     topCourses: [],
-    recentEnrollments: [],
   };
 
   try {
@@ -346,16 +344,6 @@ export async function getAdminOverviewStats(
       updatedAt: d.updated_at,
     }));
 
-    // ── Backwards-compat recentEnrollments ────────────────────────────────────
-    const recentEnrollments: AdminRecentEnrollment[] = rawEnrollments.map((e) => ({
-      id:          e.id,
-      userEmail:   emailMap.get(e.user_id)    ?? '',
-      userName:    nameMap.get(e.user_id)     ?? 'Utente',
-      courseTitle: courseMap.get(e.course_id) ?? 'Corso',
-      accessType:  e.access_type,
-      createdAt:   e.created_at,
-    }));
-
     return {
       totalUsers:              usersResult.count          ?? 0,
       activeEnrollments:       enrollmentsResult.count    ?? 0,
@@ -367,7 +355,6 @@ export async function getAdminOverviewStats(
       activityFeed,
       draftCourses,
       topCourses,
-      recentEnrollments,
     };
   } catch (err) {
     console.error('getAdminOverviewStats error:', err);

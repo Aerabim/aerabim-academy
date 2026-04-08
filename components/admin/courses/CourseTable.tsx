@@ -45,7 +45,7 @@ const STATUS_CONFIG: Record<CourseStatus, { label: string; dotClass: string; btn
 
 const STATUS_ORDER: CourseStatus[] = ['draft', 'hidden', 'published', 'private', 'archived'];
 
-type SortCol = 'title' | 'price' | 'modules' | 'enrolled' | 'created';
+type SortCol = 'title' | 'price' | 'modules' | 'enrolled' | 'updated';
 type SortDir = 'asc' | 'desc';
 
 interface CheckItem { label: string; ok: boolean }
@@ -54,6 +54,7 @@ function completenessChecks(course: AdminCourseListItem): CheckItem[] {
   return [
     { label: 'Copertina',         ok: !!course.thumbnailUrl },
     { label: 'Almeno un modulo',  ok: course.moduleCount > 0 },
+    { label: 'Almeno una lezione', ok: course.lessonCount > 0 },
     { label: 'Prezzo impostato',  ok: course.isFree || course.priceSingle > 0 },
     { label: 'Stripe collegato',  ok: course.isFree || !!course.stripePriceId },
   ];
@@ -212,7 +213,7 @@ export function CourseTable({ courses: initialCourses }: CourseTableProps) {
         if (sortCol === 'price')    cmp = a.priceSingle - b.priceSingle;
         if (sortCol === 'modules')  cmp = a.moduleCount - b.moduleCount;
         if (sortCol === 'enrolled') cmp = a.enrolledCount - b.enrolledCount;
-        if (sortCol === 'created')  cmp = new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+        if (sortCol === 'updated')  cmp = new Date(a.updatedAt).getTime() - new Date(b.updatedAt).getTime();
         return sortDir === 'asc' ? cmp : -cmp;
       });
     }
@@ -224,7 +225,7 @@ export function CourseTable({ courses: initialCourses }: CourseTableProps) {
   const dragEnabled = !sortCol && !filter && activeFilters === 0;
 
   function exportCsv() {
-    const headers = ['Titolo', 'Slug', 'Area', 'Livello', 'Prezzo (€)', 'Gratuito', 'Stato', 'Moduli', 'Iscritti', 'In evidenza', 'Creato il'];
+    const headers = ['Titolo', 'Slug', 'Area', 'Livello', 'Prezzo (€)', 'Gratuito', 'Stato', 'Moduli', 'Lezioni', 'Iscritti', 'In evidenza', 'Ultima modifica'];
     const rows = displayed.map((c) => [
       `"${c.title.replace(/"/g, '""')}"`,
       c.slug,
@@ -234,9 +235,10 @@ export function CourseTable({ courses: initialCourses }: CourseTableProps) {
       c.isFree ? 'Sì' : 'No',
       STATUS_CONFIG[c.status].label,
       c.moduleCount,
+      c.lessonCount,
       c.enrolledCount,
       c.isFeatured ? 'Sì' : 'No',
-      new Date(c.createdAt).toLocaleDateString('it-IT'),
+      new Date(c.updatedAt).toLocaleDateString('it-IT'),
     ]);
 
     const csv = [headers.join(';'), ...rows.map((r) => r.join(';'))].join('\n');
@@ -410,8 +412,64 @@ export function CourseTable({ courses: initialCourses }: CourseTableProps) {
   const thBase = 'px-4 py-2.5 text-[0.7rem] font-heading font-bold uppercase tracking-wider text-text-muted';
   const selectBase = 'mt-1 w-full bg-surface-3 border border-border-subtle rounded text-[0.68rem] text-text-secondary px-1.5 py-1 focus:outline-none focus:border-accent-cyan/40 cursor-pointer';
 
+  // Status summary counts (always from full list, not filtered)
+  const statusCounts = useMemo(() => {
+    const counts: Partial<Record<CourseStatus, number>> = {};
+    for (const c of courses) {
+      counts[c.status] = (counts[c.status] ?? 0) + 1;
+    }
+    return counts;
+  }, [courses]);
+
+  const STATUS_PILL: Record<CourseStatus, { dot: string; active: string; hover: string }> = {
+    published: { dot: 'bg-accent-emerald', active: 'bg-accent-emerald/15 text-accent-emerald border-accent-emerald/30', hover: 'hover:bg-accent-emerald/8 hover:text-accent-emerald hover:border-accent-emerald/20' },
+    draft:     { dot: 'bg-text-muted',     active: 'bg-surface-3 text-text-secondary border-border-hover',              hover: 'hover:bg-surface-2 hover:text-text-secondary hover:border-border-hover' },
+    hidden:    { dot: 'bg-accent-amber',   active: 'bg-accent-amber/15 text-accent-amber border-accent-amber/30',       hover: 'hover:bg-accent-amber/8 hover:text-accent-amber hover:border-accent-amber/20' },
+    archived:  { dot: 'bg-accent-rose',    active: 'bg-accent-rose/15 text-accent-rose border-accent-rose/30',          hover: 'hover:bg-accent-rose/8 hover:text-accent-rose hover:border-accent-rose/20' },
+    private:   { dot: 'bg-accent-violet',  active: 'bg-accent-violet/15 text-accent-violet border-accent-violet/30',    hover: 'hover:bg-accent-violet/8 hover:text-accent-violet hover:border-accent-violet/20' },
+  };
+
   return (
     <>
+      {/* Status summary pills */}
+      {courses.length > 0 && (
+        <div className="flex items-center gap-2 mb-4 flex-wrap">
+          <button
+            onClick={() => setFilterStatus('')}
+            className={cn(
+              'flex items-center gap-1.5 px-3 py-1 rounded-full text-[0.72rem] font-medium border transition-colors',
+              filterStatus === ''
+                ? 'bg-surface-3 text-text-primary border-border-hover'
+                : 'bg-surface-1 text-text-muted border-border-subtle hover:bg-surface-2 hover:text-text-secondary',
+            )}
+          >
+            Tutti
+            <span className="font-heading font-bold">{courses.length}</span>
+          </button>
+          {STATUS_ORDER.filter((s) => (statusCounts[s] ?? 0) > 0).map((s) => {
+            const pill = STATUS_PILL[s];
+            const count = statusCounts[s] ?? 0;
+            const isActive = filterStatus === s;
+            return (
+              <button
+                key={s}
+                onClick={() => setFilterStatus(isActive ? '' : s)}
+                className={cn(
+                  'flex items-center gap-1.5 px-3 py-1 rounded-full text-[0.72rem] font-medium border transition-colors',
+                  isActive
+                    ? pill.active
+                    : cn('bg-surface-1 text-text-muted border-border-subtle', pill.hover),
+                )}
+              >
+                <span className={cn('w-1.5 h-1.5 rounded-full shrink-0', pill.dot)} />
+                {STATUS_CONFIG[s].label}
+                <span className="font-heading font-bold">{count}</span>
+              </button>
+            );
+          })}
+        </div>
+      )}
+
       {/* Toolbar */}
       <div className="flex items-center gap-3 mb-4">
         <div className="relative flex-1 max-w-xs">
@@ -427,11 +485,11 @@ export function CourseTable({ courses: initialCourses }: CourseTableProps) {
             className="w-full pl-9 pr-3 py-2 bg-surface-2 border border-border-subtle rounded-md text-[0.78rem] text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent-cyan/50 focus:ring-1 focus:ring-accent-cyan/20 transition-all"
           />
         </div>
-        <span className="text-[0.75rem] text-text-muted">
-          {displayed.length === courses.length
-            ? `${courses.length} ${courses.length === 1 ? 'corso' : 'corsi'}`
-            : `${displayed.length} di ${courses.length}`}
-        </span>
+        {filter && (
+          <span className="text-[0.75rem] text-text-muted">
+            {displayed.length} {displayed.length === 1 ? 'risultato' : 'risultati'}
+          </span>
+        )}
 
         {activeFilters > 0 && (
           <button
@@ -442,6 +500,16 @@ export function CourseTable({ courses: initialCourses }: CourseTableProps) {
             <svg width="11" height="11" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12" /></svg>
             Filtri ({activeFilters})
           </button>
+        )}
+        {!dragEnabled && courses.length > 1 && (
+          <span className="flex items-center gap-1 text-[0.7rem] text-text-muted/50 select-none">
+            <svg width="10" height="10" viewBox="0 0 12 12" fill="currentColor" className="opacity-40">
+              <circle cx="4" cy="2" r="1.2"/><circle cx="8" cy="2" r="1.2"/>
+              <circle cx="4" cy="6" r="1.2"/><circle cx="8" cy="6" r="1.2"/>
+              <circle cx="4" cy="10" r="1.2"/><circle cx="8" cy="10" r="1.2"/>
+            </svg>
+            Riordina disabilitato
+          </span>
         )}
         <button
           onClick={exportCsv}
@@ -564,10 +632,10 @@ export function CourseTable({ courses: initialCourses }: CourseTableProps) {
                 </button>
               </th>
 
-              {/* Moduli — sortable */}
+              {/* Moduli / Lezioni — sortable */}
               <th className={thBase}>
                 <button onClick={() => toggleSort('modules')} className="flex items-center gap-1.5 hover:text-text-secondary transition-colors">
-                  Moduli
+                  Moduli · Lez.
                   <SortIcon active={sortCol === 'modules'} dir={sortDir} />
                 </button>
               </th>
@@ -598,11 +666,11 @@ export function CourseTable({ courses: initialCourses }: CourseTableProps) {
                 </select>
               </th>
 
-              {/* Creato il — sortable */}
+              {/* Ultima modifica — sortable */}
               <th className={thBase}>
-                <button onClick={() => toggleSort('created')} className="flex items-center gap-1.5 hover:text-text-secondary transition-colors">
-                  Creato il
-                  <SortIcon active={sortCol === 'created'} dir={sortDir} />
+                <button onClick={() => toggleSort('updated')} className="flex items-center gap-1.5 hover:text-text-secondary transition-colors">
+                  Ultima modifica
+                  <SortIcon active={sortCol === 'updated'} dir={sortDir} />
                 </button>
               </th>
 
@@ -636,25 +704,54 @@ export function CourseTable({ courses: initialCourses }: CourseTableProps) {
                     )}
                   >
                     <td className="pl-3 pr-1 py-3 w-6">
-                      {dragEnabled && (
-                        <span className="text-text-muted/30 hover:text-text-muted cursor-grab active:cursor-grabbing transition-colors select-none">
-                          <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor">
-                            <circle cx="4" cy="2" r="1.2"/><circle cx="8" cy="2" r="1.2"/>
-                            <circle cx="4" cy="6" r="1.2"/><circle cx="8" cy="6" r="1.2"/>
-                            <circle cx="4" cy="10" r="1.2"/><circle cx="8" cy="10" r="1.2"/>
-                          </svg>
-                        </span>
-                      )}
+                      <span
+                        title={dragEnabled ? 'Trascina per riordinare' : 'Rimuovi filtri e ordinamento per riordinare'}
+                        className={cn(
+                          'transition-colors select-none',
+                          dragEnabled
+                            ? 'text-text-muted/30 hover:text-text-muted cursor-grab active:cursor-grabbing'
+                            : 'text-text-muted/15 cursor-not-allowed',
+                        )}
+                      >
+                        <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor">
+                          <circle cx="4" cy="2" r="1.2"/><circle cx="8" cy="2" r="1.2"/>
+                          <circle cx="4" cy="6" r="1.2"/><circle cx="8" cy="6" r="1.2"/>
+                          <circle cx="4" cy="10" r="1.2"/><circle cx="8" cy="10" r="1.2"/>
+                        </svg>
+                      </span>
                     </td>
                     <td className="pl-2 pr-2 py-3 w-8">
                       <Checkbox checked={selected.has(course.id)} onChange={() => toggleSelect(course.id)} />
                     </td>
                     <td className="px-4 py-3">
-                      <Link href={`/admin/corsi/${course.id}`} className="text-[0.82rem] font-medium text-text-primary hover:text-accent-cyan transition-colors">
-                        {course.title}
-                      </Link>
-                      <div className="text-[0.7rem] text-text-muted mt-0.5">/{course.slug}</div>
-                      <CompletenessIndicator course={course} />
+                      <div className="flex items-center gap-3">
+                        {/* Thumbnail */}
+                        <Link href={`/admin/corsi/${course.id}`} className="shrink-0">
+                          {course.thumbnailUrl ? (
+                            <img
+                              src={course.thumbnailUrl}
+                              alt=""
+                              className="w-14 h-9 rounded object-cover bg-surface-3 border border-border-subtle"
+                            />
+                          ) : (
+                            <div className="w-14 h-9 rounded bg-surface-3 border border-border-subtle flex items-center justify-center">
+                              <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24" className="text-text-muted/40">
+                                <rect x="3" y="3" width="18" height="18" rx="2" />
+                                <circle cx="8.5" cy="8.5" r="1.5" />
+                                <path d="M21 15l-5-5L5 21" />
+                              </svg>
+                            </div>
+                          )}
+                        </Link>
+                        {/* Title + slug + completeness */}
+                        <div className="min-w-0">
+                          <Link href={`/admin/corsi/${course.id}`} className="text-[0.82rem] font-medium text-text-primary hover:text-accent-cyan transition-colors line-clamp-1">
+                            {course.title}
+                          </Link>
+                          <div className="text-[0.7rem] text-text-muted mt-0.5">/{course.slug}</div>
+                          <CompletenessIndicator course={course} />
+                        </div>
+                      </div>
                     </td>
                     <td className="px-4 py-3">
                       {areaConf && <Badge variant={areaConf.badgeVariant}>{areaConf.label}</Badge>}
@@ -665,7 +762,11 @@ export function CourseTable({ courses: initialCourses }: CourseTableProps) {
                     <td className="px-4 py-3 text-[0.82rem] text-text-secondary">
                       {course.isFree ? <Badge variant="emerald">Gratuito</Badge> : formatPrice(course.priceSingle)}
                     </td>
-                    <td className="px-4 py-3 text-[0.82rem] text-text-secondary">{course.moduleCount}</td>
+                    <td className="px-4 py-3 text-[0.82rem] text-text-secondary whitespace-nowrap">
+                      {course.moduleCount}
+                      <span className="text-text-muted mx-1">·</span>
+                      {course.lessonCount}
+                    </td>
                     <td className="px-4 py-3 text-[0.82rem] text-text-secondary">{course.enrolledCount}</td>
                     <td className="px-4 py-3">
                       <button
@@ -700,7 +801,7 @@ export function CourseTable({ courses: initialCourses }: CourseTableProps) {
                       </button>
                     </td>
                     <td className="px-4 py-3 text-[0.78rem] text-text-muted whitespace-nowrap">
-                      {new Date(course.createdAt).toLocaleDateString('it-IT', { day: '2-digit', month: 'short', year: 'numeric' })}
+                      {new Date(course.updatedAt).toLocaleDateString('it-IT', { day: '2-digit', month: 'short', year: 'numeric' })}
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-1">

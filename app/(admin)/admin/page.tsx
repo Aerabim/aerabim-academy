@@ -31,7 +31,6 @@ export default async function AdminOverviewPage() {
         activityFeed: [],
         draftCourses: [],
         topCourses: [],
-        recentEnrollments: [],
       };
 
   const now = new Date();

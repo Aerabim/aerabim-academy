@@ -16,10 +16,33 @@ const jakarta = Plus_Jakarta_Sans({
   display: "swap",
 });
 
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://academy.aerabim.it';
+
 export const metadata: Metadata = {
-  title: "AerACADEMY | Formazione BIM Professionale",
+  title: {
+    default:  'AerACADEMY | Formazione BIM Professionale',
+    template: '%s | AerACADEMY',
+  },
   description:
-    "Piattaforma e-learning di AERABIM per la formazione professionale BIM/AEC. Corsi per professionisti tecnici e Pubblica Amministrazione.",
+    'Piattaforma e-learning di AERABIM per la formazione professionale BIM/AEC. Corsi per professionisti tecnici e Pubblica Amministrazione.',
+  metadataBase: new URL(APP_URL),
+  openGraph: {
+    type:        'website',
+    siteName:    'AerACADEMY',
+    title:       'AerACADEMY | Formazione BIM Professionale',
+    description: 'Corsi BIM/AEC per professionisti tecnici e Pubblica Amministrazione. Formazione certificata da AERABIM S.R.L.',
+    url:         APP_URL,
+    locale:      'it_IT',
+  },
+  twitter: {
+    card:        'summary_large_image',
+    title:       'AerACADEMY | Formazione BIM Professionale',
+    description: 'Corsi BIM/AEC per professionisti tecnici e Pubblica Amministrazione.',
+  },
+  robots: {
+    index:  true,
+    follow: true,
+  },
 };
 
 export default function RootLayout({

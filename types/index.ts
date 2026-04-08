@@ -1322,18 +1322,6 @@ export interface AdminOverviewStats {
   activityFeed: AdminActivityEvent[];
   draftCourses: AdminDraftCourse[];
   topCourses: AdminTopCourse[];
-  /** Kept for backwards compatibility — same data as activityFeed enrollments */
-  recentEnrollments: AdminRecentEnrollment[];
-}
-
-/** A recent enrollment entry for the admin dashboard feed */
-export interface AdminRecentEnrollment {
-  id: string;
-  userEmail: string;
-  userName: string;
-  courseTitle: string;
-  accessType: string;
-  createdAt: string;
 }
 
 /** Admin course list item */
@@ -1353,6 +1341,7 @@ export interface AdminCourseListItem {
   thumbnailUrl: string | null;
   stripePriceId: string | null;
   createdAt: string;
+  updatedAt: string;  // requires migration 20260408_courses_updated_at
 }
 
 /** Admin course detail with modules and lessons */
