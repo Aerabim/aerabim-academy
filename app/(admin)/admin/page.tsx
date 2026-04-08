@@ -3,11 +3,20 @@ export const dynamic = 'force-dynamic';
 import { getSupabaseAdmin } from '@/lib/supabase/admin';
 import { getAdminOverviewStats } from '@/lib/admin/queries';
 import { StatCard } from '@/components/admin/ui/StatCard';
-import { Badge } from '@/components/ui/Badge';
-import { timeAgo } from '@/lib/utils';
+import { PendingAlert } from '@/components/admin/overview/PendingAlert';
+import { QuickActions } from '@/components/admin/overview/QuickActions';
+import { ActivityFeed } from '@/components/admin/overview/ActivityFeed';
+import { DraftCourses } from '@/components/admin/overview/DraftCourses';
+import { TopCourses } from '@/components/admin/overview/TopCourses';
+import { createServerClient } from '@/lib/supabase/server';
 
 export default async function AdminOverviewPage() {
   const admin = getSupabaseAdmin();
+
+  // Greeting: fetch user name
+  const supabase = createServerClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  const firstName = ((user?.user_metadata?.full_name as string) || '').split(' ')[0] || 'Admin';
 
   const stats = admin
     ? await getAdminOverviewStats(admin)
@@ -17,27 +26,58 @@ export default async function AdminOverviewPage() {
         publishedCourses: 0,
         totalCourses: 0,
         pendingSessionRequests: 0,
+        newUsersThisWeek: 0,
+        newEnrollmentsThisWeek: 0,
+        activityFeed: [],
+        draftCourses: [],
+        topCourses: [],
         recentEnrollments: [],
       };
 
+  const now = new Date();
+  const hour = now.getHours();
+  const greeting =
+    hour < 12 ? 'Buongiorno' :
+    hour < 18 ? 'Buon pomeriggio' :
+                'Buonasera';
+
+  const dateLabel = now.toLocaleDateString('it-IT', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  });
+
   return (
-    <div className="p-6 lg:p-10 w-full space-y-8">
-      {/* Page title */}
-      <div>
-        <h1 className="text-[1.5rem] font-heading font-bold text-text-primary">
-          Pannello Admin
-        </h1>
-        <p className="text-[0.82rem] text-text-secondary mt-1">
-          Panoramica della piattaforma AerACADEMY.
-        </p>
+    <div className="p-6 lg:p-10 w-full space-y-7">
+
+      {/* ── Greeting ── */}
+      <div className="flex items-end justify-between gap-4">
+        <div>
+          <p className="text-[0.75rem] text-text-muted capitalize">{dateLabel}</p>
+          <h1 className="text-[1.6rem] font-heading font-bold text-text-primary mt-0.5">
+            {greeting}, {firstName}
+          </h1>
+        </div>
+        <span className="hidden sm:inline-flex items-center gap-1.5 text-[0.72rem] text-text-muted bg-surface-1 border border-border-subtle px-3 py-1.5 rounded-full">
+          <span className="w-1.5 h-1.5 rounded-full bg-accent-emerald animate-pulse" />
+          Piattaforma attiva
+        </span>
       </div>
 
-      {/* Stat cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+      {/* ── Pending alert (conditional) ── */}
+      <PendingAlert count={stats.pendingSessionRequests} />
+
+      {/* ── Quick actions ── */}
+      <QuickActions />
+
+      {/* ── Stat cards ── */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
           label="Utenti totali"
           value={stats.totalUsers}
           accent="cyan"
+          delta={{ value: stats.newUsersThisWeek, label: 'questa settimana' }}
           icon={
             <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24">
               <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" />
@@ -50,6 +90,7 @@ export default async function AdminOverviewPage() {
           label="Iscrizioni attive"
           value={stats.activeEnrollments}
           accent="emerald"
+          delta={{ value: stats.newEnrollmentsThisWeek, label: 'questa settimana' }}
           icon={
             <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24">
               <path d="M9 11l3 3L22 4" />
@@ -69,7 +110,7 @@ export default async function AdminOverviewPage() {
           }
         />
         <StatCard
-          label="Richieste sessioni"
+          label="Richieste pendenti"
           value={stats.pendingSessionRequests}
           accent="amber"
           icon={
@@ -82,53 +123,18 @@ export default async function AdminOverviewPage() {
         />
       </div>
 
-      {/* Recent enrollments */}
-      <div>
-        <h2 className="text-[1rem] font-heading font-semibold text-text-primary mb-4">
-          Iscrizioni recenti
-        </h2>
-        {stats.recentEnrollments.length === 0 ? (
-          <div className="bg-surface-1 border border-border-subtle rounded-lg p-6 text-center text-[0.82rem] text-text-muted">
-            Nessuna iscrizione recente.
-          </div>
-        ) : (
-          <div className="bg-surface-1 border border-border-subtle rounded-lg overflow-hidden">
-            <table className="w-full text-left">
-              <thead>
-                <tr className="border-b border-border-subtle bg-surface-2/50">
-                  <th className="px-4 py-3 text-[0.7rem] font-heading font-bold uppercase tracking-wider text-text-muted">Utente</th>
-                  <th className="px-4 py-3 text-[0.7rem] font-heading font-bold uppercase tracking-wider text-text-muted">Corso</th>
-                  <th className="px-4 py-3 text-[0.7rem] font-heading font-bold uppercase tracking-wider text-text-muted">Tipo</th>
-                  <th className="px-4 py-3 text-[0.7rem] font-heading font-bold uppercase tracking-wider text-text-muted">Data</th>
-                </tr>
-              </thead>
-              <tbody>
-                {stats.recentEnrollments.map((enrollment) => (
-                  <tr
-                    key={enrollment.id}
-                    className="border-b border-border-subtle last:border-b-0 hover:bg-surface-2/30 transition-colors"
-                  >
-                    <td className="px-4 py-3">
-                      <div className="text-[0.82rem] text-text-primary font-medium">{enrollment.userName}</div>
-                      <div className="text-[0.7rem] text-text-muted">{enrollment.userEmail}</div>
-                    </td>
-                    <td className="px-4 py-3 text-[0.82rem] text-text-secondary">
-                      {enrollment.courseTitle}
-                    </td>
-                    <td className="px-4 py-3">
-                      <Badge variant={enrollment.accessType === 'pro_subscription' ? 'cyan' : enrollment.accessType === 'free' ? 'emerald' : 'amber'}>
-                        {enrollment.accessType}
-                      </Badge>
-                    </td>
-                    <td className="px-4 py-3 text-[0.78rem] text-text-muted">
-                      {timeAgo(enrollment.createdAt)}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+      {/* ── Two-column layout ── */}
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-6">
+
+        {/* Left — activity feed */}
+        <ActivityFeed events={stats.activityFeed} />
+
+        {/* Right — draft courses + top courses */}
+        <div className="flex flex-col gap-6">
+          <DraftCourses courses={stats.draftCourses} />
+          <TopCourses courses={stats.topCourses} />
+        </div>
+
       </div>
     </div>
   );

@@ -1274,6 +1274,40 @@ export interface Notification {
 
 // ── Admin Panel Types ───────────────────────────────────
 
+/** Delta value for a stat metric */
+export interface AdminStatDelta {
+  value: number;   // absolute change (can be negative)
+  label: string;   // e.g. "questa settimana"
+}
+
+/** A single event in the admin activity feed */
+export interface AdminActivityEvent {
+  id: string;
+  type: 'enrollment' | 'new_user' | 'session_request';
+  userName: string;
+  userEmail: string;
+  /** For enrollments: the course title */
+  courseTitle?: string;
+  /** For enrollments: raw access type */
+  accessType?: string;
+  date: string;
+}
+
+/** A draft (unpublished) course entry */
+export interface AdminDraftCourse {
+  id: string;
+  title: string;
+  status: string;   // 'draft' | 'review' | etc.
+  updatedAt: string;
+}
+
+/** A top course by enrollment count */
+export interface AdminTopCourse {
+  id: string;
+  title: string;
+  enrollmentCount: number;
+}
+
 /** Overview stats for the admin dashboard */
 export interface AdminOverviewStats {
   totalUsers: number;
@@ -1281,6 +1315,14 @@ export interface AdminOverviewStats {
   publishedCourses: number;
   totalCourses: number;
   pendingSessionRequests: number;
+  /** Delta: users registered in the last 7 days */
+  newUsersThisWeek: number;
+  /** Delta: enrollments created in the last 7 days */
+  newEnrollmentsThisWeek: number;
+  activityFeed: AdminActivityEvent[];
+  draftCourses: AdminDraftCourse[];
+  topCourses: AdminTopCourse[];
+  /** Kept for backwards compatibility — same data as activityFeed enrollments */
   recentEnrollments: AdminRecentEnrollment[];
 }
 

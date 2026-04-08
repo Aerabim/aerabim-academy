@@ -3,18 +3,21 @@
 import { useState } from 'react';
 import { AdminSidebar } from './AdminSidebar';
 import { AdminHeader } from './AdminHeader';
+import type { DashboardUser } from '@/types';
 
 interface AdminShellProps {
+  user: DashboardUser;
   children: React.ReactNode;
 }
 
-export function AdminShell({ children }: AdminShellProps) {
+export function AdminShell({ user, children }: AdminShellProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
 
   return (
     <div className="h-screen bg-surface-0 flex overflow-hidden">
       <AdminSidebar
+        user={user}
         open={sidebarOpen}
         collapsed={collapsed}
         onClose={() => setSidebarOpen(false)}
