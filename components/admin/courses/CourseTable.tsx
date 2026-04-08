@@ -588,7 +588,7 @@ export function CourseTable({ courses: initialCourses }: CourseTableProps) {
 
               {/* Titolo — sortable */}
               <th className={thBase}>
-                <button onClick={() => toggleSort('title')} className="flex items-center gap-1.5 hover:text-text-secondary transition-colors">
+                <button onClick={() => toggleSort('title')} className="flex items-center gap-1.5 uppercase tracking-wider hover:text-text-secondary transition-colors">
                   Titolo
                   <SortIcon active={sortCol === 'title'} dir={sortDir} />
                 </button>
@@ -626,7 +626,7 @@ export function CourseTable({ courses: initialCourses }: CourseTableProps) {
 
               {/* Prezzo — sortable */}
               <th className={thBase}>
-                <button onClick={() => toggleSort('price')} className="flex items-center gap-1.5 hover:text-text-secondary transition-colors">
+                <button onClick={() => toggleSort('price')} className="flex items-center gap-1.5 uppercase tracking-wider hover:text-text-secondary transition-colors">
                   Prezzo
                   <SortIcon active={sortCol === 'price'} dir={sortDir} />
                 </button>
@@ -634,7 +634,7 @@ export function CourseTable({ courses: initialCourses }: CourseTableProps) {
 
               {/* Moduli / Lezioni — sortable */}
               <th className={thBase}>
-                <button onClick={() => toggleSort('modules')} className="flex items-center gap-1.5 hover:text-text-secondary transition-colors">
+                <button onClick={() => toggleSort('modules')} className="flex items-center gap-1.5 uppercase tracking-wider hover:text-text-secondary transition-colors">
                   Moduli · Lez.
                   <SortIcon active={sortCol === 'modules'} dir={sortDir} />
                 </button>
@@ -642,7 +642,7 @@ export function CourseTable({ courses: initialCourses }: CourseTableProps) {
 
               {/* Iscritti — sortable */}
               <th className={thBase}>
-                <button onClick={() => toggleSort('enrolled')} className="flex items-center gap-1.5 hover:text-text-secondary transition-colors">
+                <button onClick={() => toggleSort('enrolled')} className="flex items-center gap-1.5 uppercase tracking-wider hover:text-text-secondary transition-colors">
                   Iscritti
                   <SortIcon active={sortCol === 'enrolled'} dir={sortDir} />
                 </button>
@@ -668,7 +668,7 @@ export function CourseTable({ courses: initialCourses }: CourseTableProps) {
 
               {/* Ultima modifica — sortable */}
               <th className={thBase}>
-                <button onClick={() => toggleSort('updated')} className="flex items-center gap-1.5 hover:text-text-secondary transition-colors">
+                <button onClick={() => toggleSort('updated')} className="flex items-center gap-1.5 uppercase tracking-wider hover:text-text-secondary transition-colors">
                   Ultima modifica
                   <SortIcon active={sortCol === 'updated'} dir={sortDir} />
                 </button>
