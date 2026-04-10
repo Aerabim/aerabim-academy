@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { ProgressBar } from '@/components/ui/ProgressBar';
 import { PathDetailPreviewVideo } from './PathDetailPreviewVideo';
 import { PathStickyBuyBar } from './PathStickyBuyBar';
+import { BookmarkButton } from '@/components/ui/BookmarkButton';
 import { AREA_CONFIG } from '@/lib/area-config';
 import { cn } from '@/lib/utils';
 import type { LearningPath, LearningPathCourse, LearningPathProgressData, AreaCode, DiscountInfo } from '@/types';
@@ -17,9 +18,10 @@ interface PathDetailProps {
   /** True if user has purchased this learning path */
   isPathEnrolled: boolean;
   discountInfo?: DiscountInfo;
+  initialFavorited?: boolean;
 }
 
-export function PathDetail({ path, courses, enrolledCourseIds, isPathEnrolled, discountInfo }: PathDetailProps) {
+export function PathDetail({ path, courses, enrolledCourseIds, isPathEnrolled, discountInfo, initialFavorited }: PathDetailProps) {
   const [progress, setProgress] = useState<LearningPathProgressData | null>(null);
   const [checkingOut, setCheckingOut] = useState(false);
   const [checkoutError, setCheckoutError] = useState('');
@@ -168,6 +170,15 @@ export function PathDetail({ path, courses, enrolledCourseIds, isPathEnrolled, d
             boxShadow: headerHovered ? '2px 0 12px 0 #4ECDC450' : 'none',
           }}
         />
+
+        {/* Bookmark button */}
+        <div className="absolute top-3 right-3 z-30">
+          <BookmarkButton
+            itemType="path"
+            itemId={path.id}
+            initialFavorited={initialFavorited ?? false}
+          />
+        </div>
 
         {/* Grid pattern overlay */}
         <div
@@ -446,11 +457,26 @@ export function PathDetail({ path, courses, enrolledCourseIds, isPathEnrolled, d
                         <div className="text-[0.88rem] font-semibold text-text-primary truncate">
                           {course.title}
                         </div>
-                        {course.durationMin && (
-                          <div className="text-[0.72rem] text-text-muted mt-0.5">
-                            {course.durationMin}min
-                          </div>
-                        )}
+                        <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                          {course.durationMin && (
+                            <span className="text-[0.72rem] text-text-muted">
+                              {course.durationMin}min
+                            </span>
+                          )}
+                          {/* Exclusive / catalog pill — derived from course status */}
+                          {course.status === 'path' ? (
+                            <span className="inline-flex items-center gap-1 text-[0.62rem] font-semibold px-1.5 py-0.5 rounded bg-accent-amber/10 text-accent-amber border border-accent-amber/20">
+                              <svg width="8" height="8" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                              </svg>
+                              Solo in questo percorso
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 text-[0.62rem] font-medium px-1.5 py-0.5 rounded bg-surface-2 text-text-muted border border-border-subtle">
+                              Dal catalogo
+                            </span>
+                          )}
+                        </div>
                       </div>
 
                       {/* CTA — right aligned */}

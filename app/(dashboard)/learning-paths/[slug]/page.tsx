@@ -74,24 +74,27 @@ export default async function LearningPathDetailPage({ params }: PageProps) {
 
   const courses = ((coursesData ?? []) as unknown as RawCourseRow[]).map(mapCourse);
 
-  // Fetch user enrollments
+  // Fetch user enrollments + favorite
   const enrolledCourseIds = new Set<string>();
   let isPathEnrolled = false;
+  let initialFavorited = false;
 
   if (user) {
     const courseIds = courses.map((c) => c.courseId).filter(Boolean);
 
-    const [enrollResult, pathEnrollResult] = await Promise.all([
+    const [enrollResult, pathEnrollResult, favResult] = await Promise.all([
       courseIds.length > 0
         ? admin.from('enrollments').select('course_id').eq('user_id', user.id).in('course_id', courseIds)
         : Promise.resolve({ data: [] }),
       admin.from('learning_path_enrollments').select('id').eq('user_id', user.id).eq('path_id', path.id).maybeSingle(),
+      admin.from('favorites').select('id').eq('user_id', user.id).eq('path_id', path.id).maybeSingle(),
     ]);
 
     for (const e of (enrollResult.data ?? []) as { course_id: string }[]) {
       enrolledCourseIds.add(e.course_id);
     }
     isPathEnrolled = !!pathEnrollResult.data;
+    initialFavorited = !!favResult.data;
   }
 
   // ── Calcolo sconto ────────────────────────────────────────────
@@ -158,6 +161,7 @@ export default async function LearningPathDetailPage({ params }: PageProps) {
         enrolledCourseIds={enrolledCourseIds}
         isPathEnrolled={isPathEnrolled}
         discountInfo={discountInfo}
+        initialFavorited={initialFavorited}
       />
     </div>
   );
