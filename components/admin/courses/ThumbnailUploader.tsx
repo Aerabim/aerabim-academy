@@ -1,23 +1,64 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useCallback } from 'react';
 import { cn } from '@/lib/utils';
 
 interface ThumbnailUploaderProps {
   courseId?: string;
   currentUrl: string;
   onUploaded: (url: string) => void;
-  variant?: 'cover' | 'expanded';
+  variant?: 'cover' | 'expanded' | 'landscape';
   label?: string;
   hint?: string;
+  /** Only used in landscape variant — CSS object-position value e.g. "50% 30%" */
+  currentPosition?: string;
+  onPositionChange?: (position: string) => void;
 }
 
-export function ThumbnailUploader({ courseId, currentUrl, onUploaded, variant = 'cover', label, hint }: ThumbnailUploaderProps) {
+export function ThumbnailUploader({ courseId, currentUrl, onUploaded, variant = 'cover', label, hint, currentPosition, onPositionChange }: ThumbnailUploaderProps) {
   const fileRef = useRef<HTMLInputElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState(0);
   const [preview, setPreview] = useState(currentUrl);
   const [error, setError] = useState('');
+
+  // Drag-to-reposition state (landscape variant only)
+  const [position, setPosition] = useState(currentPosition ?? '50% 50%');
+  const [isDragging, setIsDragging] = useState(false);
+  const dragStartRef = useRef<{ mouseX: number; mouseY: number; posX: number; posY: number } | null>(null);
+
+  const handleDragStart = useCallback((e: React.MouseEvent) => {
+    if (variant !== 'landscape' || !preview || uploading) return;
+    e.preventDefault();
+    const [px, py] = position.split(' ').map((v) => parseFloat(v));
+    dragStartRef.current = { mouseX: e.clientX, mouseY: e.clientY, posX: px, posY: py };
+    setIsDragging(true);
+
+    let lastPos = position;
+
+    function onMove(ev: MouseEvent) {
+      if (!dragStartRef.current || !containerRef.current) return;
+      const rect = containerRef.current.getBoundingClientRect();
+      const dx = ((ev.clientX - dragStartRef.current.mouseX) / rect.width) * 100;
+      const dy = ((ev.clientY - dragStartRef.current.mouseY) / rect.height) * 100;
+      const newX = Math.round(Math.max(0, Math.min(100, dragStartRef.current.posX - dx)));
+      const newY = Math.round(Math.max(0, Math.min(100, dragStartRef.current.posY - dy)));
+      lastPos = `${newX}% ${newY}%`;
+      setPosition(lastPos);
+    }
+
+    function onUp() {
+      setIsDragging(false);
+      dragStartRef.current = null;
+      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('mouseup', onUp);
+      onPositionChange?.(lastPos);
+    }
+
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+  }, [variant, preview, uploading, position, onPositionChange]);
 
   async function handleUpload(file: File) {
     setError('');
@@ -95,10 +136,15 @@ export function ThumbnailUploader({ courseId, currentUrl, onUploaded, variant = 
 
       {/* Preview */}
       <div
-        onClick={() => !uploading && fileRef.current?.click()}
+        ref={containerRef}
+        onClick={() => variant !== 'landscape' && !uploading && fileRef.current?.click()}
+        onMouseDown={variant === 'landscape' && preview && !uploading ? handleDragStart : undefined}
         className={cn(
-          'relative w-full rounded-lg border-2 border-dashed overflow-hidden cursor-pointer transition-colors',
-          variant === 'expanded' ? 'aspect-video' : 'aspect-[3/4]',
+          'relative w-full rounded-lg border-2 border-dashed overflow-hidden transition-all duration-300',
+          variant === 'expanded' ? 'aspect-video' :
+          variant === 'landscape' ? 'h-[220px]' :
+          'aspect-[3/4]',
+          variant === 'landscape' && preview ? (isDragging ? 'cursor-grabbing' : 'cursor-grab') : 'cursor-pointer',
           preview
             ? 'border-border-subtle hover:border-accent-cyan/40'
             : 'border-border-hover hover:border-accent-cyan/40 bg-surface-2/50',
@@ -110,9 +156,22 @@ export function ThumbnailUploader({ courseId, currentUrl, onUploaded, variant = 
           <img
             src={preview}
             alt="Copertina corso"
-            className="w-full h-full object-cover"
+            className="w-full h-full object-cover transition-none"
+            style={variant === 'landscape' ? { objectPosition: position } : undefined}
           />
-        ) : (
+        ) : null}
+
+        {/* Drag hint overlay (landscape only) */}
+        {variant === 'landscape' && preview && !uploading && !isDragging && (
+          <div className="absolute bottom-2 right-2 flex items-center gap-1.5 px-2 py-1 rounded bg-black/60 backdrop-blur-sm text-[0.65rem] text-white/70 pointer-events-none select-none">
+            <svg width="11" height="11" fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24">
+              <path d="M5 9l-3 3 3 3M9 5l3-3 3 3M15 19l-3 3-3-3M19 9l3 3-3 3M12 12v.01" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+            Trascina per riposizionare
+          </div>
+        )}
+
+        {!preview && (
           <div className="flex flex-col items-center justify-center h-full gap-2 text-text-muted">
             <svg width="32" height="32" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24">
               <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />

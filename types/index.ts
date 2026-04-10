@@ -1,7 +1,7 @@
 // Tipi TypeScript globali per AerACADEMY
 // Questo file verrà popolato con i tipi generati da Supabase CLI (npx supabase gen types)
 
-export type CourseStatus = 'draft' | 'hidden' | 'published' | 'archived' | 'private';
+export type CourseStatus = 'draft' | 'hidden' | 'published' | 'archived' | 'private' | 'path';
 
 export type Database = {
   public: {
@@ -572,12 +572,16 @@ export type Database = {
           thumbnail_url: string | null;
           level: 'L1' | 'L2' | 'L3' | null;
           target_role: string | null;
-          is_published: boolean;
+          status: LearningPathStatus;
           estimated_hours: number | null;
           order_num: number;
           price_single: number;
           stripe_price_id: string | null;
+          preview_playback_id: string | null;
+          preview_asset_id: string | null;
+          thumbnail_position: string;
           created_at: string;
+          updated_at: string;
         };
         Insert: Omit<Database['public']['Tables']['learning_paths']['Row'], 'id' | 'created_at'> & {
           id?: string;
@@ -585,35 +589,36 @@ export type Database = {
         };
         Update: Partial<Database['public']['Tables']['learning_paths']['Insert']>;
       };
-      learning_path_steps: {
+      learning_path_courses: {
+        Row: {
+          path_id: string;
+          course_id: string;
+          order_num: number;
+        };
+        Insert: Database['public']['Tables']['learning_path_courses']['Row'];
+        Update: Partial<Database['public']['Tables']['learning_path_courses']['Row']>;
+      };
+      learning_path_materials: {
         Row: {
           id: string;
           path_id: string;
+          title: string;
+          url: string;
+          material_type: 'pdf' | 'link';
           order_num: number;
-          step_type: 'course' | 'video' | 'material';
-          title: string | null;
-          description: string | null;
-          course_id: string | null;
-          mux_playback_id: string | null;
-          mux_asset_id: string | null;
-          duration_sec: number | null;
-          material_url: string | null;
-          material_type: 'pdf' | 'link' | null;
-          is_required: boolean;
           created_at: string;
         };
-        Insert: Omit<Database['public']['Tables']['learning_path_steps']['Row'], 'id' | 'created_at'> & {
+        Insert: Omit<Database['public']['Tables']['learning_path_materials']['Row'], 'id' | 'created_at'> & {
           id?: string;
           created_at?: string;
         };
-        Update: Partial<Database['public']['Tables']['learning_path_steps']['Insert']>;
+        Update: Partial<Database['public']['Tables']['learning_path_materials']['Insert']>;
       };
       learning_path_progress: {
         Row: {
           id: string;
           user_id: string;
           path_id: string;
-          completed_step_ids: string[];
           is_completed: boolean;
           completed_at: string | null;
           updated_at: string;
@@ -1699,9 +1704,46 @@ export interface UpdatePromotionPayload extends Partial<CreatePromotionPayload> 
 
 // ── Learning Paths Types ────────────────────────────────────
 
+export type LearningPathStatus = 'draft' | 'hidden' | 'published' | 'private' | 'archived';
+
 /** Shorthand for the DB row */
 export type LearningPath = Database['public']['Tables']['learning_paths']['Row'];
-export type LearningPathStepRow = Database['public']['Tables']['learning_path_steps']['Row'];
+
+/** A discount that applies to one or all learning paths */
+export interface PathDiscount {
+  id: string;
+  name: string;
+  description: string | null;
+  discount_pct: number;
+  starts_at: string;
+  ends_at: string;
+  scope: 'all' | 'path';
+  path_id: string | null;
+  is_active: boolean;
+  created_at: string;
+}
+
+/** Resolved discount info passed to UI components */
+export interface DiscountInfo {
+  /** Final price after discount, in cents */
+  discountedPrice: number;
+  discountPct: number;
+  /** Human-readable label shown in badge e.g. "PRO" | "Black Friday" */
+  label: string;
+  badgeColor: 'amber' | 'emerald' | 'rose' | 'cyan';
+}
+
+/** Payload for creating/updating a path discount */
+export interface CreatePathDiscountPayload {
+  name: string;
+  description?: string;
+  discountPct: number;
+  startsAt: string;
+  endsAt: string;
+  scope: 'all' | 'path';
+  pathId?: string;
+  isActive?: boolean;
+}
 export type LearningPathProgress = Database['public']['Tables']['learning_path_progress']['Row'];
 
 // ── Resources ────────────────────────────────────────────────
@@ -1720,80 +1762,53 @@ export interface ResourceWithAccess extends Resource {
   isPurchased: boolean;
 }
 
-/** Step type discriminator */
-export type LearningPathStepType = 'course' | 'video' | 'material';
-
-/** Minimal course info joined onto a course-type step */
-export interface StepCourseInfo {
-  id: string;
-  title: string;
-  slug: string;
-  status: CourseStatus;
-  thumbnail_url: string | null;
-  duration_min: number | null;
-  level: LevelCode;
-  area: AreaCode;
+/** A course entry within a learning path (JOIN result) */
+export interface LearningPathCourse {
+  pathId: string;
+  courseId: string;
+  orderNum: number;
+  course: {
+    id: string;
+    title: string;
+    slug: string;
+    status: CourseStatus;
+    thumbnailUrl: string | null;
+    durationMin: number | null;
+    level: LevelCode;
+    area: AreaCode;
+  };
 }
 
-/** Shared fields across all step types (camelCase for UI use) */
-interface LearningPathStepBase {
+/** A supplementary material attached to a learning path */
+export interface LearningPathMaterial {
   id: string;
   pathId: string;
+  title: string;
+  url: string;
+  materialType: 'pdf' | 'link';
   orderNum: number;
-  title: string | null;
-  description: string | null;
-  isRequired: boolean;
   createdAt: string;
 }
 
-/** Step that references an existing catalog course */
-export interface LearningPathCourseStep extends LearningPathStepBase {
-  stepType: 'course';
-  courseId: string;
-  /** Populated via JOIN — present in all UI-facing queries */
-  course: StepCourseInfo;
-}
-
-/** Step with a dedicated Mux video (intro, outro, etc.) */
-export interface LearningPathVideoStep extends LearningPathStepBase {
-  stepType: 'video';
-  muxPlaybackId: string;
-  muxAssetId: string | null;
-  durationSec: number | null;
-}
-
-/** Step with a downloadable or linked material */
-export interface LearningPathMaterialStep extends LearningPathStepBase {
-  stepType: 'material';
-  materialUrl: string;
-  materialType: 'pdf' | 'link';
-}
-
-/** Discriminated union — use `stepType` to narrow the type */
-export type LearningPathStepDisplay =
-  | LearningPathCourseStep
-  | LearningPathVideoStep
-  | LearningPathMaterialStep;
-
-/** Full path with resolved steps — used in detail pages */
-export interface LearningPathWithSteps extends LearningPath {
-  steps: LearningPathStepDisplay[];
+/** Full path with resolved courses — used in detail pages */
+export interface LearningPathWithCourses extends LearningPath {
+  courses: LearningPathCourse[];
 }
 
 /** Computed progress data for a user on a specific path */
 export interface LearningPathProgressData {
   pathId: string;
-  /** IDs of video/material steps the user has completed */
-  completedStepIds: string[];
-  totalRequiredSteps: number;
-  completedRequiredSteps: number;
+  /** Total courses in the path */
+  totalCourses: number;
+  /** Courses the user has completed */
+  completedCourses: number;
   /** 0–100 */
   percentage: number;
   isCompleted: boolean;
 }
 
 /** Path enriched with user progress — used in the path detail page */
-export interface LearningPathWithProgress extends LearningPathWithSteps {
+export interface LearningPathWithProgress extends LearningPathWithCourses {
   progress: LearningPathProgressData;
 }
 
@@ -1804,11 +1819,12 @@ export interface AdminLearningPathListItem {
   id: string;
   slug: string;
   title: string;
-  isPublished: boolean;
-  stepCount: number;
+  status: LearningPathStatus;
   courseCount: number;
   estimatedHours: number | null;
+  thumbnailUrl: string | null;
   createdAt: string;
+  updatedAt: string;
 }
 
 // ── Learning Paths API Payloads ─────────────────────────────
@@ -1824,55 +1840,60 @@ export interface CreateLearningPathPayload {
 }
 
 export type UpdateLearningPathPayload = Partial<CreateLearningPathPayload> & {
-  isPublished?: boolean;
+  status?: LearningPathStatus;
   priceInCents?: number;
+  proDiscountPct?: number;
+  previewPlaybackId?: string | null;
+  previewAssetId?: string | null;
+  thumbnailPosition?: string;
 };
 
-interface AddStepPayloadBase {
-  title?: string;
-  description?: string;
-  isRequired?: boolean;
+/** Stats shown in the admin header of a learning path detail page */
+export interface AdminLearningPathStats {
+  enrolledCount: number;
+  completionCount: number;
+  courseCount: number;
 }
 
-export interface AddCourseStepPayload extends AddStepPayloadBase {
-  stepType: 'course';
+/** Single item in the admin activity feed for a learning path */
+export interface AdminLearningPathActivityItem {
+  id: string;
+  type: 'created' | 'enrollment';
+  userName: string | null;
+  userEmail: string | null;
+  date: string;
+}
+
+/** Learning path enriched for the admin detail page */
+export interface AdminLearningPathDetail {
+  path: LearningPath;
+  courses: LearningPathCourse[];
+  materials: LearningPathMaterial[];
+}
+
+/** Add a course to a learning path */
+export interface AddLearningPathCoursePayload {
   courseId: string;
 }
 
-export interface AddVideoStepPayload extends AddStepPayloadBase {
-  stepType: 'video';
-  muxPlaybackId: string;
-  muxAssetId?: string;
-  durationSec?: number;
+/** Reorder courses within a learning path */
+export interface ReorderLearningPathCoursesPayload {
+  items: { courseId: string; orderNum: number }[];
 }
 
-export interface AddMaterialStepPayload extends AddStepPayloadBase {
-  stepType: 'material';
-  materialUrl: string;
+/** Add a material to a learning path */
+export interface AddLearningPathMaterialPayload {
+  title: string;
+  url: string;
   materialType: 'pdf' | 'link';
 }
 
-export type AddLearningPathStepPayload =
-  | AddCourseStepPayload
-  | AddVideoStepPayload
-  | AddMaterialStepPayload;
-
-export interface UpdateLearningPathStepPayload {
+/** Update an existing path material */
+export interface UpdateLearningPathMaterialPayload {
   title?: string;
-  description?: string;
-  isRequired?: boolean;
-  /** Only for material steps */
-  materialUrl?: string;
+  url?: string;
   materialType?: 'pdf' | 'link';
-}
-
-export interface ReorderLearningPathStepsPayload {
-  items: { id: string; orderNum: number }[];
-}
-
-export interface MarkStepCompleteResponse {
-  success: boolean;
-  isPathCompleted: boolean;
+  orderNum?: number;
 }
 
 // ── Simulations ─────────────────────────────────────────────────────────────

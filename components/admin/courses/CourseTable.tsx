@@ -41,9 +41,15 @@ const STATUS_CONFIG: Record<CourseStatus, { label: string; dotClass: string; btn
     btnClass: 'bg-accent-violet/10 text-accent-violet hover:bg-accent-violet/20',
     btnActiveClass: 'text-accent-violet bg-accent-violet/5 cursor-default',
   },
+  path: {
+    label: 'Percorso',
+    dotClass: 'bg-accent-cyan',
+    btnClass: 'bg-accent-cyan/10 text-accent-cyan hover:bg-accent-cyan/20',
+    btnActiveClass: 'text-accent-cyan bg-accent-cyan/5 cursor-default',
+  },
 };
 
-const STATUS_ORDER: CourseStatus[] = ['draft', 'hidden', 'published', 'private', 'archived'];
+const STATUS_ORDER: CourseStatus[] = ['draft', 'hidden', 'published', 'private', 'path', 'archived'];
 
 type SortCol = 'title' | 'price' | 'modules' | 'enrolled' | 'updated';
 type SortDir = 'asc' | 'desc';
@@ -427,6 +433,7 @@ export function CourseTable({ courses: initialCourses }: CourseTableProps) {
     hidden:    { dot: 'bg-accent-amber',   active: 'bg-accent-amber/15 text-accent-amber border-accent-amber/30',       hover: 'hover:bg-accent-amber/8 hover:text-accent-amber hover:border-accent-amber/20' },
     archived:  { dot: 'bg-accent-rose',    active: 'bg-accent-rose/15 text-accent-rose border-accent-rose/30',          hover: 'hover:bg-accent-rose/8 hover:text-accent-rose hover:border-accent-rose/20' },
     private:   { dot: 'bg-accent-violet',  active: 'bg-accent-violet/15 text-accent-violet border-accent-violet/30',    hover: 'hover:bg-accent-violet/8 hover:text-accent-violet hover:border-accent-violet/20' },
+    path:      { dot: 'bg-accent-cyan',    active: 'bg-accent-cyan/15 text-accent-cyan border-accent-cyan/30',            hover: 'hover:bg-accent-cyan/8 hover:text-accent-cyan hover:border-accent-cyan/20' },
   };
 
   return (

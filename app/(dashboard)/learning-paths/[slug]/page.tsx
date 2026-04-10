@@ -2,67 +2,46 @@ import { notFound } from 'next/navigation';
 import { createServerClient } from '@/lib/supabase/server';
 import { getSupabaseAdmin } from '@/lib/supabase/admin';
 import { PathDetail } from '@/components/learning-paths/PathDetail';
-import type {
-  LearningPath,
-  LearningPathStepDisplay,
-  CourseStatus,
-  AreaCode,
-  LevelCode,
-} from '@/types';
+import type { LearningPath, LearningPathCourse, CourseStatus, AreaCode, LevelCode, DiscountInfo, PathDiscount } from '@/types';
 
 interface PageProps {
   params: { slug: string };
 }
 
-type RawStep = {
-  id: string; path_id: string; order_num: number;
-  step_type: 'course' | 'video' | 'material';
-  title: string | null; description: string | null; is_required: boolean; created_at: string;
-  course_id: string | null;
-  mux_playback_id: string | null; mux_asset_id: string | null; duration_sec: number | null;
-  material_url: string | null; material_type: 'pdf' | 'link' | null;
+type RawCourseRow = {
+  path_id: string; course_id: string; order_num: number;
   courses: {
     id: string; title: string; slug: string; status: string;
     thumbnail_url: string | null; duration_min: number | null; level: string; area: string;
   } | null;
 };
 
-function mapStep(s: RawStep): LearningPathStepDisplay {
-  const base = {
-    id: s.id, pathId: s.path_id, orderNum: s.order_num,
-    title: s.title, description: s.description,
-    isRequired: s.is_required, createdAt: s.created_at,
-  };
-  if (s.step_type === 'course') {
-    return {
-      ...base, stepType: 'course', courseId: s.course_id!,
-      course: s.courses
-        ? {
-            id: s.courses.id, title: s.courses.title, slug: s.courses.slug,
-            status: s.courses.status as CourseStatus,
-            thumbnail_url: s.courses.thumbnail_url,
-            duration_min: s.courses.duration_min,
-            level: s.courses.level as LevelCode,
-            area: s.courses.area as AreaCode,
-          }
-        : {
-            id: s.course_id!, title: '(corso non disponibile)', slug: '',
-            status: 'archived' as CourseStatus,
-            thumbnail_url: null, duration_min: null,
-            level: 'L1' as LevelCode, area: 'OB' as AreaCode,
-          },
-    };
-  }
-  if (s.step_type === 'video') {
-    return {
-      ...base, stepType: 'video',
-      muxPlaybackId: s.mux_playback_id!,
-      muxAssetId: s.mux_asset_id, durationSec: s.duration_sec,
-    };
-  }
+function mapCourse(r: RawCourseRow): LearningPathCourse {
   return {
-    ...base, stepType: 'material',
-    materialUrl: s.material_url!, materialType: s.material_type!,
+    pathId: r.path_id,
+    courseId: r.course_id,
+    orderNum: r.order_num,
+    course: r.courses
+      ? {
+          id: r.courses.id,
+          title: r.courses.title,
+          slug: r.courses.slug,
+          status: r.courses.status as CourseStatus,
+          thumbnailUrl: r.courses.thumbnail_url,
+          durationMin: r.courses.duration_min,
+          level: r.courses.level as LevelCode,
+          area: r.courses.area as AreaCode,
+        }
+      : {
+          id: r.course_id,
+          title: '(corso non disponibile)',
+          slug: '',
+          status: 'archived' as CourseStatus,
+          thumbnailUrl: null,
+          durationMin: null,
+          level: 'L1' as LevelCode,
+          area: 'OB' as AreaCode,
+        },
   };
 }
 
@@ -73,42 +52,34 @@ export default async function LearningPathDetailPage({ params }: PageProps) {
 
   if (!admin) notFound();
 
-  // Fetch path by slug (only published for regular users)
+  // Fetch path by slug (only published)
   const { data: pathData, error: pathError } = await admin
     .from('learning_paths')
     .select('*')
     .eq('slug', params.slug)
-    .eq('is_published', true)
+    .eq('status', 'published')
     .single();
 
   if (pathError || !pathData) notFound();
 
   const path = pathData as unknown as LearningPath;
+  const priceInCents = (path as unknown as { price_single: number }).price_single ?? 0;
 
-  // Fetch steps with course join
-  const { data: stepsData } = await admin
-    .from('learning_path_steps')
-    .select(`
-      id, path_id, order_num, step_type, title, description,
-      is_required, created_at, course_id,
-      mux_playback_id, mux_asset_id, duration_sec,
-      material_url, material_type,
-      courses(id, title, slug, status, thumbnail_url, duration_min, level, area)
-    `)
+  // Fetch courses in path
+  const { data: coursesData } = await admin
+    .from('learning_path_courses')
+    .select('path_id, course_id, order_num, courses(id, title, slug, status, thumbnail_url, duration_min, level, area)')
     .eq('path_id', path.id)
     .order('order_num', { ascending: true });
 
-  const steps = ((stepsData ?? []) as unknown as RawStep[]).map(mapStep);
+  const courses = ((coursesData ?? []) as unknown as RawCourseRow[]).map(mapCourse);
 
-  // Fetch user enrollments for the courses in this path
+  // Fetch user enrollments
   const enrolledCourseIds = new Set<string>();
   let isPathEnrolled = false;
 
   if (user) {
-    const courseIds = steps
-      .filter((s) => s.stepType === 'course')
-      .map((s) => (s.stepType === 'course' ? s.courseId : ''))
-      .filter(Boolean);
+    const courseIds = courses.map((c) => c.courseId).filter(Boolean);
 
     const [enrollResult, pathEnrollResult] = await Promise.all([
       courseIds.length > 0
@@ -123,13 +94,70 @@ export default async function LearningPathDetailPage({ params }: PageProps) {
     isPathEnrolled = !!pathEnrollResult.data;
   }
 
+  // ── Calcolo sconto ────────────────────────────────────────────
+  let discountInfo: DiscountInfo | undefined;
+
+  if (!isPathEnrolled && priceInCents > 0) {
+    const now = new Date().toISOString();
+
+    // 1. Controlla promozioni attive (globali o per questo percorso)
+    const { data: discountsData } = await admin
+      .from('path_discounts')
+      .select('*')
+      .eq('is_active', true)
+      .lte('starts_at', now)
+      .gte('ends_at', now)
+      .or(`scope.eq.all,path_id.eq.${path.id}`)
+      .order('discount_pct', { ascending: false })
+      .limit(1);
+
+    const activeDiscount = (discountsData ?? [])[0] as PathDiscount | undefined;
+
+    // 2. Controlla abbonamento PRO dell'utente
+    const proDiscountPct = (path as unknown as { pro_discount_pct: number }).pro_discount_pct ?? 0;
+    let isProUser = false;
+
+    if (user && proDiscountPct > 0) {
+      const { data: subData } = await admin
+        .from('subscriptions')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('status', 'active')
+        .maybeSingle();
+      isProUser = !!subData;
+    }
+
+    // 3. Applica lo sconto maggiore
+    const proDiscount = isProUser ? proDiscountPct : 0;
+    const promoDiscount = activeDiscount?.discount_pct ?? 0;
+
+    if (proDiscount > 0 || promoDiscount > 0) {
+      const bestPct = Math.max(proDiscount, promoDiscount);
+      const discountedPrice = Math.round(priceInCents * (1 - bestPct / 100));
+
+      let label: string;
+      let badgeColor: DiscountInfo['badgeColor'];
+
+      if (promoDiscount >= proDiscount && activeDiscount) {
+        label = activeDiscount.name;
+        badgeColor = 'rose';
+      } else {
+        label = 'PRO';
+        badgeColor = 'amber';
+      }
+
+      discountInfo = { discountedPrice, discountPct: bestPct, label, badgeColor };
+    }
+  }
+
   return (
     <div className="w-full px-6 lg:px-9 pt-3 pb-7">
       <PathDetail
         path={path}
-        steps={steps}
+        courses={courses}
         enrolledCourseIds={enrolledCourseIds}
         isPathEnrolled={isPathEnrolled}
+        discountInfo={discountInfo}
       />
     </div>
   );

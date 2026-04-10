@@ -100,6 +100,13 @@ body {
 
 /* ── Promo animations ─────────────────────────────── */
 
+@keyframes shimmer-sweep {
+  0%   { transform: translateX(-100%); }
+  40%  { transform: translateX(-100%); }
+  60%  { transform: translateX(250%); }
+  100% { transform: translateX(250%); }
+}
+
 @keyframes promo-shimmer {
   0%   { transform: translateX(-100%) skewX(-12deg); }
   100% { transform: translateX(250%) skewX(-12deg); }
@@ -631,4 +638,49 @@ body {
 
 .privacy-contact a:hover {
   color: var(--accent-hover);
+}
+
+/* ── Tiptap RichTextEditor ─────────────────────────────────── */
+.prose-editor p { margin-bottom: 0.65em; color: var(--color-text-primary, #e2e8f0); }
+.prose-editor p:last-child { margin-bottom: 0; }
+.prose-editor h2 {
+  font-size: 1.05rem;
+  font-weight: 700;
+  margin-top: 1.1em;
+  margin-bottom: 0.45em;
+  color: #4ECDC4;
+  letter-spacing: -0.01em;
+}
+.prose-editor h2:first-child { margin-top: 0; }
+.prose-editor h3 {
+  font-size: 0.9rem;
+  font-weight: 600;
+  margin-top: 0.9em;
+  margin-bottom: 0.35em;
+  color: #7eddd8;
+  letter-spacing: -0.005em;
+}
+.prose-editor h3:first-child { margin-top: 0; }
+.prose-editor ul { list-style: none; padding-left: 0; margin-bottom: 0.6em; }
+.prose-editor ul li { padding-left: 1.1em; position: relative; margin-bottom: 0.25em; color: var(--color-text-primary, #e2e8f0); }
+.prose-editor ul li::before { content: '–'; position: absolute; left: 0; color: #4ECDC4; opacity: 0.7; }
+.prose-editor ol { list-style: decimal; padding-left: 1.4em; margin-bottom: 0.6em; }
+.prose-editor ol li { margin-bottom: 0.25em; color: var(--color-text-primary, #e2e8f0); }
+.prose-editor ol li::marker { color: #4ECDC4; opacity: 0.7; font-size: 0.85em; }
+.prose-editor strong { font-weight: 700; color: #fff; }
+.prose-editor em { font-style: italic; opacity: 0.85; }
+.prose-editor s { text-decoration: line-through; opacity: 0.5; }
+.prose-editor.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  float: left;
+  color: #64748b;
+  pointer-events: none;
+  height: 0;
+}
+.ProseMirror p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  float: left;
+  color: #64748b;
+  pointer-events: none;
+  height: 0;
 }

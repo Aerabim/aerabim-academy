@@ -2,8 +2,10 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { cn } from '@/lib/utils';
 import { ThumbnailUploader } from '@/components/admin/courses/ThumbnailUploader';
+import { PathPreviewVideoUploader } from './PathPreviewVideoUploader';
+import { RichTextEditor } from '@/components/admin/ui/RichTextEditor';
+import { useLearningPathTabsContext } from './LearningPathNavTabs';
 import type { LearningPath } from '@/types';
 
 interface LearningPathFormProps {
@@ -26,6 +28,8 @@ export function LearningPathForm({ path }: LearningPathFormProps) {
   const router = useRouter();
   const isEdit = !!path;
 
+  const { setIsDirty, setIsSaving, isSaving } = useLearningPathTabsContext();
+
   const [title, setTitle] = useState(path?.title ?? '');
   const [slug, setSlug] = useState(path?.slug ?? '');
   const [subtitle, setSubtitle] = useState(path?.subtitle ?? '');
@@ -33,13 +37,17 @@ export function LearningPathForm({ path }: LearningPathFormProps) {
   const [estimatedHours, setEstimatedHours] = useState(
     path?.estimated_hours?.toString() ?? '',
   );
-  const [isPublished, setIsPublished] = useState(path?.is_published ?? false);
   const [priceEur, setPriceEur] = useState(
     path?.price_single ? (path.price_single / 100).toFixed(2) : '',
   );
+  const [proDiscountPct, setProDiscountPct] = useState(
+    (path as unknown as { pro_discount_pct?: number })?.pro_discount_pct?.toString() ?? '0',
+  );
   const [slugTouched, setSlugTouched] = useState(isEdit);
-  const [saving, setSaving] = useState(false);
+  const [localSaving, setLocalSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const saving = isEdit ? isSaving : localSaving;
 
   // Auto-generate slug from title in create mode
   useEffect(() => {
@@ -48,6 +56,10 @@ export function LearningPathForm({ path }: LearningPathFormProps) {
     }
   }, [title, slugTouched, isEdit]);
 
+  function markDirty() {
+    if (isEdit) setIsDirty(true);
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
@@ -55,7 +67,12 @@ export function LearningPathForm({ path }: LearningPathFormProps) {
     if (!title.trim()) { setError('Il titolo è obbligatorio.'); return; }
     if (!slug.trim())  { setError('Lo slug è obbligatorio.'); return; }
 
-    setSaving(true);
+    if (isEdit) {
+      setIsSaving(true);
+    } else {
+      setLocalSaving(true);
+    }
+
     try {
       const parsedPrice = parseFloat(priceEur);
       const payload = {
@@ -64,9 +81,11 @@ export function LearningPathForm({ path }: LearningPathFormProps) {
         subtitle: subtitle.trim() || undefined,
         description: description.trim() || undefined,
         estimatedHours: estimatedHours ? parseInt(estimatedHours, 10) : undefined,
-        ...(isEdit && { isPublished }),
         ...(isEdit && !isNaN(parsedPrice) && parsedPrice >= 0 && {
           priceInCents: Math.round(parsedPrice * 100),
+        }),
+        ...(isEdit && {
+          proDiscountPct: parseInt(proDiscountPct, 10) || 0,
         }),
       };
 
@@ -90,38 +109,66 @@ export function LearningPathForm({ path }: LearningPathFormProps) {
       if (!isEdit && json.path?.id) {
         router.push(`/admin/learning-paths/${json.path.id}`);
       } else {
+        setIsDirty(false);
+        window.dispatchEvent(new Event('learning-path-saved'));
         router.refresh();
       }
     } catch {
       setError('Errore di rete.');
     } finally {
-      setSaving(false);
+      if (isEdit) {
+        setIsSaving(false);
+      } else {
+        setLocalSaving(false);
+      }
     }
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-5">
+    <form id="learning-path-form" onSubmit={handleSubmit} className="space-y-5">
       {error && (
         <div className="px-4 py-2.5 rounded-md bg-accent-rose/10 border border-accent-rose/20 text-[0.82rem] text-accent-rose">
           {error}
         </div>
       )}
 
-      {/* Thumbnail — edit mode only (path must exist before uploading) */}
+      {/* Thumbnail + video preview — edit mode only */}
       {isEdit && (
-        <ThumbnailUploader
-          courseId={path.id}
-          currentUrl={path.thumbnail_url ?? ''}
-          label="Immagine di copertina del percorso"
-          hint="Usata come sfondo del banner. Formato consigliato: 1280×360px (landscape)."
-          onUploaded={async (url) => {
-            await fetch(`/api/admin/learning-paths/${path.id}`, {
-              method: 'PATCH',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ thumbnailUrl: url }),
-            });
-          }}
-        />
+        <>
+          <ThumbnailUploader
+            courseId={path.id}
+            currentUrl={path.thumbnail_url ?? ''}
+            variant="landscape"
+            label="Immagine di copertina del percorso"
+            hint="Usata come sfondo del banner. Formato consigliato: 1280×360px (landscape)."
+            currentPosition={(path as unknown as { thumbnail_position: string }).thumbnail_position ?? '50% 50%'}
+            onUploaded={async (url) => {
+              await fetch(`/api/admin/learning-paths/${path.id}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ thumbnailUrl: url }),
+              });
+            }}
+            onPositionChange={(pos) => {
+              fetch(`/api/admin/learning-paths/${path.id}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ thumbnailPosition: pos }),
+              }).catch(() => undefined);
+            }}
+          />
+          <PathPreviewVideoUploader
+            pathId={path.id}
+            currentPlaybackId={path.preview_playback_id ?? null}
+            onUploaded={(pbId, assetId) => {
+              fetch(`/api/admin/learning-paths/${path.id}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ previewPlaybackId: pbId, previewAssetId: assetId }),
+              }).catch(() => undefined);
+            }}
+          />
+        </>
       )}
 
       {/* Title + Slug */}
@@ -132,7 +179,7 @@ export function LearningPathForm({ path }: LearningPathFormProps) {
           </label>
           <input
             value={title}
-            onChange={(e) => setTitle(e.target.value)}
+            onChange={(e) => { setTitle(e.target.value); markDirty(); }}
             placeholder="es. BIM Coordinator"
             className="w-full px-3 py-2 text-[0.83rem] bg-surface-2 border border-border-subtle rounded-md text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent-cyan/50"
           />
@@ -143,7 +190,7 @@ export function LearningPathForm({ path }: LearningPathFormProps) {
           </label>
           <input
             value={slug}
-            onChange={(e) => { setSlugTouched(true); setSlug(e.target.value); }}
+            onChange={(e) => { setSlugTouched(true); setSlug(e.target.value); markDirty(); }}
             placeholder="es. bim-coordinator"
             className="w-full px-3 py-2 text-[0.83rem] bg-surface-2 border border-border-subtle rounded-md text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent-cyan/50 font-mono"
           />
@@ -155,7 +202,7 @@ export function LearningPathForm({ path }: LearningPathFormProps) {
         <label className="text-[0.78rem] font-medium text-text-secondary">Sottotitolo</label>
         <input
           value={subtitle}
-          onChange={(e) => setSubtitle(e.target.value)}
+          onChange={(e) => { setSubtitle(e.target.value); markDirty(); }}
           placeholder="es. Per gestire la digitalizzazione BIM nei progetti complessi"
           className="w-full px-3 py-2 text-[0.83rem] bg-surface-2 border border-border-subtle rounded-md text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent-cyan/50"
         />
@@ -164,12 +211,10 @@ export function LearningPathForm({ path }: LearningPathFormProps) {
       {/* Description */}
       <div className="space-y-1.5">
         <label className="text-[0.78rem] font-medium text-text-secondary">Descrizione</label>
-        <textarea
+        <RichTextEditor
           value={description}
-          onChange={(e) => setDescription(e.target.value)}
-          rows={3}
+          onChange={(html) => { setDescription(html); markDirty(); }}
           placeholder="Descrivi il percorso formativo..."
-          className="w-full px-3 py-2 text-[0.83rem] bg-surface-2 border border-border-subtle rounded-md text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent-cyan/50 resize-none"
         />
       </div>
 
@@ -181,78 +226,69 @@ export function LearningPathForm({ path }: LearningPathFormProps) {
             type="number"
             min={1}
             value={estimatedHours}
-            onChange={(e) => setEstimatedHours(e.target.value)}
+            onChange={(e) => { setEstimatedHours(e.target.value); markDirty(); }}
             placeholder="es. 20"
             className="w-full px-3 py-2 text-[0.83rem] bg-surface-2 border border-border-subtle rounded-md text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent-cyan/50"
           />
         </div>
         {isEdit && (
-          <div className="space-y-1.5">
-            <label className="text-[0.78rem] font-medium text-text-secondary">
-              Prezzo (€)
-            </label>
-            <input
-              type="number"
-              min={0}
-              step="0.01"
-              value={priceEur}
-              onChange={(e) => setPriceEur(e.target.value)}
-              placeholder="es. 149.00"
-              className="w-full px-3 py-2 text-[0.83rem] bg-surface-2 border border-border-subtle rounded-md text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent-amber/50"
-            />
-            <p className="text-[0.68rem] text-text-muted">
-              Salva per creare automaticamente il Stripe Price.
-              {path?.stripe_price_id && (
-                <span className="text-accent-emerald ml-1">✓ Stripe configurato</span>
-              )}
-            </p>
+          <div className="space-y-4">
+            <div className="space-y-1.5">
+              <label className="text-[0.78rem] font-medium text-text-secondary">
+                Prezzo (€)
+              </label>
+              <input
+                type="number"
+                min={0}
+                step="0.01"
+                value={priceEur}
+                onChange={(e) => { setPriceEur(e.target.value); markDirty(); }}
+                placeholder="es. 149.00"
+                className="w-full px-3 py-2 text-[0.83rem] bg-surface-2 border border-border-subtle rounded-md text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent-amber/50"
+              />
+              <p className="text-[0.68rem] text-text-muted">
+                Salva per creare automaticamente il Stripe Price.
+                {path?.stripe_price_id && (
+                  <span className="text-accent-emerald ml-1">✓ Stripe configurato</span>
+                )}
+              </p>
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-[0.78rem] font-medium text-text-secondary">
+                Sconto PRO (%)
+              </label>
+              <div className="relative">
+                <input
+                  type="number"
+                  min={0}
+                  max={100}
+                  value={proDiscountPct}
+                  onChange={(e) => { setProDiscountPct(e.target.value); markDirty(); }}
+                  placeholder="es. 40"
+                  className="w-full px-3 py-2 pr-8 text-[0.83rem] bg-surface-2 border border-border-subtle rounded-md text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent-amber/50"
+                />
+                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[0.75rem] text-text-muted">%</span>
+              </div>
+              <p className="text-[0.68rem] text-text-muted">
+                Sconto applicato automaticamente agli utenti con abbonamento PRO attivo. 0 = nessuno sconto.
+              </p>
+            </div>
           </div>
         )}
       </div>
 
-      {/* Published toggle — edit mode only */}
-      {isEdit && (
-        <div className="flex items-center justify-between px-4 py-3 rounded-md bg-surface-2 border border-border-subtle">
-          <div>
-            <div className="text-[0.82rem] font-medium text-text-primary">Pubblicato</div>
-            <div className="text-[0.72rem] text-text-muted mt-0.5">
-              Se attivo il percorso è visibile agli utenti
-            </div>
-          </div>
+      {/* Inline save button — create mode only (edit mode uses the sticky footer) */}
+      {!isEdit && (
+        <div className="flex items-center gap-3 pt-1">
           <button
-            type="button"
-            onClick={() => setIsPublished((v) => !v)}
-            className={cn(
-              'relative inline-flex h-5 w-9 shrink-0 rounded-full transition-colors',
-              isPublished ? 'bg-accent-cyan' : 'bg-surface-3 border border-border-subtle',
-            )}
+            type="submit"
+            disabled={localSaving}
+            className="px-5 py-2 text-[0.83rem] font-semibold rounded-md bg-accent-cyan/15 text-accent-cyan hover:bg-accent-cyan/25 border border-accent-cyan/20 transition-colors disabled:opacity-50"
           >
-            <span className={cn(
-              'absolute top-0.5 h-4 w-4 rounded-full bg-white shadow transition-transform',
-              isPublished ? 'translate-x-4' : 'translate-x-0.5',
-            )} />
+            {localSaving ? 'Salvataggio...' : 'Crea percorso'}
           </button>
         </div>
       )}
-
-      <div className="flex items-center gap-3 pt-1">
-        <button
-          type="submit"
-          disabled={saving}
-          className="px-5 py-2 text-[0.83rem] font-semibold rounded-md bg-accent-cyan/15 text-accent-cyan hover:bg-accent-cyan/25 border border-accent-cyan/20 transition-colors disabled:opacity-50"
-        >
-          {saving ? 'Salvataggio...' : isEdit ? 'Salva modifiche' : 'Crea percorso'}
-        </button>
-        {isEdit && (
-          <button
-            type="button"
-            onClick={() => router.push('/admin/learning-paths')}
-            className="px-4 py-2 text-[0.83rem] font-medium rounded-md text-text-secondary hover:text-text-primary transition-colors"
-          >
-            Torna alla lista
-          </button>
-        )}
-      </div>
     </form>
   );
 }

@@ -2,7 +2,7 @@ export const dynamic = 'force-dynamic';
 
 import { getSupabaseAdmin } from '@/lib/supabase/admin';
 import { LearningPathTable } from '@/components/admin/learning-paths/LearningPathTable';
-import type { AdminLearningPathListItem } from '@/types';
+import type { AdminLearningPathListItem, LearningPathStatus } from '@/types';
 
 export default async function AdminLearningPathsPage() {
   const admin = getSupabaseAdmin();
@@ -12,43 +12,39 @@ export default async function AdminLearningPathsPage() {
     try {
       const { data } = await admin
         .from('learning_paths')
-        .select('id, slug, title, is_published, estimated_hours, created_at')
+        .select('id, slug, title, status, thumbnail_url, estimated_hours, created_at, updated_at')
         .order('order_num', { ascending: true });
 
       const rawPaths = (data ?? []) as {
         id: string; slug: string; title: string;
-        is_published: boolean; estimated_hours: number | null; created_at: string;
+        status: string; thumbnail_url: string | null;
+        estimated_hours: number | null; created_at: string; updated_at: string;
       }[];
 
       const pathIds = rawPaths.map((p) => p.id);
 
-      const { data: stepRows } = pathIds.length > 0
+      const { data: courseRows } = pathIds.length > 0
         ? await admin
-            .from('learning_path_steps')
-            .select('path_id, step_type')
+            .from('learning_path_courses')
+            .select('path_id')
             .in('path_id', pathIds)
         : { data: [] };
 
-      const steps = (stepRows ?? []) as { path_id: string; step_type: string }[];
-
-      const stepCount = new Map<string, number>();
       const courseCount = new Map<string, number>();
-      for (const s of steps) {
-        stepCount.set(s.path_id, (stepCount.get(s.path_id) ?? 0) + 1);
-        if (s.step_type === 'course') {
-          courseCount.set(s.path_id, (courseCount.get(s.path_id) ?? 0) + 1);
-        }
+      for (const r of ((courseRows ?? []) as { path_id: string }[])) {
+        courseCount.set(r.path_id, (courseCount.get(r.path_id) ?? 0) + 1);
       }
 
       paths = rawPaths.map((p) => ({
         id: p.id,
         slug: p.slug,
         title: p.title,
-        isPublished: p.is_published,
+        status: p.status as LearningPathStatus,
+        thumbnailUrl: p.thumbnail_url,
         estimatedHours: p.estimated_hours,
-        stepCount: stepCount.get(p.id) ?? 0,
         courseCount: courseCount.get(p.id) ?? 0,
         createdAt: p.created_at,
+        updatedAt: p.updated_at,
       }));
     } catch (err) {
       console.error('Admin learning-paths page error:', err);

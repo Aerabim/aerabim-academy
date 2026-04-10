@@ -19,49 +19,48 @@ export default async function LearningPathsPage() {
       // Fetch published paths ordered by order_num
       const { data: pathsData } = await admin
         .from('learning_paths')
-        .select('id, slug, title, subtitle, thumbnail_url, estimated_hours')
-        .eq('is_published', true)
+        .select('id, slug, title, subtitle, thumbnail_url, thumbnail_position, estimated_hours')
+        .eq('status', 'published')
         .order('order_num', { ascending: true });
 
       const rawPaths = (pathsData ?? []) as {
         id: string; slug: string; title: string; subtitle: string | null;
         thumbnail_url: string | null; estimated_hours: number | null;
+        thumbnail_position: string;
       }[];
 
       if (rawPaths.length > 0) {
         const pathIds = rawPaths.map((p) => p.id);
 
-        // Fetch steps with course info for preview chips (only course-type steps)
-        const { data: stepsData } = await admin
-          .from('learning_path_steps')
-          .select('path_id, step_type, courses(id, title, thumbnail_url, area)')
+        // Fetch courses in each path for preview chips (max 3 per path)
+        const { data: coursesData } = await admin
+          .from('learning_path_courses')
+          .select('path_id, courses(id, title, thumbnail_url, area)')
           .in('path_id', pathIds)
           .order('order_num', { ascending: true });
 
-        const rawSteps = (stepsData ?? []) as unknown as {
+        const rawCourses = (coursesData ?? []) as unknown as {
           path_id: string;
-          step_type: string;
           courses: { id: string; title: string; thumbnail_url: string | null; area: string } | null;
         }[];
 
-        // Step count per path (all types)
-        const stepCounts = new Map<string, number>();
-        // Course preview chips per path (max 3 course-type steps)
+        // Course count per path + preview chips (max 3)
+        const courseCounts = new Map<string, number>();
         const courseChips = new Map<string, CourseChip[]>();
 
-        for (const s of rawSteps) {
-          stepCounts.set(s.path_id, (stepCounts.get(s.path_id) ?? 0) + 1);
+        for (const r of rawCourses) {
+          courseCounts.set(r.path_id, (courseCounts.get(r.path_id) ?? 0) + 1);
 
-          if (s.step_type === 'course' && s.courses) {
-            const chips = courseChips.get(s.path_id) ?? [];
+          if (r.courses) {
+            const chips = courseChips.get(r.path_id) ?? [];
             if (chips.length < 3) {
               chips.push({
-                id: s.courses.id,
-                title: s.courses.title,
-                thumbnailUrl: s.courses.thumbnail_url,
-                area: s.courses.area as AreaCode,
+                id: r.courses.id,
+                title: r.courses.title,
+                thumbnailUrl: r.courses.thumbnail_url,
+                area: r.courses.area as AreaCode,
               });
-              courseChips.set(s.path_id, chips);
+              courseChips.set(r.path_id, chips);
             }
           }
         }
@@ -75,7 +74,7 @@ export default async function LearningPathsPage() {
           const [lppData, favData] = await Promise.all([
             admin
               .from('learning_path_progress')
-              .select('path_id, is_completed, completed_step_ids')
+              .select('path_id, is_completed')
               .eq('user_id', user.id)
               .in('path_id', pathIds),
             (supabase as unknown as SupabaseClient)
@@ -85,12 +84,10 @@ export default async function LearningPathsPage() {
               .not('path_id', 'is', null),
           ]);
 
-          for (const row of (lppData.data ?? []) as {
-            path_id: string; is_completed: boolean; completed_step_ids: string[];
-          }[]) {
+          for (const row of (lppData.data ?? []) as { path_id: string; is_completed: boolean }[]) {
             if (row.is_completed) {
               completedPathIds.add(row.path_id);
-            } else if (row.completed_step_ids?.length > 0) {
+            } else {
               startedPathIds.add(row.path_id);
             }
           }
@@ -106,8 +103,9 @@ export default async function LearningPathsPage() {
           title: p.title,
           subtitle: p.subtitle,
           thumbnailUrl: p.thumbnail_url,
+          thumbnailPosition: p.thumbnail_position ?? '50% 50%',
           estimatedHours: p.estimated_hours,
-          stepCount: stepCounts.get(p.id) ?? 0,
+          courseCount: courseCounts.get(p.id) ?? 0,
           isCompleted: completedPathIds.has(p.id),
           hasStarted: startedPathIds.has(p.id),
           coursePreview: courseChips.get(p.id) ?? [],

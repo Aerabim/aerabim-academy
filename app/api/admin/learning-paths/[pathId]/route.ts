@@ -25,7 +25,11 @@ export async function PATCH(req: Request, { params }: RouteParams) {
     if (body.thumbnailUrl !== undefined)  updateData.thumbnail_url  = body.thumbnailUrl;
     if (body.estimatedHours !== undefined) updateData.estimated_hours = body.estimatedHours;
     if (body.orderNum !== undefined)      updateData.order_num      = body.orderNum;
-    if (body.isPublished !== undefined)   updateData.is_published   = body.isPublished;
+    if (body.status !== undefined)              updateData.status               = body.status;
+    if (body.previewPlaybackId !== undefined)   updateData.preview_playback_id  = body.previewPlaybackId;
+    if (body.previewAssetId !== undefined)      updateData.preview_asset_id     = body.previewAssetId;
+    if (body.thumbnailPosition !== undefined)   updateData.thumbnail_position   = body.thumbnailPosition;
+    if (body.proDiscountPct !== undefined)      updateData.pro_discount_pct     = body.proDiscountPct;
 
     if (body.slug !== undefined) {
       if (!/^[a-z0-9-]+$/.test(body.slug)) {
@@ -109,7 +113,7 @@ export async function PATCH(req: Request, { params }: RouteParams) {
       .from('learning_paths')
       .update(updateData)
       .eq('id', pathId)
-      .select('id, slug, title, is_published')
+      .select('id, slug, title, status')
       .single();
 
     if (error || !path) {

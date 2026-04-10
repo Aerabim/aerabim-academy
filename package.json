@@ -16,6 +16,13 @@
     "@mux/mux-player-react": "^3.11.6",
     "@supabase/ssr": "^0.9.0",
     "@supabase/supabase-js": "^2.98.0",
+    "@tiptap/extension-character-count": "^3.22.3",
+    "@tiptap/extension-emoji": "^3.22.3",
+    "@tiptap/extension-placeholder": "^3.22.3",
+    "@tiptap/pm": "^3.22.3",
+    "@tiptap/react": "^3.22.3",
+    "@tiptap/starter-kit": "^3.22.3",
+    "hls.js": "^1.6.15",
     "nanoid": "^5.1.7",
     "next": "14.2.35",
     "react": "^18",
@@ -24,6 +31,7 @@
     "stripe": "^20.4.1"
   },
   "devDependencies": {
+    "@types/hls.js": "^0.13.3",
     "@types/node": "^20",
     "@types/react": "^18",
     "@types/react-dom": "^18",

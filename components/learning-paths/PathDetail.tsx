@@ -3,33 +3,24 @@
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { ProgressBar } from '@/components/ui/ProgressBar';
+import { PathDetailPreviewVideo } from './PathDetailPreviewVideo';
+import { PathStickyBuyBar } from './PathStickyBuyBar';
 import { AREA_CONFIG } from '@/lib/area-config';
 import { cn } from '@/lib/utils';
-import type {
-  LearningPath,
-  LearningPathStepDisplay,
-  LearningPathProgressData,
-  AreaCode,
-} from '@/types';
+import type { LearningPath, LearningPathCourse, LearningPathProgressData, AreaCode, DiscountInfo } from '@/types';
 
 interface PathDetailProps {
   path: LearningPath;
-  steps: LearningPathStepDisplay[];
+  courses: LearningPathCourse[];
   /** courseId → true if user is enrolled */
   enrolledCourseIds: Set<string>;
   /** True if user has purchased this learning path */
   isPathEnrolled: boolean;
+  discountInfo?: DiscountInfo;
 }
 
-const STEP_TYPE_ICON = {
-  course:   '📚',
-  video:    '🎬',
-  material: '📄',
-} as const;
-
-export function PathDetail({ path, steps, enrolledCourseIds, isPathEnrolled }: PathDetailProps) {
+export function PathDetail({ path, courses, enrolledCourseIds, isPathEnrolled, discountInfo }: PathDetailProps) {
   const [progress, setProgress] = useState<LearningPathProgressData | null>(null);
-  const [completingId, setCompletingId] = useState<string | null>(null);
   const [checkingOut, setCheckingOut] = useState(false);
   const [checkoutError, setCheckoutError] = useState('');
 
@@ -55,7 +46,8 @@ export function PathDetail({ path, steps, enrolledCourseIds, isPathEnrolled }: P
     }
   }
 
-  const sortedSteps = [...steps].sort((a, b) => a.orderNum - b.orderNum);
+  const sorted = [...courses].sort((a, b) => a.orderNum - b.orderNum);
+  const priceInCents = (path as unknown as { price_single: number }).price_single ?? 0;
 
   useEffect(() => {
     fetch(`/api/learning-paths/${path.id}/progress`)
@@ -66,30 +58,6 @@ export function PathDetail({ path, steps, enrolledCourseIds, isPathEnrolled }: P
       .catch(() => undefined);
   }, [path.id]);
 
-  async function handleComplete(stepId: string) {
-    setCompletingId(stepId);
-    try {
-      const res = await fetch(
-        `/api/learning-paths/${path.id}/steps/${stepId}/complete`,
-        { method: 'POST' },
-      );
-      const json = await res.json() as { isPathCompleted?: boolean };
-      // Refresh progress
-      const progressRes = await fetch(`/api/learning-paths/${path.id}/progress`);
-      const progressJson = await progressRes.json() as { progress?: LearningPathProgressData };
-      if (progressJson.progress) setProgress(progressJson.progress);
-      if (json.isPathCompleted) {
-        // Small celebration — could be extended with confetti
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-      }
-    } catch {
-      // Non-blocking
-    } finally {
-      setCompletingId(null);
-    }
-  }
-
-  const completedIds = new Set(progress?.completedStepIds ?? []);
   const pct = progress?.percentage ?? 0;
 
   /* ── Animated counter: 0 → pct on data arrival ── */
@@ -99,17 +67,14 @@ export function PathDetail({ path, steps, enrolledCourseIds, isPathEnrolled }: P
   useEffect(() => {
     if (pct === 0) return;
     if (rafRef.current) cancelAnimationFrame(rafRef.current);
-
-    const duration = 900; // ms
+    const duration = 900;
     const start = performance.now();
-    const from = 0;
 
     function tick(now: number) {
       const elapsed = now - start;
       const t = Math.min(elapsed / duration, 1);
-      // ease-out cubic
       const eased = 1 - Math.pow(1 - t, 3);
-      setDisplayPct(Math.round(from + (pct - from) * eased));
+      setDisplayPct(Math.round(pct * eased));
       if (t < 1) rafRef.current = requestAnimationFrame(tick);
     }
 
@@ -164,8 +129,9 @@ export function PathDetail({ path, steps, enrolledCourseIds, isPathEnrolled }: P
             <img
               src={path.thumbnail_url}
               alt=""
-              className="absolute inset-0 w-full h-full object-cover transition-transform duration-300 ease-out scale-[1.06]"
+              className="absolute inset-0 w-full h-full object-cover transition-transform duration-300 ease-out"
               style={{
+                objectPosition: (path as unknown as { thumbnail_position?: string }).thumbnail_position ?? '50% 50%',
                 transform: `scale(1.06) translate(${(mouse.x - 50) * -0.06}%, ${(mouse.y - 50) * -0.06}%)`,
               }}
             />
@@ -189,7 +155,7 @@ export function PathDetail({ path, steps, enrolledCourseIds, isPathEnrolled }: P
           }}
         />
 
-        {/* Static cyan glow — top-left */}
+        {/* Static cyan glow */}
         <div className="pointer-events-none absolute -top-16 -left-16 h-52 w-52 rounded-full blur-3xl opacity-15"
           style={{ background: '#4ECDC4' }} />
 
@@ -217,45 +183,113 @@ export function PathDetail({ path, steps, enrolledCourseIds, isPathEnrolled }: P
 
         {/* Content */}
         <div className={cn(
-          'relative p-8 lg:p-10 transition-transform duration-300',
+          'relative p-8 lg:p-10 transition-transform duration-300 flex flex-col lg:flex-row lg:items-end lg:justify-between gap-6',
           headerHovered && 'translate-x-0.5',
         )}>
-          {/* Badges */}
-          {path.estimated_hours && (
-            <div {...delay(0)} className={cn(reveal, 'flex flex-wrap items-center gap-2 mb-4')}>
-              <span className="px-2.5 py-1 rounded-full bg-white/5 border border-white/10 text-[0.7rem] text-text-muted font-medium">
-                ~{path.estimated_hours}h
-              </span>
-            </div>
-          )}
+          {/* Left: title + subtitle + progress */}
+          <div className="flex-1 min-w-0">
+            {path.estimated_hours && (
+              <div {...delay(0)} className={cn(reveal, 'flex flex-wrap items-center gap-2 mb-4')}>
+                <span className="px-2.5 py-1 rounded-full bg-white/5 border border-white/10 text-[0.7rem] text-text-muted font-medium">
+                  ~{path.estimated_hours}h
+                </span>
+              </div>
+            )}
 
-          <h1 {...delay(80)} className={cn(reveal, 'font-heading text-2xl lg:text-[2rem] font-extrabold text-text-primary leading-tight mb-2')}>
-            {path.title}
-          </h1>
+            <h1 {...delay(80)} className={cn(reveal, 'font-heading text-2xl lg:text-[2rem] font-extrabold text-text-primary leading-tight mb-2')}>
+              {path.title}
+            </h1>
 
-          {path.subtitle && (
-            <p {...delay(160)} className={cn(reveal, 'text-text-secondary text-[0.88rem] leading-relaxed mb-6 max-w-xl')}>
-              {path.subtitle}
-            </p>
-          )}
+            {path.subtitle && (
+              <p {...delay(160)} className={cn(reveal, 'text-text-secondary text-[0.88rem] leading-relaxed mb-6 max-w-xl')}>
+                {path.subtitle}
+              </p>
+            )}
 
-          {/* CTA acquisto percorso */}
-          {!isPathEnrolled && (path as unknown as { price_single: number }).price_single > 0 && (
-            <div {...delay(path.subtitle ? 220 : 140)} className={cn(reveal, 'mb-5')}>
-              {checkoutError && (
-                <p className="text-[0.75rem] text-accent-rose mb-2">{checkoutError}</p>
+            {/* Progress */}
+            <div {...delay(path.subtitle ? 240 : 160)} className={cn(reveal, 'space-y-2 max-w-sm')}>
+              <div className="flex items-center justify-between text-[0.75rem]">
+                <span className="text-text-muted">
+                  {progress
+                    ? `${progress.completedCourses} / ${progress.totalCourses} ${progress.totalCourses === 1 ? 'corso completato' : 'corsi completati'}`
+                    : `${sorted.length} ${sorted.length === 1 ? 'corso' : 'corsi'}`}
+                </span>
+                <span className={cn(
+                  'font-semibold tabular-nums transition-colors duration-300',
+                  pct === 100 ? 'text-accent-emerald' : 'text-accent-cyan',
+                )}>
+                  {displayPct}%
+                </span>
+              </div>
+              <ProgressBar percentage={displayPct} color={pct === 100 ? 'emerald' : 'cyan'} className="h-1.5" />
+              {pct === 100 && (
+                <p className="text-[0.75rem] text-accent-emerald font-semibold">
+                  Percorso completato
+                </p>
               )}
+            </div>
+          </div>
+
+          {/* Right: CTA acquisto — desktop only, shown inline in banner */}
+          {!isPathEnrolled && priceInCents > 0 && (
+            <div {...delay(200)} className={cn(reveal, 'shrink-0 flex flex-col items-start lg:items-end gap-3')}>
+              {checkoutError && (
+                <p className="text-[0.75rem] text-accent-rose">{checkoutError}</p>
+              )}
+
+              {/* Price */}
+              <div className="text-right">
+                {discountInfo ? (
+                  <>
+                    <div className="flex items-center justify-end gap-2 mb-0.5">
+                      <span className={cn(
+                        'text-[0.65rem] font-bold px-1.5 py-0.5 rounded font-mono',
+                        discountInfo.badgeColor === 'rose'
+                          ? 'bg-accent-rose/15 text-accent-rose border border-accent-rose/25'
+                          : 'bg-accent-amber/15 text-accent-amber border border-accent-amber/25',
+                      )}>
+                        -{discountInfo.discountPct}% {discountInfo.label}
+                      </span>
+                    </div>
+                    <div className="text-[0.82rem] text-text-muted line-through tabular-nums leading-none">
+                      €{(priceInCents / 100).toFixed(2).replace('.', ',')}
+                    </div>
+                    <div className="text-[1.5rem] font-extrabold text-white tabular-nums leading-tight">
+                      €{(discountInfo.discountedPrice / 100).toFixed(2).replace('.', ',')}
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="text-[1.5rem] font-extrabold text-accent-amber tabular-nums leading-none">
+                      €{(priceInCents / 100).toFixed(2).replace('.', ',')}
+                    </div>
+                  </>
+                )}
+                <div className="text-[0.65rem] text-white/40 mt-0.5">IVA inclusa</div>
+              </div>
+
+              {/* Button */}
               <button
                 type="button"
                 onClick={handleBuyPath}
                 disabled={checkingOut}
                 className={cn(
-                  'inline-flex items-center gap-2.5 px-5 py-2.5 rounded-lg text-[0.88rem] font-bold transition-all duration-200',
+                  'relative overflow-hidden inline-flex items-center gap-2 px-5 py-2.5 rounded-lg text-[0.85rem] font-bold transition-all duration-200 whitespace-nowrap',
                   'bg-accent-amber text-brand-dark hover:brightness-110 active:scale-95',
                   checkingOut && 'opacity-70 cursor-not-allowed',
                 )}
-                style={{ boxShadow: '0 0 20px -4px #F0A50060' }}
+                style={{ boxShadow: '0 0 24px -4px #F0A50070' }}
               >
+                {/* Shimmer sweep */}
+                {!checkingOut && (
+                  <span
+                    className="pointer-events-none absolute inset-0 -translate-x-full"
+                    style={{
+                      background: 'linear-gradient(105deg, transparent 40%, rgba(255,255,255,0.45) 50%, transparent 60%)',
+                      animation: 'shimmer-sweep 3s ease-in-out infinite',
+                    }}
+                  />
+                )}
                 {checkingOut ? (
                   <>
                     <svg className="animate-spin" width="14" height="14" fill="none" viewBox="0 0 24 24">
@@ -267,205 +301,211 @@ export function PathDetail({ path, steps, enrolledCourseIds, isPathEnrolled }: P
                 ) : (
                   <>
                     Acquista percorso
-                    {(path as unknown as { price_single: number }).price_single > 0 && (
-                      <span>
-                        — €{((path as unknown as { price_single: number }).price_single / 100).toFixed(2).replace('.', ',')}
-                      </span>
-                    )}
-                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M2 7h10M8 3l4 4-4 4" />
+                    <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                      <path d="M5 12h14M13 6l6 6-6 6" />
                     </svg>
                   </>
                 )}
               </button>
-              <p className="text-[0.68rem] text-text-muted mt-2">
-                Accesso permanente · Include le simulazioni d&apos;esame Scritto + Pratico
-              </p>
+
+              {/* Feature tags */}
+              <div className="flex flex-col gap-1">
+                {[
+                  { icon: 'M12 6v6l4 2M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20z', label: 'Accesso permanente' },
+                  { icon: 'M4 6h16M4 10h16M4 14h8', label: `${sorted.length} ${sorted.length === 1 ? 'corso incluso' : 'corsi inclusi'}` },
+                  { icon: 'M9 12l2 2 4-4m6 2a9 9 0 1 1-18 0 9 9 0 0 1 18 0z', label: 'Certificato di percorso' },
+                ].map(({ icon, label }) => (
+                  <span key={label} className="inline-flex items-center gap-1.5 text-[0.68rem] text-white/60">
+                    <svg width="11" height="11" fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" d={icon} />
+                    </svg>
+                    {label}
+                  </span>
+                ))}
+              </div>
             </div>
           )}
-
-          {/* Progress */}
-          <div {...delay(path.subtitle ? 240 : 160)} className={cn(reveal, 'space-y-2 max-w-sm')}>
-            <div className="flex items-center justify-between text-[0.75rem]">
-              <span className="text-text-muted">
-                {progress
-                  ? `${progress.completedRequiredSteps} / ${progress.totalRequiredSteps} passi obbligatori`
-                  : `${sortedSteps.length} passi totali`}
-              </span>
-              <span className={cn(
-                'font-semibold tabular-nums transition-colors duration-300',
-                pct === 100 ? 'text-accent-emerald' : 'text-accent-cyan',
-              )}>
-                {displayPct}%
-              </span>
-            </div>
-            <ProgressBar percentage={displayPct} color={pct === 100 ? 'emerald' : 'cyan'} className="h-1.5" />
-            {pct === 100 && (
-              <p className="text-[0.75rem] text-accent-emerald font-semibold">
-                Percorso completato
-              </p>
-            )}
-          </div>
-        </div>{/* /content */}
+        </div>
       </div>
+
+      {/* Preview video */}
+      {(path as unknown as { preview_playback_id: string | null }).preview_playback_id && (
+        <PathDetailPreviewVideo
+          playbackId={(path as unknown as { preview_playback_id: string }).preview_playback_id}
+          thumbnailUrl={path.thumbnail_url}
+        />
+      )}
 
       {/* Description */}
       {path.description && (
-        <p className="text-text-secondary text-[0.88rem] leading-relaxed">{path.description}</p>
+        <div className="relative overflow-hidden rounded-xl border border-white/5 bg-white/[0.02] backdrop-blur-sm px-6 py-5">
+          {/* Scan-line texture */}
+          <div
+            className="pointer-events-none absolute inset-0 opacity-[0.018]"
+            style={{
+              backgroundImage: 'repeating-linear-gradient(to bottom, #fff 0px, #fff 1px, transparent 1px, transparent 3px)',
+            }}
+          />
+          {/* Glow — top right */}
+          <div
+            className="pointer-events-none absolute -top-12 -right-12 h-36 w-36 rounded-full blur-3xl opacity-10"
+            style={{ background: '#4ECDC4' }}
+          />
+          {/* Content */}
+          <div
+            className="relative prose-editor text-text-primary text-[0.9rem] leading-[1.85]"
+            dangerouslySetInnerHTML={{ __html: path.description }}
+          />
+        </div>
       )}
 
-      {/* Steps */}
-      <div className="space-y-3">
-        <h2 className="text-[0.88rem] font-semibold text-text-primary">
-          Passi del percorso
-        </h2>
+      {/* Course list */}
+      <div>
+        <div className="flex items-center gap-3 mb-4">
+          <span className="font-mono text-[0.68rem] font-semibold tracking-widest uppercase text-accent-cyan">
+            Corsi del percorso
+          </span>
+          <span className="font-mono text-[0.68rem] text-accent-cyan/50 border border-accent-cyan/20 rounded px-1.5 py-0.5 bg-accent-cyan/5">
+            [{sorted.length.toString().padStart(2, '0')}]
+          </span>
+        </div>
 
-        {sortedSteps.map((step, index) => {
-          const isDone = completedIds.has(step.id);
-
-          return (
+        <div className="relative">
+          {/* Vertical connector line */}
+          {sorted.length > 1 && (
             <div
-              key={step.id}
-              className={cn(
-                'flex gap-4 p-5 rounded-xl border transition-colors',
-                isDone
-                  ? 'bg-accent-emerald/5 border-accent-emerald/20'
-                  : 'bg-surface-1 border-border-subtle',
-              )}
-            >
-              {/* Step number / checkmark */}
-              <div className={cn(
-                'w-8 h-8 rounded-full flex items-center justify-center text-[0.75rem] font-bold shrink-0 mt-0.5',
-                isDone
-                  ? 'bg-accent-emerald text-white'
-                  : 'bg-surface-3 text-text-muted',
-              )}>
-                {isDone ? (
-                  <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                  </svg>
-                ) : (
-                  index + 1
-                )}
-              </div>
+              className="absolute left-[15px] top-8 bottom-8 w-px pointer-events-none"
+              style={{
+                background: 'repeating-linear-gradient(to bottom, #4ECDC440 0px, #4ECDC440 4px, transparent 4px, transparent 10px)',
+              }}
+            />
+          )}
 
-              {/* Content */}
-              <div className="flex-1 min-w-0">
-                {/* Step type + required badge */}
-                <div className="flex items-center gap-2 mb-2">
-                  <span className="text-base">{STEP_TYPE_ICON[step.stepType]}</span>
-                  <span className="text-[0.68rem] font-semibold text-text-muted uppercase tracking-wider">
-                    {step.stepType === 'course' ? 'Corso' : step.stepType === 'video' ? 'Video' : 'Materiale'}
-                  </span>
-                  {!step.isRequired && (
-                    <span className="text-[0.65rem] text-text-muted border border-dashed border-border-subtle px-1.5 py-0.5 rounded">
-                      Opzionale
-                    </span>
-                  )}
-                </div>
+          <div className="space-y-3">
+            {sorted.map((entry, index) => {
+              const { course } = entry;
+              const isEnrolled = enrolledCourseIds.has(course.id);
+              const isCompleted = progress
+                ? (progress.completedCourses > index)
+                : false;
+              const areaConf = AREA_CONFIG[course.area as AreaCode];
+              const locked = !isPathEnrolled && !isEnrolled;
 
-                {/* Course step */}
-                {step.stepType === 'course' && (
-                  <div className="flex items-start gap-3">
-                    {step.course.thumbnail_url ? (
+              return (
+                <div key={entry.courseId} className="flex gap-4">
+                  {/* Node column */}
+                  <div className="flex flex-col items-center justify-center shrink-0" style={{ width: 32 }}>
+                    <div className={cn(
+                      'w-8 h-8 rounded-full flex items-center justify-center text-[0.75rem] font-bold z-10 ring-2',
+                      isCompleted
+                        ? 'bg-accent-emerald text-white ring-accent-emerald/30'
+                        : locked
+                          ? 'bg-surface-2 text-text-muted/50 ring-surface-1'
+                          : 'bg-surface-3 text-text-muted ring-surface-1',
+                    )}>
+                      {isCompleted ? (
+                        <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                        </svg>
+                      ) : locked ? (
+                        <svg width="12" height="12" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                          <rect x="3" y="11" width="18" height="11" rx="2" />
+                          <path d="M7 11V7a5 5 0 0 1 10 0v4" strokeLinecap="round" />
+                        </svg>
+                      ) : (
+                        index + 1
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Card */}
+                  <div className={cn(
+                    'flex-1 flex gap-3 p-4 rounded-xl border transition-all duration-200 mb-0',
+                    isCompleted
+                      ? 'bg-accent-emerald/5 border-accent-emerald/20 hover:-translate-y-0.5 hover:shadow-lg hover:border-accent-emerald/40'
+                      : locked
+                        ? 'bg-surface-1/50 border-border-subtle/50 opacity-60 grayscale-[0.25]'
+                        : 'bg-surface-1 border-border-subtle hover:-translate-y-0.5 hover:shadow-lg hover:border-white/15',
+                  )}>
+                    {/* Thumbnail */}
+                    {course.thumbnailUrl ? (
                       <img
-                        src={step.course.thumbnail_url}
+                        src={course.thumbnailUrl}
                         alt=""
                         className="w-12 h-12 rounded-lg object-cover shrink-0"
                       />
                     ) : (
                       <div className="w-12 h-12 rounded-lg bg-surface-3 flex items-center justify-center text-xl shrink-0">
-                        {AREA_CONFIG[step.course.area as AreaCode]?.emoji ?? '📚'}
+                        {areaConf?.emoji ?? '📚'}
                       </div>
                     )}
-                    <div className="flex-1 min-w-0">
-                      <div className="text-[0.88rem] font-semibold text-text-primary">
-                        {step.title ?? step.course.title}
-                      </div>
-                      {step.course.duration_min && (
-                        <div className="text-[0.72rem] text-text-muted mt-0.5">
-                          {step.course.duration_min}min
+
+                    {/* Info */}
+                    <div className="flex-1 min-w-0 flex items-center justify-between gap-4">
+                      <div className="min-w-0">
+                        <div className="text-[0.88rem] font-semibold text-text-primary truncate">
+                          {course.title}
                         </div>
-                      )}
-                      <div className="mt-2">
-                        {enrolledCourseIds.has(step.course.id) ? (
+                        {course.durationMin && (
+                          <div className="text-[0.72rem] text-text-muted mt-0.5">
+                            {course.durationMin}min
+                          </div>
+                        )}
+                      </div>
+
+                      {/* CTA — right aligned */}
+                      <div className="shrink-0">
+                        {isEnrolled ? (
                           <Link
-                            href={`/learn/${step.course.id}`}
+                            href={`/learn/${course.id}`}
                             className="inline-flex items-center gap-1.5 px-3 py-1.5 text-[0.75rem] font-semibold rounded-md bg-accent-cyan/15 text-accent-cyan hover:bg-accent-cyan/25 border border-accent-cyan/20 transition-colors"
                           >
-                            {isDone ? 'Rivedi corso' : 'Vai al corso'}
+                            {isCompleted ? 'Rivedi' : 'Vai al corso'}
+                            <svg width="12" height="12" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                              <path d="M5 12h14M13 6l6 6-6 6" />
+                            </svg>
                           </Link>
+                        ) : locked ? (
+                          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 text-[0.72rem] text-text-muted/60 font-medium">
+                            <svg width="11" height="11" fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24">
+                              <rect x="3" y="11" width="18" height="11" rx="2" />
+                              <path d="M7 11V7a5 5 0 0 1 10 0v4" strokeLinecap="round" />
+                            </svg>
+                            Incluso nel percorso
+                          </span>
                         ) : (
                           <Link
-                            href={`/catalogo-corsi/${step.course.slug}`}
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-[0.75rem] font-semibold rounded-md bg-surface-2 text-text-secondary hover:text-text-primary border border-border-subtle transition-colors"
+                            href={`/learn/${course.id}`}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-[0.75rem] font-semibold rounded-md bg-accent-cyan/15 text-accent-cyan hover:bg-accent-cyan/25 border border-accent-cyan/20 transition-colors"
                           >
-                            Scopri il corso
+                            Vai al corso
+                            <svg width="12" height="12" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                              <path d="M5 12h14M13 6l6 6-6 6" />
+                            </svg>
                           </Link>
                         )}
                       </div>
                     </div>
                   </div>
-                )}
-
-                {/* Video step */}
-                {step.stepType === 'video' && (
-                  <div>
-                    <div className="text-[0.88rem] font-semibold text-text-primary mb-1">
-                      {step.title ?? 'Video dedicato'}
-                    </div>
-                    {step.durationSec && (
-                      <div className="text-[0.72rem] text-text-muted mb-2">
-                        {Math.floor(step.durationSec / 60)}min
-                      </div>
-                    )}
-                    {!isDone && (
-                      <button
-                        onClick={() => handleComplete(step.id)}
-                        disabled={completingId === step.id}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-[0.75rem] font-semibold rounded-md bg-accent-amber/15 text-accent-amber hover:bg-accent-amber/25 border border-accent-amber/20 transition-colors disabled:opacity-50"
-                      >
-                        {completingId === step.id ? 'Salvataggio...' : 'Segna come visto'}
-                      </button>
-                    )}
-                  </div>
-                )}
-
-                {/* Material step */}
-                {step.stepType === 'material' && (
-                  <div>
-                    <div className="text-[0.88rem] font-semibold text-text-primary mb-1">
-                      {step.title ?? step.materialUrl}
-                    </div>
-                    <div className="text-[0.72rem] text-text-muted uppercase tracking-wide mb-2">
-                      {step.materialType}
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <a
-                        href={step.materialUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-[0.75rem] font-semibold rounded-md bg-surface-2 text-text-secondary hover:text-text-primary border border-border-subtle transition-colors"
-                      >
-                        Apri {step.materialType === 'pdf' ? 'PDF' : 'link'}
-                      </a>
-                      {!isDone && (
-                        <button
-                          onClick={() => handleComplete(step.id)}
-                          disabled={completingId === step.id}
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-[0.75rem] font-semibold rounded-md bg-accent-cyan/10 text-accent-cyan hover:bg-accent-cyan/20 border border-accent-cyan/20 transition-colors disabled:opacity-50"
-                        >
-                          {completingId === step.id ? 'Salvataggio...' : 'Segna come completato'}
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-          );
-        })}
+                </div>
+              );
+            })}
+          </div>
+        </div>
       </div>
+
+      {/* Sticky buy bar — visible only when header scrolls out of view */}
+      {!isPathEnrolled && priceInCents > 0 && (
+        <PathStickyBuyBar
+          title={path.title}
+          priceInCents={priceInCents}
+          courseCount={sorted.length}
+          onBuy={handleBuyPath}
+          buying={checkingOut}
+          headerRef={headerRef}
+          discountInfo={discountInfo}
+        />
+      )}
     </div>
   );
 }

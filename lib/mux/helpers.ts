@@ -145,6 +145,35 @@ export async function createMuxPreviewUploadUrl(
 }
 
 /**
+ * Creates a Mux Direct Upload URL for a learning path preview video.
+ * Uses PUBLIC playback policy (no JWT needed) so the browser can play it directly.
+ * The pathId is stored in `passthrough` with type='path_preview' so the webhook
+ * can write preview_playback_id and preview_asset_id to the learning_paths row.
+ */
+export async function createMuxPathPreviewUploadUrl(
+  pathId: string,
+): Promise<MuxUploadResult> {
+  const mux = getMuxClient();
+  if (!mux) {
+    throw new Error('Mux non configurato: MUX_TOKEN_ID o MUX_TOKEN_SECRET mancante');
+  }
+
+  const upload = await mux.video.uploads.create({
+    new_asset_settings: {
+      playback_policies: ['public'],
+      video_quality: 'basic',
+      passthrough: JSON.stringify({ type: 'path_preview', pathId }),
+    },
+    cors_origin: process.env.NEXT_PUBLIC_APP_URL ?? '*',
+  });
+
+  return {
+    uploadUrl: upload.url,
+    uploadId: upload.id,
+  };
+}
+
+/**
  * Creates a Mux Direct Upload URL for a feed post video.
  * Uses PUBLIC playback policy for autoplay in the feed (no JWT needed).
  * The postId is stored in passthrough so the webhook can write media_url

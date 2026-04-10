@@ -3,48 +3,52 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
-import { useCourseTabsContext } from './CourseNavTabs';
-import type { CourseStatus } from '@/types';
+import { useLearningPathTabsContext } from './LearningPathNavTabs';
+import type { LearningPathStatus } from '@/types';
 
-const STATUS_OPTIONS: { value: CourseStatus; label: string; dotClass: string; textClass: string }[] = [
+const STATUS_OPTIONS: { value: LearningPathStatus; label: string; dotClass: string; textClass: string }[] = [
   { value: 'draft',     label: 'Bozza',      dotClass: 'bg-text-muted',      textClass: 'text-text-muted' },
   { value: 'hidden',    label: 'Nascosto',    dotClass: 'bg-accent-amber',    textClass: 'text-accent-amber' },
   { value: 'published', label: 'Pubblicato',  dotClass: 'bg-accent-emerald',  textClass: 'text-accent-emerald' },
   { value: 'private',   label: 'Privato',     dotClass: 'bg-accent-violet',   textClass: 'text-accent-violet' },
-  { value: 'path',      label: 'Percorso',    dotClass: 'bg-accent-cyan',     textClass: 'text-accent-cyan' },
   { value: 'archived',  label: 'Archiviato',  dotClass: 'bg-accent-rose',     textClass: 'text-accent-rose' },
 ];
 
-interface CourseFormFooterProps {
+interface LearningPathFormFooterProps {
   formId?: string;
   isEditing: boolean;
-  courseId?: string;
-  currentStatus?: CourseStatus;
+  pathId?: string;
+  currentStatus?: LearningPathStatus;
 }
 
-export function CourseFormFooter({ formId = 'course-form', isEditing, courseId, currentStatus }: CourseFormFooterProps) {
+export function LearningPathFormFooter({
+  formId = 'learning-path-form',
+  isEditing,
+  pathId,
+  currentStatus,
+}: LearningPathFormFooterProps) {
   const router = useRouter();
   const [success, setSuccess] = useState(false);
-  const [status, setStatus] = useState<CourseStatus>(currentStatus ?? 'draft');
+  const [status, setStatus] = useState<LearningPathStatus>(currentStatus ?? 'draft');
   const [changingStatus, setChangingStatus] = useState(false);
   const [statusFeedback, setStatusFeedback] = useState<'saved' | 'error' | null>(null);
-  const { isDirty, isSaving } = useCourseTabsContext();
+  const { isDirty, isSaving } = useLearningPathTabsContext();
 
   useEffect(() => {
     function handleSaved() {
       setSuccess(true);
       setTimeout(() => setSuccess(false), 3000);
     }
-    window.addEventListener('course-saved', handleSaved);
-    return () => window.removeEventListener('course-saved', handleSaved);
+    window.addEventListener('learning-path-saved', handleSaved);
+    return () => window.removeEventListener('learning-path-saved', handleSaved);
   }, []);
 
-  async function handleStatusChange(newStatus: CourseStatus) {
-    if (!courseId || newStatus === status) return;
+  async function handleStatusChange(newStatus: LearningPathStatus) {
+    if (!pathId || newStatus === status) return;
     setChangingStatus(true);
     setStatusFeedback(null);
     try {
-      const res = await fetch(`/api/admin/courses/${courseId}`, {
+      const res = await fetch(`/api/admin/learning-paths/${pathId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: newStatus }),
@@ -86,13 +90,13 @@ export function CourseFormFooter({ formId = 'course-form', isEditing, courseId, 
                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
               </svg>
             )}
-            {isSaving ? 'Salvataggio…' : isEditing ? 'Salva modifiche' : 'Crea corso'}
+            {isSaving ? 'Salvataggio…' : isEditing ? 'Salva modifiche' : 'Crea percorso'}
           </button>
           <button
             type="button"
             onClick={() => {
               if (isDirty && !window.confirm('Hai modifiche non salvate. Vuoi uscire comunque?')) return;
-              router.push('/admin/corsi');
+              router.push('/admin/learning-paths');
               router.refresh();
             }}
             className="px-5 py-2.5 text-[0.82rem] font-medium text-text-secondary hover:text-text-primary transition-colors"
@@ -100,13 +104,13 @@ export function CourseFormFooter({ formId = 'course-form', isEditing, courseId, 
             Chiudi
           </button>
 
-          {isEditing && courseId && (
+          {isEditing && pathId && (
             <div className="ml-auto flex items-center gap-2">
               <span className="text-[0.72rem] text-text-muted">Stato:</span>
               <div className="relative">
                 <select
                   value={status}
-                  onChange={(e) => handleStatusChange(e.target.value as CourseStatus)}
+                  onChange={(e) => handleStatusChange(e.target.value as LearningPathStatus)}
                   disabled={changingStatus}
                   className={cn(
                     'appearance-none pl-6 pr-7 py-1.5 rounded-md text-[0.78rem] font-semibold border transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed',
@@ -142,7 +146,7 @@ export function CourseFormFooter({ formId = 'course-form', isEditing, courseId, 
           )}
 
           {success && (
-            <span className={cn('text-[0.78rem] font-medium text-accent-emerald', isEditing && courseId ? '' : 'ml-2')}>
+            <span className={cn('text-[0.78rem] font-medium text-accent-emerald', isEditing && pathId ? '' : 'ml-2')}>
               Modifiche salvate con successo.
             </span>
           )}

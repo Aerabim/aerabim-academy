@@ -69,8 +69,9 @@ export interface BannerPath {
   title: string;
   subtitle: string | null;
   thumbnailUrl: string | null;
+  thumbnailPosition?: string;
   estimatedHours: number | null;
-  stepCount: number;
+  courseCount: number;
   isCompleted: boolean;
   hasStarted: boolean;
   coursePreview: CourseChip[];
@@ -149,6 +150,7 @@ export function LearningPathBanner({ path, index }: LearningPathBannerProps) {
               'absolute inset-0 w-full h-full object-cover transition-transform duration-700',
               hovered && 'scale-[1.04]',
             )}
+            style={{ objectPosition: path.thumbnailPosition ?? '50% 50%' }}
           />
           {/* Overlay: heavy on left for text, lighter on right for thumbnail visibility */}
           <div className="absolute inset-0 bg-gradient-to-r from-[#040B11]/95 via-[#040B11]/75 to-[#040B11]/35" />
@@ -237,7 +239,7 @@ export function LearningPathBanner({ path, index }: LearningPathBannerProps) {
 
           {/* Meta row */}
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-0.5 text-[0.7rem] text-text-muted">
-            <span>{path.stepCount} {path.stepCount === 1 ? 'passo' : 'passi'}</span>
+            <span>{path.courseCount} {path.courseCount === 1 ? 'corso' : 'corsi'}</span>
             {path.estimatedHours && (
               <>
                 <span className="opacity-25">·</span>
@@ -292,7 +294,7 @@ export function LearningPathBanner({ path, index }: LearningPathBannerProps) {
               </div>
             ))}
 
-            {path.stepCount > path.coursePreview.length && (
+            {path.courseCount > path.coursePreview.length && (
               <div
                 className={cn(
                   'text-[0.67rem] text-text-muted pl-3 transition-all duration-300',
@@ -300,7 +302,7 @@ export function LearningPathBanner({ path, index }: LearningPathBannerProps) {
                 )}
                 style={{ transitionDelay: hovered ? `${path.coursePreview.length * 55}ms` : '0ms' }}
               >
-                + altri {path.stepCount - path.coursePreview.length} passi
+                + altri {path.courseCount - path.coursePreview.length} corsi
               </div>
             )}
           </div>

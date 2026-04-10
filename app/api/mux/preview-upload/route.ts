@@ -1,9 +1,9 @@
 import { NextResponse } from 'next/server';
 import { verifyAdmin } from '@/lib/admin/auth';
-import { createMuxPreviewUploadUrl } from '@/lib/mux/helpers';
+import { createMuxPreviewUploadUrl, createMuxPathPreviewUploadUrl } from '@/lib/mux/helpers';
 import type { ApiError } from '@/types';
 
-/** POST /api/mux/preview-upload — creates a Mux Direct Upload URL for a course preview clip */
+/** POST /api/mux/preview-upload — creates a Mux Direct Upload URL for a course or path preview clip */
 export async function POST(req: Request) {
   try {
     const result = await verifyAdmin();
@@ -11,10 +11,16 @@ export async function POST(req: Request) {
 
     const body = await req.json();
     const courseId = body.courseId as string | undefined;
+    const pathId = body.pathId as string | undefined;
+
+    if (pathId) {
+      const { uploadUrl, uploadId } = await createMuxPathPreviewUploadUrl(pathId);
+      return NextResponse.json({ uploadUrl, uploadId });
+    }
 
     if (!courseId) {
       return NextResponse.json(
-        { error: 'courseId obbligatorio.' } satisfies ApiError,
+        { error: 'courseId o pathId obbligatorio.' } satisfies ApiError,
         { status: 400 },
       );
     }

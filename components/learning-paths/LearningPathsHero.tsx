@@ -87,19 +87,8 @@ export function LearningPathsHero() {
         {/* Content — allineato al bottom-left come CatalogHero */}
         <div className="relative flex flex-col justify-end min-h-[300px] lg:min-h-[320px] p-8 lg:p-11 max-w-[600px]">
 
-          {/* Pill "In arrivo" — stessa posizione del badge "In evidenza" del CatalogHero */}
-          <div className="flex items-center gap-2 mb-4">
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#F0A500]/10 border border-[#F0A500]/28 text-[0.68rem] font-bold text-[#F0A500] uppercase tracking-widest">
-              <span className="relative flex h-1.5 w-1.5">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#F0A500] opacity-75" />
-                <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-[#F0A500]" />
-              </span>
-              In arrivo
-            </span>
-          </div>
-
           <h1 className="font-heading text-2xl lg:text-[2rem] font-extrabold text-text-primary leading-tight mb-3">
-            Learning <span className="gradient-text-cyan">Paths</span>
+            Percorsi <span className="gradient-text-cyan">Formativi</span>
           </h1>
 
           <p className="text-text-secondary text-[0.84rem] leading-relaxed mb-6 max-w-md">

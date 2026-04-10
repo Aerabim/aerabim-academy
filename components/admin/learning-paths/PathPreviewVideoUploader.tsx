@@ -1,21 +1,24 @@
 'use client';
 
 import { useState, useRef } from 'react';
+import dynamic from 'next/dynamic';
 import { cn } from '@/lib/utils';
 
-interface PreviewVideoUploaderProps {
-  courseId: string;
+const MuxPlayer = dynamic(() => import('@mux/mux-player-react'), { ssr: false });
+
+interface PathPreviewVideoUploaderProps {
+  pathId: string;
   currentPlaybackId: string | null;
   onUploaded: (playbackId: string, assetId: string) => void;
 }
 
 type UploadState = 'idle' | 'uploading' | 'processing' | 'done' | 'error';
 
-export function PreviewVideoUploader({
-  courseId,
+export function PathPreviewVideoUploader({
+  pathId,
   currentPlaybackId,
   onUploaded,
-}: PreviewVideoUploaderProps) {
+}: PathPreviewVideoUploaderProps) {
   const fileRef = useRef<HTMLInputElement>(null);
   const [state, setState] = useState<UploadState>(currentPlaybackId ? 'done' : 'idle');
   const [progress, setProgress] = useState(0);
@@ -32,18 +35,18 @@ export function PreviewVideoUploader({
       const res = await fetch('/api/mux/preview-upload', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ courseId }),
+        body: JSON.stringify({ pathId }),
       });
 
       if (!res.ok) {
-        const data = await res.json();
+        const data = await res.json() as { error?: string };
         throw new Error(data.error ?? 'Errore nel creare l\'upload.');
       }
 
       const { uploadUrl, uploadId } = await res.json() as { uploadUrl: string; uploadId: string };
 
       // 1b. Clear the existing preview IDs so polling waits for the new asset
-      await fetch(`/api/admin/courses/${courseId}`, {
+      await fetch(`/api/admin/learning-paths/${pathId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ previewPlaybackId: null, previewAssetId: null }),
@@ -73,11 +76,10 @@ export function PreviewVideoUploader({
         xhr.send(file);
       });
 
-      // 3. Upload complete — Mux will process and webhook will update the DB.
-      //    We can't know the playback ID until the webhook fires, so show "processing".
+      // 3. Upload complete — Mux processes and the webhook writes to the DB.
+      //    Poll until preview_playback_id is set (max 3 minutes).
       setState('processing');
 
-      // Poll the course until preview_playback_id is set (max 3 minutes)
       let attempts = 0;
       const poll = setInterval(async () => {
         attempts++;
@@ -89,7 +91,8 @@ export function PreviewVideoUploader({
         }
 
         try {
-          const pollRes = await fetch(`/api/admin/courses/${courseId}/preview-status?uploadId=${encodeURIComponent(uploadId)}`);
+          const pollUrl = `/api/admin/learning-paths/${pathId}/preview-status?uploadId=${encodeURIComponent(uploadId)}`;
+          const pollRes = await fetch(pollUrl);
           if (!pollRes.ok) return;
           const pollData = await pollRes.json() as { previewPlaybackId: string | null; previewAssetId: string | null };
 
@@ -114,41 +117,33 @@ export function PreviewVideoUploader({
     if (file) handleFile(file);
   }
 
-  const previewUrl = playbackId
-    ? `https://stream.mux.com/${playbackId}/medium.mp4`
-    : null;
-
   return (
     <div className="space-y-3">
       <label className="block text-[0.78rem] font-medium text-text-secondary">
-        Video anteprima (clip breve · max 60s)
+        Video anteprima del percorso (clip breve · max 60s)
       </label>
 
       {error && (
         <div className="text-[0.72rem] text-accent-rose">{error}</div>
       )}
 
-      {/* Video preview or drop zone */}
-      <div
-        onClick={() => state === 'idle' || state === 'error' ? fileRef.current?.click() : undefined}
-        className={cn(
-          'relative w-full rounded-lg border-2 border-dashed overflow-hidden transition-colors',
-          state === 'idle' || state === 'error'
-            ? 'h-32 cursor-pointer border-border-hover hover:border-accent-cyan/40 bg-surface-2/50'
-            : 'border-border-subtle',
-          (state === 'uploading' || state === 'processing') && 'pointer-events-none opacity-70',
-        )}
-      >
-        {state === 'done' && previewUrl && (
-          <video
-            src={previewUrl}
-            controls
-            className="w-full max-h-48 object-cover rounded-lg"
-            preload="metadata"
+      {/* Player — shown when done */}
+      {state === 'done' && playbackId && (
+        <div className="rounded-lg overflow-hidden border border-border-subtle" style={{ aspectRatio: '16/9' }}>
+          <MuxPlayer
+            playbackId={playbackId}
+            streamType="on-demand"
+            style={{ width: '100%', height: '100%' }}
           />
-        )}
+        </div>
+      )}
 
-        {(state === 'idle' || state === 'error') && (
+      {/* Drop zone — idle/error */}
+      {(state === 'idle' || state === 'error') && (
+        <div
+          onClick={() => fileRef.current?.click()}
+          className="relative h-32 w-full rounded-lg border-2 border-dashed cursor-pointer border-border-hover hover:border-accent-cyan/40 bg-surface-2/50 transition-colors"
+        >
           <div className="flex flex-col items-center justify-center h-full gap-2 text-text-muted">
             <svg width="28" height="28" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24">
               <polygon points="23 7 16 12 23 17 23 7" />
@@ -157,27 +152,26 @@ export function PreviewVideoUploader({
             <span className="text-[0.78rem]">Clicca per caricare un video breve</span>
             <span className="text-[0.68rem]">MP4, MOV — Max 60s consigliati</span>
           </div>
-        )}
+        </div>
+      )}
 
-        {state === 'uploading' && (
-          <div className="flex flex-col items-center justify-center h-32 gap-2">
-            <div className="w-3/4 h-2 bg-surface-3 rounded-full overflow-hidden">
-              <div
-                className="h-full bg-accent-cyan transition-all duration-300"
-                style={{ width: `${progress}%` }}
-              />
-            </div>
-            <span className="text-[0.72rem] text-text-muted">Caricamento {progress}%</span>
+      {/* Progress — uploading */}
+      {state === 'uploading' && (
+        <div className="h-32 w-full rounded-lg border border-border-subtle flex flex-col items-center justify-center gap-2">
+          <div className="w-3/4 h-2 bg-surface-3 rounded-full overflow-hidden">
+            <div className="h-full bg-accent-cyan transition-all duration-300" style={{ width: `${progress}%` }} />
           </div>
-        )}
+          <span className="text-[0.72rem] text-text-muted">Caricamento {progress}%</span>
+        </div>
+      )}
 
-        {state === 'processing' && (
-          <div className="flex flex-col items-center justify-center h-32 gap-2 text-text-muted">
-            <div className="w-6 h-6 border-2 border-accent-cyan border-t-transparent rounded-full animate-spin" />
-            <span className="text-[0.72rem]">Elaborazione in corso...</span>
-          </div>
-        )}
-      </div>
+      {/* Spinner — processing */}
+      {state === 'processing' && (
+        <div className="h-32 w-full rounded-lg border border-border-subtle flex flex-col items-center justify-center gap-2 text-text-muted">
+          <div className="w-6 h-6 border-2 border-accent-cyan border-t-transparent rounded-full animate-spin" />
+          <span className="text-[0.72rem]">Elaborazione in corso...</span>
+        </div>
+      )}
 
       <input
         ref={fileRef}

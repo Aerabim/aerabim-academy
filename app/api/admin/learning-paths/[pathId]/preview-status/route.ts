@@ -4,11 +4,11 @@ import { getMuxClient } from '@/lib/mux/helpers';
 import type { ApiError } from '@/types';
 
 interface RouteParams {
-  params: { courseId: string };
+  params: { pathId: string };
 }
 
 /**
- * GET /api/admin/courses/[courseId]/preview-status?uploadId=...
+ * GET /api/admin/learning-paths/[pathId]/preview-status?uploadId=...
  *
  * Polls for Mux preview video readiness.
  * 1. Checks the DB for preview_playback_id (set by the Mux webhook in production).
@@ -21,20 +21,20 @@ export async function GET(req: Request, { params }: RouteParams) {
     if (result instanceof NextResponse) return result;
     const { admin } = result;
 
-    const { courseId } = params;
+    const { pathId } = params;
     const { searchParams } = new URL(req.url);
     const uploadId = searchParams.get('uploadId');
 
     // 1. Check DB first (covers the production webhook path)
     const { data, error } = await admin
-      .from('courses')
+      .from('learning_paths')
       .select('preview_playback_id, preview_asset_id')
-      .eq('id', courseId)
-      .maybeSingle();
+      .eq('id', pathId)
+      .single();
 
     if (error || !data) {
       return NextResponse.json(
-        { error: 'Corso non trovato.' } satisfies ApiError,
+        { error: 'Percorso non trovato.' } satisfies ApiError,
         { status: 404 },
       );
     }
@@ -65,9 +65,9 @@ export async function GET(req: Request, { params }: RouteParams) {
 
               // Write to DB so subsequent requests hit the fast path
               await admin
-                .from('courses')
+                .from('learning_paths')
                 .update({ preview_playback_id: playbackId, preview_asset_id: assetId })
-                .eq('id', courseId);
+                .eq('id', pathId);
 
               return NextResponse.json({
                 previewPlaybackId: playbackId,
@@ -88,7 +88,7 @@ export async function GET(req: Request, { params }: RouteParams) {
       previewAssetId: null,
     });
   } catch (err) {
-    console.error('GET /api/admin/courses/[courseId]/preview-status error:', err);
+    console.error('GET /api/admin/learning-paths/[pathId]/preview-status error:', err);
     return NextResponse.json(
       { error: 'Errore interno del server.' } satisfies ApiError,
       { status: 500 },

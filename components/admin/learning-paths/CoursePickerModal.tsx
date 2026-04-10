@@ -30,6 +30,7 @@ const STATUS_LABEL: Record<CourseStatus, string> = {
   hidden:    'Nascosto',
   archived:  'Archiviato',
   private:   'Privato',
+  path:      'Percorso',
 };
 
 const STATUS_CLASS: Record<CourseStatus, string> = {
@@ -38,6 +39,7 @@ const STATUS_CLASS: Record<CourseStatus, string> = {
   hidden:    'text-accent-amber bg-accent-amber/10 border-accent-amber/20',
   archived:  'text-accent-rose bg-accent-rose/10 border-accent-rose/20',
   private:   'text-accent-violet bg-accent-violet/10 border-accent-violet/20',
+  path:      'text-accent-cyan bg-accent-cyan/10 border-accent-cyan/20',
 };
 
 export function CoursePickerModal({
@@ -81,9 +83,13 @@ export function CoursePickerModal({
 
   if (!open || !mounted) return null;
 
-  const filtered = courses.filter((c) =>
-    c.title.toLowerCase().includes(filter.toLowerCase()),
-  );
+  const filtered = courses
+    .filter((c) => c.title.toLowerCase().includes(filter.toLowerCase()))
+    .sort((a, b) => {
+      if (a.status === 'path' && b.status !== 'path') return -1;
+      if (b.status === 'path' && a.status !== 'path') return 1;
+      return 0;
+    });
 
   return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">

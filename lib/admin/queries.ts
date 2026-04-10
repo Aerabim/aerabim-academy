@@ -454,3 +454,117 @@ export async function getAdminCourseDetail(
     return null;
   }
 }
+
+// ─── Learning Paths Admin Queries ─────────────────────────────────────────────
+
+export interface AdminLearningPathActivityItem {
+  id: string;
+  type: 'created' | 'enrollment';
+  userName: string;
+  userEmail: string;
+  date: string;
+}
+
+/**
+ * Returns a chronological activity log for one learning path:
+ * - path creation event
+ * - up to 30 most recent enrollments enriched with user data
+ */
+export async function getAdminLearningPathActivity(
+  admin: SupabaseClient,
+  pathId: string,
+  pathCreatedAt: string,
+): Promise<AdminLearningPathActivityItem[]> {
+  try {
+    const { data: enrollmentsRaw } = await admin
+      .from('learning_path_enrollments')
+      .select('id, user_id, created_at')
+      .eq('path_id', pathId)
+      .order('created_at', { ascending: false })
+      .limit(30);
+
+    const enrollments = (enrollmentsRaw ?? []) as {
+      id: string; user_id: string; created_at: string;
+    }[];
+
+    const userIds = Array.from(new Set(enrollments.map((e) => e.user_id)));
+
+    const [profilesRes, authRes] = await Promise.all([
+      userIds.length > 0
+        ? admin.from('profiles').select('id, display_name').in('id', userIds)
+        : Promise.resolve({ data: [] as { id: string; display_name: string | null }[] }),
+      admin.auth.admin.listUsers({ perPage: 1000 }),
+    ]);
+
+    const nameMap = new Map(
+      ((profilesRes.data ?? []) as { id: string; display_name: string | null }[])
+        .map((u) => [u.id, u.display_name ?? '']),
+    );
+    const emailMap = new Map<string, string>();
+    for (const u of authRes.data?.users ?? []) {
+      emailMap.set(u.id, u.email ?? '');
+    }
+
+    const enrollmentItems: AdminLearningPathActivityItem[] = enrollments.map((e) => ({
+      id: e.id,
+      type: 'enrollment',
+      userName: nameMap.get(e.user_id) || emailMap.get(e.user_id) || 'Utente',
+      userEmail: emailMap.get(e.user_id) ?? '',
+      date: e.created_at,
+    }));
+
+    const creationItem: AdminLearningPathActivityItem = {
+      id: 'creation',
+      type: 'created',
+      userName: 'Sistema',
+      userEmail: '',
+      date: pathCreatedAt,
+    };
+
+    return [...enrollmentItems, creationItem];
+  } catch (err) {
+    console.error('getAdminLearningPathActivity error:', err);
+    return [];
+  }
+}
+
+export interface AdminLearningPathStats {
+  enrolledCount: number;
+  completionCount: number;
+  courseCount: number;
+}
+
+/**
+ * Fetches enrollment count, completion count and step count for a single learning path.
+ */
+export async function getAdminLearningPathStats(
+  admin: SupabaseClient,
+  pathId: string,
+): Promise<AdminLearningPathStats> {
+  try {
+    const [enrollRes, completionRes, courseRes] = await Promise.all([
+      admin
+        .from('learning_path_enrollments')
+        .select('id', { count: 'exact', head: true })
+        .eq('path_id', pathId),
+      admin
+        .from('learning_path_progress')
+        .select('id', { count: 'exact', head: true })
+        .eq('path_id', pathId)
+        .eq('is_completed', true),
+      admin
+        .from('learning_path_courses')
+        .select('course_id', { count: 'exact', head: true })
+        .eq('path_id', pathId),
+    ]);
+
+    return {
+      enrolledCount: enrollRes.count ?? 0,
+      completionCount: completionRes.count ?? 0,
+      courseCount: courseRes.count ?? 0,
+    };
+  } catch (err) {
+    console.error('getAdminLearningPathStats error:', err);
+    return { enrolledCount: 0, completionCount: 0, courseCount: 0 };
+  }
+}
